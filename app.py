@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.set_page_config(page_title="Vulnerabilidade à Perda", layout="wide")
+st.set_page_config(page_title="Vulnerabilidade à Perda - Famalicão", layout="wide")
 st.title("🔴 Famalicão — Análise de Vulnerabilidade à Perda")
 st.caption("Dashboard baseado em dados reais StatsBomb")
 
@@ -35,16 +35,25 @@ if uploaded_file is not None:
     df = df.sort_values("match_id").reset_index(drop=True)
     df["Media_Movel_3"] = df["VAP"].rolling(3, min_periods=1).mean()
 
+    # --- Filtro por adversário na sidebar ---
+    st.sidebar.header("Filtros")
+    adversarios = ["Todos"] + sorted(df["opponent"].unique().tolist())
+    sel_adversario = st.sidebar.selectbox("Adversário", adversarios)
+
+    df_filtered = df.copy() if sel_adversario == "Todos" else df[df["opponent"] == sel_adversario].copy()
+
     # --- Resumo Executivo ---
     st.subheader("Resumo Executivo")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("VAP média", f"{df['VAP'].mean():.2f}")
-    col2.metric("Maior VAP", f"{df['VAP'].max():.2f}")
-    col3.metric("Menor VAP", f"{df['VAP'].min():.2f}")
-    col4.metric("Jogo mais crítico", df.loc[df["VAP"].idxmax(), "opponent"])
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("VAP média", f"{df_filtered['VAP'].mean():.2f}")
+    col2.metric("Maior VAP", f"{df_filtered['VAP'].max():.2f}")
+    col3.metric("Menor VAP", f"{df_filtered['VAP'].min():.2f}")
+    col4.metric("Jogo mais crítico", df_filtered.loc[df_filtered["VAP"].idxmax(), "opponent"])
+    if "team_match_xg_conceded_after_loss" in df_filtered.columns:
+        col5.metric("xG sofrido total", f"{df_filtered['team_match_xg_conceded_after_loss'].sum():.2f}")
 
     # --- Semáforo último jogo ---
-    ultimo = df.iloc[-1]
+    ultimo = df_filtered.iloc[-1]
     st.subheader("Semáforo de risco do último jogo")
     st.markdown(f"### {ultimo['Risco']}  |  vs {ultimo['opponent']}  |  VAP = {ultimo['VAP']:.2f}")
 
@@ -56,20 +65,26 @@ if uploaded_file is not None:
         "team_match_counter_attacking_shots_conceded",
         "team_match_shots_in_clear_conceded",
         "team_match_deep_progressions_conceded",
+        "team_match_xg_conceded_after_loss",
         "VAP", "Risco", "Media_Movel_3"
-    ] if c in df.columns]
-    st.dataframe(df[cols], use_container_width=True)
+    ] if c in df_filtered.columns]
+    st.dataframe(df_filtered[cols], use_container_width=True)
 
     # --- Ranking ---
     st.subheader("Ranking dos jogos mais vulneráveis")
-    rank_cols = [c for c in ["match_date", "opponent", "VAP", "Risco"] if c in df.columns]
-    ranking = df.sort_values("VAP", ascending=False)[rank_cols].reset_index(drop=True)
+    rank_cols = [c for c in ["match_date", "opponent", "VAP", "team_match_xg_conceded_after_loss", "Risco"] if c in df_filtered.columns]
+    ranking = df_filtered.sort_values("VAP", ascending=False)[rank_cols].reset_index(drop=True)
     ranking.index += 1
     st.dataframe(ranking, use_container_width=True)
 
-    # --- Gráficos ---
+    # --- Gráficos com nome do adversário ---
     st.subheader("Linha temporal da vulnerabilidade")
-    st.line_chart(df.set_index("match_date")[["VAP", "Media_Movel_3"]])
+    st.line_chart(df_filtered.set_index("opponent")[["VAP", "Media_Movel_3"]])
 
     st.subheader("Vulnerabilidade por jogo")
-    st.bar_chart(df.set_index("match_date")["VAP"])
+    st.bar_chart(df_filtered.set_index("opponent")["VAP"])
+
+    if "team_match_xg_conceded_after_loss" in df_filtered.columns:
+        st.subheader("xG sofrido após perda por jogo")
+        st.bar_chart(df_filtered.set_index("opponent")["team_match_xg_conceded_after_loss"])
+
