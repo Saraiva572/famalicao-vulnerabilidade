@@ -1,14 +1,14 @@
 import streamlit as st
 import pandas as pd
 import requests
+import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import matplotlib.ticker as ticker
-import numpy as np
+from datetime import datetime
 
 st.set_page_config(page_title="Famalicão — Análise", layout="wide")
 
-# ── Credenciais ─────────────────────────────────────────────────────────────
+# ── Credenciais ────────────────────────────────────────────────────────────
 USER = st.secrets["STATSBOMB_USER"]
 PASS = st.secrets["STATSBOMB_PASS"]
 
@@ -23,52 +23,50 @@ auth              = (USER, PASS)
 MESES_PT = {1:"Janeiro",2:"Fevereiro",3:"Março",4:"Abril",5:"Maio",6:"Junho",
             7:"Julho",8:"Agosto",9:"Setembro",10:"Outubro",11:"Novembro",12:"Dezembro"}
 
-# ── Cores oficiais dos clubes (primária, secundária) ─────────────────────────
+# ── Cores oficiais (primária, secundária) ──────────────────────────────────
+# Fonte: brandcolorcode.com / teamcolorcodes.com
+def lighten_hex(hex_color, factor=0.35):
+    """Torna uma cor hex mais clara misturando com branco."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = int(hex_color[0:2],16), int(hex_color[2:4],16), int(hex_color[4:6],16)
+    r = int(r + (255-r)*factor)
+    g = int(g + (255-g)*factor)
+    b = int(b + (255-b)*factor)
+    return f"#{r:02X}{g:02X}{b:02X}"
+
 CLUB_COLORS = {
-    "Benfica":             ("#E30613", "#FFFFFF"),
-    "SL Benfica":          ("#E30613", "#FFFFFF"),
-    "FC Porto":            ("#003DA5", "#FFFFFF"),
-    "Porto":               ("#003DA5", "#FFFFFF"),
-    "Sporting CP":         ("#006600", "#FFFFFF"),
-    "Sporting":            ("#006600", "#FFFFFF"),
-    "SC Braga":            ("#CC0000", "#FFFFFF"),
-    "Sporting Braga":      ("#CC0000", "#FFFFFF"),
-    "Braga":               ("#CC0000", "#FFFFFF"),
-    "Vitória Guimarães":   ("#000000", "#D4AF37"),
-    "Vitória SC":          ("#000000", "#D4AF37"),
-    "Moreirense":          ("#006600", "#FFFFFF"),
-    "Gil Vicente":         ("#000000", "#FFD700"),
-    "Gil Vicente FC":      ("#000000", "#FFD700"),
-    "Santa Clara":         ("#CC0000", "#003DA5"),
-    "CD Santa Clara":      ("#CC0000", "#003DA5"),
-    "Rio Ave":             ("#006400", "#FFFFFF"),
-    "Rio Ave FC":          ("#006400", "#FFFFFF"),
-    "FC Arouca":           ("#FFD700", "#000000"),
-    "Arouca":              ("#FFD700", "#000000"),
-    "Estoril":             ("#FFD700", "#000000"),
-    "GD Estoril Praia":    ("#FFD700", "#000000"),
-    "Casa Pia AC":         ("#003DA5", "#FFFFFF"),
-    "Casa Pia":            ("#003DA5", "#FFFFFF"),
-    "Tondela":             ("#FFD700", "#006600"),
-    "CD Tondela":          ("#FFD700", "#006600"),
-    "AVS":                 ("#CC0000", "#FFFFFF"),
-    "Nacional":            ("#000000", "#FFFFFF"),
-    "CD Nacional":         ("#000000", "#FFFFFF"),
-    "Estrela Amadora":     ("#CC0000", "#000000"),
-    "CF Estrela":          ("#CC0000", "#000000"),
-    "Alverca":             ("#003DA5", "#CC0000"),
-    "FC Alverca":          ("#003DA5", "#CC0000"),
+    # clube_key : (primária, secundária)
+    "Benfica":           ("#E83030", "#F27070"),   # vermelho / vermelho claro
+    "Porto":             ("#00428C", "#0080C6"),   # azul escuro / azul claro
+    "Sporting":          ("#008057", "#F3C242"),   # verde / dourado
+    "Braga":             ("#DC0B15", "#868257"),   # vermelho / dourado antigo
+    "Vitória Guimarães": ("#1C1C1C", "#D4AF37"),   # preto / dourado
+    "Vitória SC":        ("#1C1C1C", "#D4AF37"),
+    "Moreirense":        ("#145F25", "#AF9713"),   # verde / dourado
+    "Gil Vicente":       ("#ED3124", "#084187"),   # vermelho / azul
+    "Santa Clara":       ("#D63935", "#305898"),   # vermelho / azul
+    "Rio Ave":           ("#00B958", "#F78B1F"),   # verde / laranja
+    "Arouca":            ("#FEF405", "#024CAB"),   # amarelo / azul
+    "Estoril":           ("#FEF000", "#0454A3"),   # amarelo / azul
+    "Casa Pia":          ("#1A3E6C", "#6A9BC7"),   # azul escuro / azul claro
+    "Tondela":           ("#13A040", "#FFED00"),   # verde / amarelo
+    "Nacional":          ("#1C1C1C", "#FFFFFF"),   # preto / branco
+    "Estrela Amadora":   ("#8B0000", "#FFFFFF"),   # bordeaux / branco
+    "Estrela":           ("#8B0000", "#FFFFFF"),
+    "Alverca":           ("#003DA5", "#CC0000"),   # azul / vermelho
+    "AVS":               ("#CC2222", "#AAAAAA"),   # vermelho / cinza
+    "Moreirense":        ("#145F25", "#AF9713"),
 }
-DEFAULT_COLORS = ("#888888", "#CCCCCC")
+DEFAULT_COLORS = ("#888888", "#BBBBBB")
 
-def get_club_colors(opponent, jogo_num=1):
-    for key in CLUB_COLORS:
-        if key.lower() in opponent.lower() or opponent.lower() in key.lower():
-            colors = CLUB_COLORS[key]
-            return colors[0] if jogo_num == 1 else colors[1]
-    return DEFAULT_COLORS[0] if jogo_num == 1 else DEFAULT_COLORS[1]
+def get_colors(opponent):
+    for key, colors in CLUB_COLORS.items():
+        if key.lower() in opponent.lower():
+            return colors[0], colors[1]
+    # fallback: gera secundária mais clara da primária
+    return DEFAULT_COLORS[0], lighten_hex(DEFAULT_COLORS[0])
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ────────────────────────────────────────────────────────────────
 
 def get_json(url):
     r = requests.get(url, auth=auth)
@@ -105,7 +103,7 @@ def corredor_v(x):
     if x < 26.7:  return "Zona 2"
     return "Zona 3 (Saída)"
 
-# ── Carregar matches ──────────────────────────────────────────────────────────
+# ── Carregar matches ───────────────────────────────────────────────────────
 
 @st.cache_data(ttl=3600, show_spinner="A carregar lista de jogos...")
 def carregar_matches():
@@ -135,7 +133,7 @@ def carregar_matches():
     )
     return tm.sort_values("match_date").reset_index(drop=True)
 
-# ── Carregar eventos ──────────────────────────────────────────────────────────
+# ── Carregar eventos ───────────────────────────────────────────────────────
 
 @st.cache_data(ttl=3600, show_spinner="A carregar eventos...")
 def carregar_eventos(match_id):
@@ -147,7 +145,7 @@ def carregar_eventos(match_id):
     ev["corredor_v"] = ev["loc_x"].apply(corredor_v)
     return ev
 
-# ── Calcular VAP ──────────────────────────────────────────────────────────────
+# ── Calcular VAP ───────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=3600, show_spinner="A calcular métricas...")
 def carregar_vap(team_matches):
@@ -198,10 +196,14 @@ def carregar_vap(team_matches):
             dp += len(opp_after[opp_after["loc_x"].apply(
                 lambda x: x >= DEEP_ENTRY_X if x is not None else False)])
 
+        c1, c2 = get_colors(opponent)
+        color = c1 if jogo_num == 1 else c2
+
         results.append({
             "match_id": match_id, "match_date": match_date,
             "opponent": opponent, "jogo_num": jogo_num,
             "mes_ano": mes_ano, "label_full": label_full,
+            "color": color, "color_primary": c1, "color_secondary": c2,
             "team_match_high_press_shots_conceded":        hp,
             "team_match_counter_attacking_shots_conceded": ca,
             "team_match_shots_in_clear_conceded":          cl,
@@ -213,103 +215,129 @@ def carregar_vap(team_matches):
     df["VAP"]           = 4*df["team_match_high_press_shots_conceded"] + 3*df["team_match_counter_attacking_shots_conceded"] + 2*df["team_match_shots_in_clear_conceded"] + 0.1*df["team_match_deep_progressions_conceded"]
     df["Risco"]         = df["VAP"].apply(classificar_risco)
     df["Media_Movel_3"] = df["VAP"].rolling(3, min_periods=1).mean()
-    df["color"]         = df.apply(lambda r: get_club_colors(r["opponent"], r["jogo_num"]), axis=1)
     return df
 
-# ── Gráfico de barras empilhadas com cores dos clubes ────────────────────────
+# ── Plotly: barras empilhadas por adversário ───────────────────────────────
 
-def stacked_bar_chart(df, col, title, ylabel):
-    """
-    Adversários com 1 jogo: barra simples com cor primária.
-    Adversários com 2 jogos: barra empilhada — J1 em baixo (cor primária),
-                              J2 em cima (cor secundária).
-    """
-    # Agrupa por adversário, mantendo ordem cronológica do 1º jogo
+def plotly_stacked_bars(df, col, title, ylabel):
     adv_order = df.drop_duplicates("opponent", keep="first")["opponent"].tolist()
 
-    fig, ax = plt.subplots(figsize=(14, 5))
+    fig = go.Figure()
 
-    x_ticks = []
-    x_labels = []
+    # J1 — base de todos os adversários
+    x_vals, y_j1, y_j2, colors_j1, colors_j2 = [], [], [], [], []
+    hover_j1, hover_j2 = [], []
 
-    for i, adv in enumerate(adv_order):
-        jogos_adv = df[df["opponent"] == adv].sort_values("jogo_num")
-        c1 = get_club_colors(adv, 1)
-        c2 = get_club_colors(adv, 2)
+    for adv in adv_order:
+        jogos = df[df["opponent"] == adv].sort_values("jogo_num")
+        c1, c2 = get_colors(adv)
+        v1 = float(jogos[col].iloc[0])
+        x_vals.append(adv)
+        y_j1.append(v1)
+        colors_j1.append(c1)
+        hover_j1.append(f"<b>{jogos['label_full'].iloc[0]}</b><br>{ylabel}: {v1:.2f}<br>{jogos['match_date'].iloc[0]}")
 
-        if len(jogos_adv) == 1:
-            val = float(jogos_adv[col].iloc[0])
-            ax.bar(i, val, color=c1, edgecolor="white", linewidth=0.8, width=0.7)
+        if len(jogos) > 1:
+            v2 = float(jogos[col].iloc[1])
+            y_j2.append(v2)
+            colors_j2.append(c2)
+            hover_j2.append(f"<b>{jogos['label_full'].iloc[1]}</b><br>{ylabel}: {v2:.2f}<br>{jogos['match_date'].iloc[1]}")
         else:
-            v1 = float(jogos_adv[col].iloc[0])
-            v2 = float(jogos_adv[col].iloc[1])
-            ax.bar(i, v1, color=c1, edgecolor="white", linewidth=0.8, width=0.7, label=f"{adv} J1")
-            ax.bar(i, v2, bottom=v1, color=c2, edgecolor="white",
-                   linewidth=0.8, width=0.7, label=f"{adv} J2",
-                   hatch="//", alpha=0.9)
+            y_j2.append(0)
+            colors_j2.append("rgba(0,0,0,0)")
+            hover_j2.append("")
 
-        x_ticks.append(i)
-        x_labels.append(adv)
+    fig.add_trace(go.Bar(
+        x=x_vals, y=y_j1,
+        marker_color=colors_j1,
+        name="1º Jogo",
+        hovertemplate="%{customdata}<extra></extra>",
+        customdata=hover_j1,
+    ))
 
-    ax.set_xticks(x_ticks)
-    ax.set_xticklabels(x_labels, rotation=45, ha="right", fontsize=9)
-    ax.set_ylabel(ylabel, fontsize=10)
-    ax.set_title(title, fontsize=12, fontweight="bold", pad=10)
-    ax.grid(axis="y", alpha=0.25)
-    ax.spines[["top","right"]].set_visible(False)
+    # J2 — empilhado por cima
+    visible_j2 = [v for v in y_j2 if v > 0]
+    if visible_j2:
+        fig.add_trace(go.Bar(
+            x=x_vals, y=y_j2,
+            marker_color=colors_j2,
+            marker_pattern_shape="/",
+            name="2º Jogo",
+            hovertemplate="%{customdata}<extra></extra>",
+            customdata=hover_j2,
+        ))
 
-    # Legenda apenas para adversários repetidos
-    repeated = [adv for adv in adv_order if df[df["opponent"]==adv].shape[0] > 1]
-    if repeated:
-        import matplotlib.patches as mpatches
-        handles = []
-        for adv in repeated:
-            handles.append(mpatches.Patch(facecolor=get_club_colors(adv,1), label=f"{adv} — J1"))
-            handles.append(mpatches.Patch(facecolor=get_club_colors(adv,2),
-                                          hatch="//", label=f"{adv} — J2"))
-        ax.legend(handles=handles, fontsize=8, loc="upper right", title="Jogos repetidos")
-
-    fig.tight_layout()
+    fig.update_layout(
+        barmode="stack",
+        title=dict(text=title, font=dict(size=14, family="Arial")),
+        xaxis=dict(title="Adversário", tickangle=-35),
+        yaxis=dict(title=ylabel),
+        plot_bgcolor="white",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        height=420,
+        margin=dict(l=40, r=20, t=60, b=100),
+    )
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
     return fig
 
-# ── Gráfico de linha cronológica ─────────────────────────────────────────────
+# ── Plotly: linha cronológica ──────────────────────────────────────────────
 
-def line_chart(df, title):
-    fig, ax = plt.subplots(figsize=(14, 4))
+def plotly_line_chart(df, title):
+    fig = go.Figure()
 
     # Zonas de risco
     ymax = max(df["VAP"].max() + 3, 25)
-    ax.fill_between(range(len(df)), 0,  10,   alpha=0.06, color="#2ecc71", zorder=0)
-    ax.fill_between(range(len(df)), 10, 20,   alpha=0.06, color="#e67e22", zorder=0)
-    ax.fill_between(range(len(df)), 20, ymax, alpha=0.06, color="#e74c3c", zorder=0)
-    ax.axhline(10, color="#2ecc71", linewidth=0.8, linestyle=":", alpha=0.6)
-    ax.axhline(20, color="#e67e22", linewidth=0.8, linestyle=":", alpha=0.6)
+    fig.add_hrect(y0=0,  y1=10,   fillcolor="#2ecc71", opacity=0.06, line_width=0)
+    fig.add_hrect(y0=10, y1=20,   fillcolor="#e67e22", opacity=0.06, line_width=0)
+    fig.add_hrect(y0=20, y1=ymax, fillcolor="#e74c3c", opacity=0.06, line_width=0)
+    fig.add_hline(y=10, line_dash="dot", line_color="#2ecc71", line_width=1, opacity=0.6)
+    fig.add_hline(y=20, line_dash="dot", line_color="#e67e22", line_width=1, opacity=0.6)
 
     # Linha VAP
-    ax.plot(range(len(df)), df["VAP"], color="#e74c3c", linewidth=2.2,
-            marker="o", markersize=6, zorder=3, label="VAP")
+    fig.add_trace(go.Scatter(
+        x=df["label_full"], y=df["VAP"],
+        mode="lines",
+        line=dict(color="#e74c3c", width=2),
+        name="VAP",
+        showlegend=True,
+    ))
 
     # Pontos coloridos com cor do clube
-    for i, row in df.iterrows():
-        ax.scatter(list(df.index).index(i), row["VAP"],
-                   color=row["color"], s=70, zorder=4, edgecolors="white", linewidth=0.8)
+    fig.add_trace(go.Scatter(
+        x=df["label_full"], y=df["VAP"],
+        mode="markers",
+        marker=dict(color=df["color"].tolist(), size=10,
+                    line=dict(color="white", width=1.5)),
+        name="VAP (cor do clube)",
+        hovertemplate="<b>%{x}</b><br>VAP: %{y:.2f}<br>%{customdata}<extra></extra>",
+        customdata=df.apply(lambda r: f"xG: {r['team_match_xg_conceded_after_loss']:.2f} | {r['Risco']}", axis=1),
+    ))
 
-    # Linha média móvel
-    ax.plot(range(len(df)), df["Media_Movel_3"], color="#3498db", linewidth=1.5,
-            linestyle="--", marker="s", markersize=4, zorder=2, label="Média Móvel 3")
+    # Média Móvel 3
+    fig.add_trace(go.Scatter(
+        x=df["label_full"], y=df["Media_Movel_3"],
+        mode="lines+markers",
+        line=dict(color="#3498db", width=1.5, dash="dash"),
+        marker=dict(symbol="square", size=6, color="#3498db"),
+        name="Média Móvel 3",
+    ))
 
-    ax.set_xticks(range(len(df)))
-    ax.set_xticklabels(df["label_full"], rotation=45, ha="right", fontsize=8)
-    ax.set_ylim(0, ymax)
-    ax.set_ylabel("VAP", fontsize=10)
-    ax.set_title(title, fontsize=12, fontweight="bold", pad=10)
-    ax.legend(fontsize=9, loc="upper left")
-    ax.grid(axis="y", alpha=0.2)
-    ax.spines[["top","right"]].set_visible(False)
-    fig.tight_layout()
+    fig.update_layout(
+        title=dict(text=title, font=dict(size=14, family="Arial")),
+        xaxis=dict(tickangle=-35),
+        yaxis=dict(title="VAP", range=[0, ymax]),
+        plot_bgcolor="white",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        height=400,
+        margin=dict(l=40, r=20, t=60, b=120),
+        hovermode="x unified",
+    )
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
     return fig
 
-# ── Campo com grelha ─────────────────────────────────────────────────────────
+# ── Campo com grelha ───────────────────────────────────────────────────────
 
 def draw_pitch_grid(ax):
     ax.set_facecolor("#f0f0e8")
@@ -348,23 +376,24 @@ def heatmap_fig(x_vals, y_vals, title):
     fig.tight_layout()
     return fig
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
 # NAVEGAÇÃO
-# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
 
 pagina = st.sidebar.radio("📂 Página", ["📊 Vulnerabilidade", "🗺️ Heatmaps"])
 team_matches = carregar_matches()
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
 # PÁGINA 1 — VULNERABILIDADE
-# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
 
 if pagina == "📊 Vulnerabilidade":
     st.title("🔴 Famalicão — Vulnerabilidade após Perda")
-    st.caption("Liga Portugal 25/26 | Dados StatsBomb")
+    st.caption(f"Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
 
     df = carregar_vap(team_matches)
 
+    # Filtros
     st.sidebar.header("Filtros")
     meses = ["Todos"] + list(dict.fromkeys(df["mes_ano"].tolist()))
     sel_mes = st.sidebar.selectbox("Mês", meses)
@@ -376,8 +405,7 @@ if pagina == "📊 Vulnerabilidade":
     if sel_adv != "Todos": df_f = df_f[df_f["opponent"] == sel_adv]
 
     if df_f.empty:
-        st.warning("Nenhum jogo encontrado com os filtros selecionados.")
-        st.stop()
+        st.warning("Nenhum jogo encontrado."); st.stop()
 
     # Resumo
     st.subheader("Resumo Executivo")
@@ -395,19 +423,18 @@ if pagina == "📊 Vulnerabilidade":
 
     # Linha cronológica
     st.subheader("Linha cronológica da vulnerabilidade")
-    fig_line = line_chart(df_f.reset_index(drop=True), "VAP por jogo — linha cronológica")
-    st.pyplot(fig_line); plt.close(fig_line)
+    st.plotly_chart(plotly_line_chart(df_f.reset_index(drop=True),
+                    "VAP por jogo — linha cronológica"), use_container_width=True)
 
     # Barras VAP
     st.subheader("VAP por adversário")
-    fig_vap = stacked_bar_chart(df_f, "VAP", "VAP por adversário", "VAP")
-    st.pyplot(fig_vap); plt.close(fig_vap)
+    st.plotly_chart(plotly_stacked_bars(df_f, "VAP", "VAP por adversário", "VAP"),
+                    use_container_width=True)
 
     # Barras xG
     st.subheader("xG sofrido após perda por adversário")
-    fig_xg = stacked_bar_chart(df_f, "team_match_xg_conceded_after_loss",
-                                "xG sofrido após perda", "xG")
-    st.pyplot(fig_xg); plt.close(fig_xg)
+    st.plotly_chart(plotly_stacked_bars(df_f, "team_match_xg_conceded_after_loss",
+                    "xG sofrido após perda", "xG"), use_container_width=True)
 
     # Tabela
     st.subheader("Tabela completa")
@@ -430,13 +457,13 @@ if pagina == "📊 Vulnerabilidade":
     ranking.index += 1
     st.dataframe(ranking, use_container_width=True)
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
 # PÁGINA 2 — HEATMAPS
-# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
 
 elif pagina == "🗺️ Heatmaps":
     st.title("🗺️ Heatmaps — Construção e Perdas")
-    st.caption("1º terço defensivo | Grelha de corredores horizontais e verticais")
+    st.caption(f"Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
 
     st.sidebar.header("Filtros")
     meses = ["Todos"] + list(dict.fromkeys(team_matches["mes_ano"].tolist()))
@@ -502,3 +529,4 @@ elif pagina == "🗺️ Heatmaps":
         st.markdown("**Perdas — vertical**")
         d = fama_1t[loss_mask]["corredor_v"].value_counts().reset_index()
         d.columns=["Zona","Perdas"]; st.dataframe(d,use_container_width=True,hide_index=True)
+
