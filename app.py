@@ -6,48 +6,32 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from datetime import datetime
 
-# ── Logos dos clubes — URLs diretas e fiáveis (Wikimedia) ──────────────────
+# ── Logos dos clubes via TheSportsDB (gratuito, sem chave) ─────────────────
 
-def sofascore_logo(team_id):
-    return f"https://api.sofascore.app/api/v1/team/{team_id}/image"
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_team_logo(team_name):
+    """Busca o logo de um clube via TheSportsDB API. Devolve URL ou None."""
+    try:
+        # Limpar nome para pesquisa
+        search = team_name.replace("FC ", "").replace("CD ", "").replace("GD ", "").strip()
+        url = f"https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t={requests.utils.quote(search)}"
+        r = requests.get(url, timeout=5)
+        data = r.json()
+        if data.get("teams"):
+            return data["teams"][0].get("strBadge", None)
+    except:
+        pass
+    return None
 
-# IDs verificados no Sofascore para cada clube da Liga Portugal 25/26
-CLUB_LOGOS = {
-    "Famalicão":         sofascore_logo(49531),
-    "Benfica":           sofascore_logo(3006),
-    "FC Porto":          sofascore_logo(3002),
-    "Sporting CP":       sofascore_logo(3001),
-    "Sporting Braga":    sofascore_logo(2999),
-    "Vitória Guimarães": sofascore_logo(3009),
-    "Moreirense":        sofascore_logo(3014),
-    "Gil Vicente":       sofascore_logo(3010),
-    "Santa Clara":       sofascore_logo(3011),
-    "Rio Ave":           sofascore_logo(3036),
-    "FC Arouca":         sofascore_logo(25777),
-    "Arouca":            sofascore_logo(25777),
-    "Estoril":           sofascore_logo(4500),
-    "Casa Pia":          sofascore_logo(36365),
-    "Tondela":           sofascore_logo(38396),
-    "Nacional":          sofascore_logo(3013),
-    "Estrela Amadora":   sofascore_logo(3035),
-    "Alverca":           sofascore_logo(37395),
-    "AVS":               sofascore_logo(483088),
-}
-
+@st.cache_data(ttl=86400, show_spinner=False)
 def get_all_logos(opponents):
-    """Devolve logos a partir do mapeamento direto de URLs."""
+    """Busca logos de todos os clubes adversários."""
     logos = {}
-    all_teams = list(opponents) + ["Famalicão"]
-    for team in all_teams:
-        logo_url = None
-        for key, url in CLUB_LOGOS.items():
-            if key.lower() in team.lower() or team.lower() in key.lower():
-                logo_url = url
-                break
-        logos[team] = logo_url
+    for opp in opponents:
+        logos[opp] = get_team_logo(opp)
+    # Logo do Famalicão
+    logos["Famalicão"] = get_team_logo("Famalicao")
     return logos
-
-
 
 
 st.set_page_config(page_title="Famalicão — Análise", layout="wide")
@@ -327,28 +311,21 @@ def plotly_stacked_bars(df, col, title, ylabel, logos=None):
     fig.update_xaxes(showgrid=False)
     fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
 
-    # Adicionar logos por cima das barras — tamanho fixo independente da barra
+    # Adicionar logos por cima das barras
     if logos:
         max_val = df.groupby("opponent")[col].sum().max()
-        logo_size = max_val * 0.10  # tamanho fixo relativo ao eixo Y
-        gap      = max_val * 0.03   # espaço entre topo da barra e logo
         for i, adv in enumerate(adv_order):
             logo_url = logos.get(adv)
             if logo_url:
                 total = float(df[df["opponent"]==adv][col].sum())
                 fig.add_layout_image(dict(
                     source=logo_url + "/tiny",
-                    x=i,
-                    y=total + gap,
+                    x=i, y=total + max_val * 0.04,
                     xref="x", yref="y",
-                    sizex=0.55,
-                    sizey=logo_size,
-                    xanchor="center",
-                    yanchor="bottom",
+                    sizex=0.55, sizey=max_val * 0.12,
+                    xanchor="center", yanchor="bottom",
                     layer="above",
                 ))
-        # Aumentar o eixo Y para caber os logos
-        fig.update_yaxes(range=[0, max_val + logo_size + gap * 4])
 
     return fig
 
