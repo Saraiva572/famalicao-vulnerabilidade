@@ -425,17 +425,17 @@ def heatmap_fig(x_vals, y_vals, title):
     return fig
 
 
-# Carregar logos (cached 24h)
-all_opponents = list(team_matches["opponent"].unique())
-logos = get_all_logos(tuple(all_opponents))
-fama_logo = logos.get("Famalicão", None)
-
 # ══════════════════════════════════════════════════════════════════════════
 # NAVEGAÇÃO
 # ══════════════════════════════════════════════════════════════════════════
 
 pagina = st.sidebar.radio("📂 Página", ["📊 Vulnerabilidade", "🗺️ Heatmaps"])
 team_matches = carregar_matches()
+
+# Carregar logos (cached 24h) — tem de ser depois de team_matches
+all_opponents = list(team_matches["opponent"].unique())
+logos = get_all_logos(tuple(all_opponents))
+fama_logo = logos.get("Famalicão", None)
 
 # ══════════════════════════════════════════════════════════════════════════
 # PÁGINA 1 — VULNERABILIDADE
