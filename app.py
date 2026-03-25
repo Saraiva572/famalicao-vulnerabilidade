@@ -8,26 +8,30 @@ from datetime import datetime
 
 # ── Logos dos clubes — URLs diretas e fiáveis (Wikimedia) ──────────────────
 
+def sofascore_logo(team_id):
+    return f"https://api.sofascore.app/api/v1/team/{team_id}/image"
+
+# IDs verificados no Sofascore para cada clube da Liga Portugal 25/26
 CLUB_LOGOS = {
-    "Famalicão":         "https://upload.wikimedia.org/wikipedia/en/thumb/9/9c/FC_Famalic%C3%A3o_logo.svg/150px-FC_Famalic%C3%A3o_logo.svg.png",
-    "Benfica":           "https://upload.wikimedia.org/wikipedia/en/thumb/a/a2/SL_Benfica_logo.svg/150px-SL_Benfica_logo.svg.png",
-    "FC Porto":          "https://upload.wikimedia.org/wikipedia/en/thumb/3/36/FC_Porto.svg/150px-FC_Porto.svg.png",
-    "Sporting CP":       "https://upload.wikimedia.org/wikipedia/en/thumb/1/1b/Sporting_CP_logo.svg/150px-Sporting_CP_logo.svg.png",
-    "Sporting Braga":    "https://upload.wikimedia.org/wikipedia/en/thumb/6/63/SC_Braga_logo.svg/150px-SC_Braga_logo.svg.png",
-    "Vitória Guimarães": "https://upload.wikimedia.org/wikipedia/en/thumb/b/b6/Vitoria_SC_logo.svg/150px-Vitoria_SC_logo.svg.png",
-    "Moreirense":        "https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Moreirense_FC_logo.svg/150px-Moreirense_FC_logo.svg.png",
-    "Gil Vicente":       "https://upload.wikimedia.org/wikipedia/en/thumb/1/18/Gil_Vicente_FC_logo.svg/150px-Gil_Vicente_FC_logo.svg.png",
-    "Santa Clara":       "https://upload.wikimedia.org/wikipedia/en/thumb/9/9b/CD_Santa_Clara_logo.svg/150px-CD_Santa_Clara_logo.svg.png",
-    "Rio Ave":           "https://upload.wikimedia.org/wikipedia/en/thumb/7/72/Rio_Ave_FC_logo.svg/150px-Rio_Ave_FC_logo.svg.png",
-    "FC Arouca":         "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/FC_Arouca_logo.svg/150px-FC_Arouca_logo.svg.png",
-    "Arouca":            "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/FC_Arouca_logo.svg/150px-FC_Arouca_logo.svg.png",
-    "Estoril":           "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/GD_Estoril_Praia_logo.svg/150px-GD_Estoril_Praia_logo.svg.png",
-    "Casa Pia":          "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/Casa_Pia_AC_logo.svg/150px-Casa_Pia_AC_logo.svg.png",
-    "Tondela":           "https://upload.wikimedia.org/wikipedia/en/thumb/2/28/CD_Tondela_logo.svg/150px-CD_Tondela_logo.svg.png",
-    "Nacional":          "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/CD_Nacional_logo.svg/150px-CD_Nacional_logo.svg.png",
-    "Estrela Amadora":   "https://upload.wikimedia.org/wikipedia/en/thumb/d/d5/CF_Estrela_logo.svg/150px-CF_Estrela_logo.svg.png",
-    "Alverca":           "https://upload.wikimedia.org/wikipedia/en/thumb/9/9e/FC_Alverca_logo.svg/150px-FC_Alverca_logo.svg.png",
-    "AVS":               "https://upload.wikimedia.org/wikipedia/en/thumb/3/37/AVS_Futebol_SAD_logo.svg/150px-AVS_Futebol_SAD_logo.svg.png",
+    "Famalicão":         sofascore_logo(49531),
+    "Benfica":           sofascore_logo(3006),
+    "FC Porto":          sofascore_logo(3002),
+    "Sporting CP":       sofascore_logo(3001),
+    "Sporting Braga":    sofascore_logo(2999),
+    "Vitória Guimarães": sofascore_logo(3009),
+    "Moreirense":        sofascore_logo(3014),
+    "Gil Vicente":       sofascore_logo(3010),
+    "Santa Clara":       sofascore_logo(3011),
+    "Rio Ave":           sofascore_logo(3036),
+    "FC Arouca":         sofascore_logo(25777),
+    "Arouca":            sofascore_logo(25777),
+    "Estoril":           sofascore_logo(4500),
+    "Casa Pia":          sofascore_logo(36365),
+    "Tondela":           sofascore_logo(38396),
+    "Nacional":          sofascore_logo(3013),
+    "Estrela Amadora":   sofascore_logo(3035),
+    "Alverca":           sofascore_logo(37395),
+    "AVS":               sofascore_logo(483088),
 }
 
 def get_all_logos(opponents):
