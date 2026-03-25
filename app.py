@@ -6,6 +6,34 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from datetime import datetime
 
+# ── Logos dos clubes via TheSportsDB (gratuito, sem chave) ─────────────────
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_team_logo(team_name):
+    """Busca o logo de um clube via TheSportsDB API. Devolve URL ou None."""
+    try:
+        # Limpar nome para pesquisa
+        search = team_name.replace("FC ", "").replace("CD ", "").replace("GD ", "").strip()
+        url = f"https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t={requests.utils.quote(search)}"
+        r = requests.get(url, timeout=5)
+        data = r.json()
+        if data.get("teams"):
+            return data["teams"][0].get("strBadge", None)
+    except:
+        pass
+    return None
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_all_logos(opponents):
+    """Busca logos de todos os clubes adversários."""
+    logos = {}
+    for opp in opponents:
+        logos[opp] = get_team_logo(opp)
+    # Logo do Famalicão
+    logos["Famalicão"] = get_team_logo("Famalicao")
+    return logos
+
+
 st.set_page_config(page_title="Famalicão — Análise", layout="wide")
 
 # ── Credenciais ────────────────────────────────────────────────────────────
@@ -222,7 +250,7 @@ def carregar_vap(team_matches):
 
 # ── Plotly: barras empilhadas por adversário ───────────────────────────────
 
-def plotly_stacked_bars(df, col, title, ylabel):
+def plotly_stacked_bars(df, col, title, ylabel, logos=None):
     adv_order = df.drop_duplicates("opponent", keep="first")["opponent"].tolist()
 
     fig = go.Figure()
@@ -282,6 +310,23 @@ def plotly_stacked_bars(df, col, title, ylabel):
     )
     fig.update_xaxes(showgrid=False)
     fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
+
+    # Adicionar logos por cima das barras
+    if logos:
+        max_val = df.groupby("opponent")[col].sum().max()
+        for i, adv in enumerate(adv_order):
+            logo_url = logos.get(adv)
+            if logo_url:
+                total = float(df[df["opponent"]==adv][col].sum())
+                fig.add_layout_image(dict(
+                    source=logo_url + "/tiny",
+                    x=i, y=total + max_val * 0.04,
+                    xref="x", yref="y",
+                    sizex=0.55, sizey=max_val * 0.12,
+                    xanchor="center", yanchor="bottom",
+                    layer="above",
+                ))
+
     return fig
 
 # ── Plotly: linha cronológica ──────────────────────────────────────────────
@@ -379,6 +424,12 @@ def heatmap_fig(x_vals, y_vals, title):
     fig.tight_layout()
     return fig
 
+
+# Carregar logos (cached 24h)
+all_opponents = list(team_matches["opponent"].unique())
+logos = get_all_logos(tuple(all_opponents))
+fama_logo = logos.get("Famalicão", None)
+
 # ══════════════════════════════════════════════════════════════════════════
 # NAVEGAÇÃO
 # ══════════════════════════════════════════════════════════════════════════
@@ -391,7 +442,14 @@ team_matches = carregar_matches()
 # ══════════════════════════════════════════════════════════════════════════
 
 if pagina == "📊 Vulnerabilidade":
-    st.title("🔴 Famalicão — Vulnerabilidade após Perda")
+    col_logo, col_title = st.columns([1, 10])
+    with col_logo:
+        if fama_logo:
+            st.image(fama_logo + "/small", width=70)
+        else:
+            st.markdown("🔴")
+    with col_title:
+        st.title("Famalicão — Vulnerabilidade após Perda")
     st.caption(f"Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
 
     df = carregar_vap(team_matches)
@@ -431,17 +489,21 @@ if pagina == "📊 Vulnerabilidade":
 
     # Barras VAP
     st.subheader("VAP por adversário")
-    st.plotly_chart(plotly_stacked_bars(df_f, "VAP", "VAP por adversário", "VAP"),
+    st.plotly_chart(plotly_stacked_bars(df_f, "VAP", "VAP por adversário", "VAP", logos=logos),
                     use_container_width=True)
 
     # Barras xG
     st.subheader("xG sofrido após perda por adversário")
     st.plotly_chart(plotly_stacked_bars(df_f, "team_match_xg_conceded_after_loss",
-                    "xG sofrido após perda", "xG"), use_container_width=True)
+                    "xG sofrido após perda", "xG", logos=logos), use_container_width=True)
 
-    # Tabela
+    # Tabela com logos
     st.subheader("Tabela completa")
-    cols = [c for c in [
+    df_display = df_f.copy()
+    df_display.insert(0, "Logo", df_display["opponent"].apply(
+        lambda x: logos.get(x, "") or ""
+    ))
+    cols = ["Logo"] + [c for c in [
         "match_id","match_date","opponent","jogo_num","mes_ano",
         "team_match_high_press_shots_conceded",
         "team_match_counter_attacking_shots_conceded",
@@ -449,8 +511,16 @@ if pagina == "📊 Vulnerabilidade":
         "team_match_deep_progressions_conceded",
         "team_match_xg_conceded_after_loss",
         "VAP","Risco","Media_Movel_3"
-    ] if c in df_f.columns]
-    st.dataframe(df_f[cols], use_container_width=True)
+    ] if c in df_display.columns]
+    st.data_editor(
+        df_display[cols],
+        column_config={
+            "Logo": st.column_config.ImageColumn("Logo", width="small")
+        },
+        use_container_width=True,
+        hide_index=True,
+        disabled=True,
+    )
 
     # Ranking
     st.subheader("Ranking dos jogos mais vulneráveis")
