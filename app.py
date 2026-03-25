@@ -34,36 +34,39 @@ def lighten_hex(hex_color, factor=0.35):
     b = int(b + (255-b)*factor)
     return f"#{r:02X}{g:02X}{b:02X}"
 
-CLUB_COLORS = {
-    # clube_key : (primária, secundária)
-    "Benfica":           ("#E83030", "#F27070"),   # vermelho / vermelho claro
-    "Porto":             ("#00428C", "#0080C6"),   # azul escuro / azul claro
-    "Sporting":          ("#008057", "#F3C242"),   # verde / dourado
-    "Braga":             ("#DC0B15", "#868257"),   # vermelho / dourado antigo
-    "Vitória Guimarães": ("#1C1C1C", "#D4AF37"),   # preto / dourado
-    "Vitória SC":        ("#1C1C1C", "#D4AF37"),
-    "Moreirense":        ("#145F25", "#AF9713"),   # verde / dourado
-    "Gil Vicente":       ("#ED3124", "#084187"),   # vermelho / azul
-    "Santa Clara":       ("#D63935", "#305898"),   # vermelho / azul
-    "Rio Ave":           ("#00B958", "#F78B1F"),   # verde / laranja
-    "Arouca":            ("#FEF405", "#024CAB"),   # amarelo / azul
-    "Estoril":           ("#FEF000", "#0454A3"),   # amarelo / azul
-    "Casa Pia":          ("#1A3E6C", "#6A9BC7"),   # azul escuro / azul claro
-    "Tondela":           ("#13A040", "#FFED00"),   # verde / amarelo
-    "Nacional":          ("#1C1C1C", "#FFFFFF"),   # preto / branco
-    "Estrela Amadora":   ("#8B0000", "#FFFFFF"),   # bordeaux / branco
-    "Estrela":           ("#8B0000", "#FFFFFF"),
-    "Alverca":           ("#003DA5", "#CC0000"),   # azul / vermelho
-    "AVS":               ("#CC2222", "#AAAAAA"),   # vermelho / cinza
-    "Moreirense":        ("#145F25", "#AF9713"),
-}
+# Lista ordenada: mais específico primeiro para evitar matches errados
+CLUB_COLORS_LIST = [
+    ("Sporting Braga",    "#DC0B15", "#868257"),
+    ("Sporting CP",       "#008057", "#F3C242"),
+    ("Sporting",          "#008057", "#F3C242"),
+    ("Benfica",           "#E83030", "#F27070"),
+    ("FC Porto",          "#00428C", "#0080C6"),
+    ("Porto",             "#00428C", "#0080C6"),
+    ("Vitória Guimarães", "#1C1C1C", "#D4AF37"),
+    ("Vitória SC",        "#1C1C1C", "#D4AF37"),
+    ("Vitória",           "#1C1C1C", "#D4AF37"),
+    ("Moreirense",        "#145F25", "#AF9713"),
+    ("Gil Vicente",       "#ED3124", "#084187"),
+    ("Santa Clara",       "#D63935", "#305898"),
+    ("Rio Ave",           "#00B958", "#F78B1F"),
+    ("FC Arouca",         "#FEF405", "#024CAB"),
+    ("Arouca",            "#FEF405", "#024CAB"),
+    ("Estoril",           "#FEF000", "#0454A3"),
+    ("Casa Pia",          "#1A3E6C", "#6A9BC7"),
+    ("Tondela",           "#13A040", "#FFED00"),
+    ("Nacional",          "#1C1C1C", "#555555"),
+    ("Estrela Amadora",   "#8B0000", "#C44040"),
+    ("Estrela",           "#8B0000", "#C44040"),
+    ("Alverca",           "#003DA5", "#CC0000"),
+    ("AVS",               "#CC2222", "#AAAAAA"),
+]
 DEFAULT_COLORS = ("#888888", "#BBBBBB")
 
 def get_colors(opponent):
-    for key, colors in CLUB_COLORS.items():
-        if key.lower() in opponent.lower():
-            return colors[0], colors[1]
-    # fallback: gera secundária mais clara da primária
+    opp_lower = opponent.lower()
+    for key, c1, c2 in CLUB_COLORS_LIST:
+        if key.lower() in opp_lower:
+            return c1, c2
     return DEFAULT_COLORS[0], lighten_hex(DEFAULT_COLORS[0])
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -105,7 +108,7 @@ def corredor_v(x):
 
 # ── Carregar matches ───────────────────────────────────────────────────────
 
-@st.cache_data(ttl=3600, show_spinner="A carregar lista de jogos...")
+@st.cache_data(ttl=0, show_spinner="A carregar lista de jogos...")
 def carregar_matches():
     url = (f"https://data.statsbombservices.com/api/v6/competitions/"
            f"{COMPETITION_ID}/seasons/{SEASON_ID}/matches")
@@ -147,7 +150,7 @@ def carregar_eventos(match_id):
 
 # ── Calcular VAP ───────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=3600, show_spinner="A calcular métricas...")
+@st.cache_data(ttl=0, show_spinner="A calcular métricas...")
 def carregar_vap(team_matches):
     results = []
     for _, row in team_matches.iterrows():
@@ -529,4 +532,3 @@ elif pagina == "🗺️ Heatmaps":
         st.markdown("**Perdas — vertical**")
         d = fama_1t[loss_mask]["corredor_v"].value_counts().reset_index()
         d.columns=["Zona","Perdas"]; st.dataframe(d,use_container_width=True,hide_index=True)
-
