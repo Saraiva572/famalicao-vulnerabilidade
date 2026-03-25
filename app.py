@@ -6,73 +6,43 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from datetime import datetime
 
-# ── Logos dos clubes via TheSportsDB — IDs manuais para garantir clube certo ──
+# ── Logos dos clubes — URLs diretas e fiáveis (Wikimedia) ──────────────────
 
-# IDs verificados no TheSportsDB para cada clube da Liga Portugal
-TSDB_TEAM_IDS = {
-    "Famalicão":         134718,
-    "Benfica":           134629,
-    "FC Porto":          134626,
-    "Sporting CP":       134630,
-    "Sporting Braga":    134628,
-    "Vitória Guimarães": 134633,
-    "Moreirense":        134714,
-    "Gil Vicente":       134720,
-    "Santa Clara":       134721,
-    "Rio Ave":           134716,
-    "FC Arouca":         134722,
-    "Estoril":           134715,
-    "Casa Pia":          134723,
-    "Tondela":           134719,
-    "Nacional":          134717,   # Nacional da Madeira
-    "Estrela Amadora":   134724,
-    "Alverca":           134725,
-    "AVS":               134726,
+CLUB_LOGOS = {
+    "Famalicão":         "https://upload.wikimedia.org/wikipedia/en/thumb/9/9c/FC_Famalic%C3%A3o_logo.svg/150px-FC_Famalic%C3%A3o_logo.svg.png",
+    "Benfica":           "https://upload.wikimedia.org/wikipedia/en/thumb/a/a2/SL_Benfica_logo.svg/150px-SL_Benfica_logo.svg.png",
+    "FC Porto":          "https://upload.wikimedia.org/wikipedia/en/thumb/3/36/FC_Porto.svg/150px-FC_Porto.svg.png",
+    "Sporting CP":       "https://upload.wikimedia.org/wikipedia/en/thumb/1/1b/Sporting_CP_logo.svg/150px-Sporting_CP_logo.svg.png",
+    "Sporting Braga":    "https://upload.wikimedia.org/wikipedia/en/thumb/6/63/SC_Braga_logo.svg/150px-SC_Braga_logo.svg.png",
+    "Vitória Guimarães": "https://upload.wikimedia.org/wikipedia/en/thumb/b/b6/Vitoria_SC_logo.svg/150px-Vitoria_SC_logo.svg.png",
+    "Moreirense":        "https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Moreirense_FC_logo.svg/150px-Moreirense_FC_logo.svg.png",
+    "Gil Vicente":       "https://upload.wikimedia.org/wikipedia/en/thumb/1/18/Gil_Vicente_FC_logo.svg/150px-Gil_Vicente_FC_logo.svg.png",
+    "Santa Clara":       "https://upload.wikimedia.org/wikipedia/en/thumb/9/9b/CD_Santa_Clara_logo.svg/150px-CD_Santa_Clara_logo.svg.png",
+    "Rio Ave":           "https://upload.wikimedia.org/wikipedia/en/thumb/7/72/Rio_Ave_FC_logo.svg/150px-Rio_Ave_FC_logo.svg.png",
+    "FC Arouca":         "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/FC_Arouca_logo.svg/150px-FC_Arouca_logo.svg.png",
+    "Arouca":            "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/FC_Arouca_logo.svg/150px-FC_Arouca_logo.svg.png",
+    "Estoril":           "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/GD_Estoril_Praia_logo.svg/150px-GD_Estoril_Praia_logo.svg.png",
+    "Casa Pia":          "https://upload.wikimedia.org/wikipedia/en/thumb/1/14/Casa_Pia_AC_logo.svg/150px-Casa_Pia_AC_logo.svg.png",
+    "Tondela":           "https://upload.wikimedia.org/wikipedia/en/thumb/2/28/CD_Tondela_logo.svg/150px-CD_Tondela_logo.svg.png",
+    "Nacional":          "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/CD_Nacional_logo.svg/150px-CD_Nacional_logo.svg.png",
+    "Estrela Amadora":   "https://upload.wikimedia.org/wikipedia/en/thumb/d/d5/CF_Estrela_logo.svg/150px-CF_Estrela_logo.svg.png",
+    "Alverca":           "https://upload.wikimedia.org/wikipedia/en/thumb/9/9e/FC_Alverca_logo.svg/150px-FC_Alverca_logo.svg.png",
+    "AVS":               "https://upload.wikimedia.org/wikipedia/en/thumb/3/37/AVS_Futebol_SAD_logo.svg/150px-AVS_Futebol_SAD_logo.svg.png",
 }
 
-@st.cache_data(ttl=86400, show_spinner=False)
-def get_team_logo_by_id(team_id):
-    """Busca logo pelo ID do TheSportsDB."""
-    try:
-        url = f"https://www.thesportsdb.com/api/v1/json/3/lookupteam.php?id={team_id}"
-        r = requests.get(url, timeout=5)
-        data = r.json()
-        if data.get("teams"):
-            return data["teams"][0].get("strBadge", None)
-    except:
-        pass
-    return None
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def get_team_logo_by_name(team_name):
-    """Fallback: busca logo pelo nome."""
-    try:
-        search = team_name.replace("FC ", "").replace("CD ", "").replace("GD ", "").strip()
-        url = f"https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t={requests.utils.quote(search)}"
-        r = requests.get(url, timeout=5)
-        data = r.json()
-        if data.get("teams"):
-            return data["teams"][0].get("strBadge", None)
-    except:
-        pass
-    return None
-
-@st.cache_data(ttl=86400, show_spinner=False)
 def get_all_logos(opponents):
-    """Busca logos — primeiro por ID manuais, depois por nome como fallback."""
+    """Devolve logos a partir do mapeamento direto de URLs."""
     logos = {}
     all_teams = list(opponents) + ["Famalicão"]
     for team in all_teams:
-        team_id = None
-        for key, tid in TSDB_TEAM_IDS.items():
+        logo_url = None
+        for key, url in CLUB_LOGOS.items():
             if key.lower() in team.lower() or team.lower() in key.lower():
-                team_id = tid
+                logo_url = url
                 break
-        if team_id:
-            logos[team] = get_team_logo_by_id(team_id)
-        else:
-            logos[team] = get_team_logo_by_name(team)
+        logos[team] = logo_url
     return logos
+
 
 
 
