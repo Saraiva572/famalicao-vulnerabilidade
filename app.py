@@ -6,13 +6,47 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from datetime import datetime
 
-# ── Logos dos clubes via TheSportsDB (gratuito, sem chave) ─────────────────
+# ── Logos dos clubes via TheSportsDB — IDs manuais para garantir clube certo ──
+
+# IDs verificados no TheSportsDB para cada clube da Liga Portugal
+TSDB_TEAM_IDS = {
+    "Famalicão":         134718,
+    "Benfica":           134629,
+    "FC Porto":          134626,
+    "Sporting CP":       134630,
+    "Sporting Braga":    134628,
+    "Vitória Guimarães": 134633,
+    "Moreirense":        134714,
+    "Gil Vicente":       134720,
+    "Santa Clara":       134721,
+    "Rio Ave":           134716,
+    "FC Arouca":         134722,
+    "Estoril":           134715,
+    "Casa Pia":          134723,
+    "Tondela":           134719,
+    "Nacional":          134717,   # Nacional da Madeira
+    "Estrela Amadora":   134724,
+    "Alverca":           134725,
+    "AVS":               134726,
+}
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def get_team_logo(team_name):
-    """Busca o logo de um clube via TheSportsDB API. Devolve URL ou None."""
+def get_team_logo_by_id(team_id):
+    """Busca logo pelo ID do TheSportsDB."""
     try:
-        # Limpar nome para pesquisa
+        url = f"https://www.thesportsdb.com/api/v1/json/3/lookupteam.php?id={team_id}"
+        r = requests.get(url, timeout=5)
+        data = r.json()
+        if data.get("teams"):
+            return data["teams"][0].get("strBadge", None)
+    except:
+        pass
+    return None
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_team_logo_by_name(team_name):
+    """Fallback: busca logo pelo nome."""
+    try:
         search = team_name.replace("FC ", "").replace("CD ", "").replace("GD ", "").strip()
         url = f"https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t={requests.utils.quote(search)}"
         r = requests.get(url, timeout=5)
@@ -25,13 +59,21 @@ def get_team_logo(team_name):
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_all_logos(opponents):
-    """Busca logos de todos os clubes adversários."""
+    """Busca logos — primeiro por ID manuais, depois por nome como fallback."""
     logos = {}
-    for opp in opponents:
-        logos[opp] = get_team_logo(opp)
-    # Logo do Famalicão
-    logos["Famalicão"] = get_team_logo("Famalicao")
+    all_teams = list(opponents) + ["Famalicão"]
+    for team in all_teams:
+        team_id = None
+        for key, tid in TSDB_TEAM_IDS.items():
+            if key.lower() in team.lower() or team.lower() in key.lower():
+                team_id = tid
+                break
+        if team_id:
+            logos[team] = get_team_logo_by_id(team_id)
+        else:
+            logos[team] = get_team_logo_by_name(team)
     return logos
+
 
 
 st.set_page_config(page_title="Famalicão — Análise", layout="wide")
@@ -311,21 +353,28 @@ def plotly_stacked_bars(df, col, title, ylabel, logos=None):
     fig.update_xaxes(showgrid=False)
     fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
 
-    # Adicionar logos por cima das barras
+    # Adicionar logos por cima das barras — tamanho fixo independente da barra
     if logos:
         max_val = df.groupby("opponent")[col].sum().max()
+        logo_size = max_val * 0.10  # tamanho fixo relativo ao eixo Y
+        gap      = max_val * 0.03   # espaço entre topo da barra e logo
         for i, adv in enumerate(adv_order):
             logo_url = logos.get(adv)
             if logo_url:
                 total = float(df[df["opponent"]==adv][col].sum())
                 fig.add_layout_image(dict(
                     source=logo_url + "/tiny",
-                    x=i, y=total + max_val * 0.04,
+                    x=i,
+                    y=total + gap,
                     xref="x", yref="y",
-                    sizex=0.55, sizey=max_val * 0.12,
-                    xanchor="center", yanchor="bottom",
+                    sizex=0.55,
+                    sizey=logo_size,
+                    xanchor="center",
+                    yanchor="bottom",
                     layer="above",
                 ))
+        # Aumentar o eixo Y para caber os logos
+        fig.update_yaxes(range=[0, max_val + logo_size + gap * 4])
 
     return fig
 
