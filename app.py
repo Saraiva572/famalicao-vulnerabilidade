@@ -264,7 +264,7 @@ def carregar_vap(team_matches):
 
 # ── Plotly: barras empilhadas por adversário ───────────────────────────────
 
-def plotly_stacked_bars(df, col, title, ylabel, logos=None):
+def plotly_stacked_bars(df, col, title, ylabel):
     adv_order = df.drop_duplicates("opponent", keep="first")["opponent"].tolist()
 
     fig = go.Figure()
@@ -510,13 +510,13 @@ if pagina == "📊 Vulnerabilidade":
 
     # Barras VAP
     st.subheader("VAP por adversário")
-    st.plotly_chart(plotly_stacked_bars(df_f, "VAP", "VAP por adversário", "VAP", logos=logos),
+    st.plotly_chart(plotly_stacked_bars(df_f, "VAP", "VAP por adversário", "VAP"),
                     use_container_width=True)
 
     # Barras xG
     st.subheader("xG sofrido após perda por adversário")
     st.plotly_chart(plotly_stacked_bars(df_f, "team_match_xg_conceded_after_loss",
-                    "xG sofrido após perda", "xG", logos=logos), use_container_width=True)
+                    "xG sofrido após perda", "xG"), use_container_width=True)
 
     # Tabela com logos
     st.subheader("Tabela completa")
