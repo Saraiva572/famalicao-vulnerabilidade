@@ -13,7 +13,7 @@ REPO_BASE = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilid
 
 CLUB_LOGOS = {
     "Famalicão":         REPO_BASE + "/Escudo_Famalic%C3%A3o.png",
-    "Benfica":           REPO_BASE + "/SL_Benfica_logo_svg.png",
+    "Benfica":           REPO_BASE + "/SL_Benfica_logo.svg.png",
     "FC Porto":          REPO_BASE + "/F.C._Porto_logo.png",
     "Sporting CP":       REPO_BASE + "/Sporting_Clube_de_Portugal.png",
     "Sporting Braga":    REPO_BASE + "/150px-Sporting_Clube_Braga.png",
@@ -24,12 +24,12 @@ CLUB_LOGOS = {
     "Rio Ave":           REPO_BASE + "/Logo_Rio_Ave.png",
     "FC Arouca":         REPO_BASE + "/Arouca_logo.png",
     "Arouca":            REPO_BASE + "/Arouca_logo.png",
-    "Estoril":           REPO_BASE + "/GD_Estoril_Praia_svg.png",
+    "Estoril":           REPO_BASE + "/GD_Estoril_Praia.svg.png",
     "Casa Pia":          REPO_BASE + "/Casa-pia-ac-2017-logo.png",
-    "Tondela":           REPO_BASE + "/C_D__Tondela.png",
+    "Tondela":           REPO_BASE + "/C.D._Tondela.png",
     "Nacional":          REPO_BASE + "/CD_Nacional_Logo.png",
-    "Estrela Amadora":   REPO_BASE + "/S%C3%ADmbolo_Estrela_da_Amadora_svg.png",
-    "Alverca":           REPO_BASE + "/F_C__Alverca_logo.png",
+    "Estrela Amadora":   REPO_BASE + "/S%C3%ADmbolo_Estrela_da_Amadora.svg.png",
+    "Alverca":           REPO_BASE + "/F.C._Alverca_logo.png",
     "AVS":               REPO_BASE + "/AVS_Futebol_SAD_logo.png",
 }
 
