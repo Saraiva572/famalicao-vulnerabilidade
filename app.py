@@ -192,7 +192,7 @@ def carregar_eventos(match_id):
 
 # ── Carregar métricas do CSV (GitHub) ──────────────────────────────────────
 
-CSV_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/vulnerabilidade_perda_real%20(1).csv"
+CSV_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/vulnerabilidade_perda_real_novasmetricas.csv"
 
 @st.cache_data(ttl=0, show_spinner="A carregar métricas...")
 def carregar_vap(team_matches):
