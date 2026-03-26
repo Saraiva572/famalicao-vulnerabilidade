@@ -304,29 +304,6 @@ def plotly_stacked_bars(df, col, title, ylabel):
     fig.update_xaxes(showgrid=False)
     fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
 
-    # Adicionar logos por cima das barras — tamanho fixo independente da barra
-    if logos:
-        max_val = df.groupby("opponent")[col].sum().max()
-        logo_size = max_val * 0.10  # tamanho fixo relativo ao eixo Y
-        gap      = max_val * 0.03   # espaço entre topo da barra e logo
-        for i, adv in enumerate(adv_order):
-            logo_url = logos.get(adv)
-            if logo_url:
-                total = float(df[df["opponent"]==adv][col].sum())
-                fig.add_layout_image(dict(
-                    source=logo_url + "/tiny",
-                    x=i,
-                    y=total + gap,
-                    xref="x", yref="y",
-                    sizex=0.55,
-                    sizey=logo_size,
-                    xanchor="center",
-                    yanchor="bottom",
-                    layer="above",
-                ))
-        # Aumentar o eixo Y para caber os logos
-        fig.update_yaxes(range=[0, max_val + logo_size + gap * 4])
-
     return fig
 
 # ── Plotly: linha cronológica ──────────────────────────────────────────────
