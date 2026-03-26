@@ -6,32 +6,48 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from datetime import datetime
 
-# ── Logos dos clubes via TheSportsDB (gratuito, sem chave) ─────────────────
+# ── Logos dos clubes — URLs diretas e fiáveis (Wikimedia) ──────────────────
 
-@st.cache_data(ttl=86400, show_spinner=False)
-def get_team_logo(team_name):
-    """Busca o logo de um clube via TheSportsDB API. Devolve URL ou None."""
-    try:
-        # Limpar nome para pesquisa
-        search = team_name.replace("FC ", "").replace("CD ", "").replace("GD ", "").strip()
-        url = f"https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t={requests.utils.quote(search)}"
-        r = requests.get(url, timeout=5)
-        data = r.json()
-        if data.get("teams"):
-            return data["teams"][0].get("strBadge", None)
-    except:
-        pass
-    return None
+# Logos servidos diretamente do repositório GitHub
+REPO_BASE = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main"
 
-@st.cache_data(ttl=86400, show_spinner=False)
+CLUB_LOGOS = {
+    "Famalicão":         REPO_BASE + "/Escudo_Famalic%C3%A3o.png",
+    "Benfica":           REPO_BASE + "/SL_Benfica_logo_svg.png",
+    "FC Porto":          REPO_BASE + "/F.C._Porto_logo.png",
+    "Sporting CP":       REPO_BASE + "/Sporting_Clube_de_Portugal.png",
+    "Sporting Braga":    REPO_BASE + "/150px-Sporting_Clube_Braga.png",
+    "Vitória Guimarães": REPO_BASE + "/VitoriaGuimaraes.png",
+    "Moreirense":        REPO_BASE + "/Moreirense%20Logo.png",
+    "Gil Vicente":       REPO_BASE + "/GilVicente_(2021).png",
+    "Santa Clara":       REPO_BASE + "/Logo_Santa_Clara.png",
+    "Rio Ave":           REPO_BASE + "/Logo_Rio_Ave.png",
+    "FC Arouca":         REPO_BASE + "/Arouca_logo.png",
+    "Arouca":            REPO_BASE + "/Arouca_logo.png",
+    "Estoril":           REPO_BASE + "/GD_Estoril_Praia_svg.png",
+    "Casa Pia":          REPO_BASE + "/Casa-pia-ac-2017-logo.png",
+    "Tondela":           REPO_BASE + "/C_D__Tondela.png",
+    "Nacional":          REPO_BASE + "/CD_Nacional_Logo.png",
+    "Estrela Amadora":   REPO_BASE + "/S%C3%ADmbolo_Estrela_da_Amadora_svg.png",
+    "Alverca":           REPO_BASE + "/F_C__Alverca_logo.png",
+    "AVS":               REPO_BASE + "/AVS_Futebol_SAD_logo.png",
+}
+
+
 def get_all_logos(opponents):
-    """Busca logos de todos os clubes adversários."""
+    """Devolve logos a partir do mapeamento direto de URLs."""
     logos = {}
-    for opp in opponents:
-        logos[opp] = get_team_logo(opp)
-    # Logo do Famalicão
-    logos["Famalicão"] = get_team_logo("Famalicao")
+    all_teams = list(opponents) + ["Famalicão"]
+    for team in all_teams:
+        logo_url = None
+        for key, url in CLUB_LOGOS.items():
+            if key.lower() in team.lower() or team.lower() in key.lower():
+                logo_url = url
+                break
+        logos[team] = logo_url
     return logos
+
+
 
 
 st.set_page_config(page_title="Famalicão — Análise", layout="wide")
@@ -311,21 +327,28 @@ def plotly_stacked_bars(df, col, title, ylabel, logos=None):
     fig.update_xaxes(showgrid=False)
     fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
 
-    # Adicionar logos por cima das barras
+    # Adicionar logos por cima das barras — tamanho fixo independente da barra
     if logos:
         max_val = df.groupby("opponent")[col].sum().max()
+        logo_size = max_val * 0.10  # tamanho fixo relativo ao eixo Y
+        gap      = max_val * 0.03   # espaço entre topo da barra e logo
         for i, adv in enumerate(adv_order):
             logo_url = logos.get(adv)
             if logo_url:
                 total = float(df[df["opponent"]==adv][col].sum())
                 fig.add_layout_image(dict(
                     source=logo_url + "/tiny",
-                    x=i, y=total + max_val * 0.04,
+                    x=i,
+                    y=total + gap,
                     xref="x", yref="y",
-                    sizex=0.55, sizey=max_val * 0.12,
-                    xanchor="center", yanchor="bottom",
+                    sizex=0.55,
+                    sizey=logo_size,
+                    xanchor="center",
+                    yanchor="bottom",
                     layer="above",
                 ))
+        # Aumentar o eixo Y para caber os logos
+        fig.update_yaxes(range=[0, max_val + logo_size + gap * 4])
 
     return fig
 
