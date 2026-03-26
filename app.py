@@ -190,77 +190,56 @@ def carregar_eventos(match_id):
     ev["corredor_v"] = ev["loc_x"].apply(corredor_v)
     return ev
 
-# ── Calcular VAP ───────────────────────────────────────────────────────────
+# ── Carregar métricas do CSV (GitHub) ──────────────────────────────────────
 
-@st.cache_data(ttl=0, show_spinner="A calcular métricas...")
+CSV_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/vulnerabilidade_perda_real%20(1).csv"
+
+@st.cache_data(ttl=0, show_spinner="A carregar métricas...")
 def carregar_vap(team_matches):
-    results = []
-    for _, row in team_matches.iterrows():
-        match_id   = int(row["match_id"])
-        match_date = row["match_date"].strftime("%Y-%m-%d")
-        opponent   = row["opponent"]
-        jogo_num   = int(row["jogo_num"])
-        mes_ano    = row["mes_ano"]
-        label_full = row["label_full"]
+    # Ler CSV do GitHub
+    try:
+        df = pd.read_csv(CSV_URL, sep=";", encoding="utf-8")
+    except:
+        df = pd.read_csv(CSV_URL, sep=";", encoding="cp1252")
 
-        ev = carregar_eventos(match_id)
-        TYPE_COL    = "type.name"
-        POSS_COL    = "possession_team.name"
-        PATTERN_COL = "play_pattern.name"
-        PASS_OUT    = "pass.outcome.name"
-        SHOT_XG     = "shot.statsbomb_xg"
+    df["match_date"] = df["match_date"].astype(str)
 
-        fama_ev = ev[ev[POSS_COL].apply(lambda x: team_key.lower() in str(x).lower())].copy()
-        loss_mask = (
-            (fama_ev[TYPE_COL].isin({"Miscontrol", "Dispossessed"})) |
-            (
-                (fama_ev[TYPE_COL] == "Pass") &
-                (fama_ev.get(PASS_OUT, pd.Series(dtype=str)) == "Incomplete") &
-                (fama_ev["loc_x"].apply(lambda x: x <= 40 if x is not None else False))
-            )
+    # Juntar com team_matches para obter mes_ano, jogo_num, label_full
+    tm = team_matches[["match_id","mes_ano","jogo_num","label_full"]].copy()
+    tm["match_id"] = tm["match_id"].astype(int)
+    df["match_id"] = df["match_id"].astype(int)
+    df = df.merge(tm, on="match_id", how="left")
+
+    # Preencher label_full se faltar
+    if "label_full" not in df.columns or df["label_full"].isna().all():
+        df["label_full"] = df["opponent"]
+
+    # Adicionar cores
+    df["jogo_num"] = df["jogo_num"].fillna(1).astype(int)
+    def row_color(row):
+        c1, c2 = get_colors(row["opponent"])
+        return c1 if row["jogo_num"] == 1 else c2
+    df["color"] = df.apply(row_color, axis=1)
+
+    # Garantir VAP e Risco
+    if "VAP" not in df.columns:
+        df["VAP"] = (
+            4   * df.get("team_match_high_press_shots_conceded", 0) +
+            3   * df.get("team_match_counter_attacking_shots_conceded", 0) +
+            2   * df.get("team_match_shots_in_clear_conceded", 0) +
+            0.1 * df.get("team_match_deep_progressions_conceded", 0)
         )
-        losses = fama_ev[loss_mask].copy()
-        hp = ca = cl = dp = 0
-        xg = 0.0
-
-        for _, le in losses.iterrows():
-            opp_after = ev[
-                (ev["possession"] > le["possession"]) &
-                (ev["time_s"] >= le["time_s"]) &
-                (ev["time_s"] <= le["time_s"] + TRANSITION_WINDOW) &
-                (~ev[POSS_COL].apply(lambda x: team_key.lower() in str(x).lower()))
-            ]
-            if opp_after.empty: continue
-            for _, shot in opp_after[opp_after[TYPE_COL] == "Shot"].iterrows():
-                pp = str(shot.get(PATTERN_COL, ""))
-                if "Counter" in pp: ca += 1
-                elif shot["time_s"] - le["time_s"] <= 5: hp += 1
-                xg_val = shot.get(SHOT_XG, 0) or 0
-                if xg_val >= 0.15: cl += 1
-                xg += xg_val
-            dp += len(opp_after[opp_after["loc_x"].apply(
-                lambda x: x >= DEEP_ENTRY_X if x is not None else False)])
-
-        c1, c2 = get_colors(opponent)
-        color = c1 if jogo_num == 1 else c2
-
-        results.append({
-            "match_id": match_id, "match_date": match_date,
-            "opponent": opponent, "jogo_num": jogo_num,
-            "mes_ano": mes_ano, "label_full": label_full,
-            "color": color, "color_primary": c1, "color_secondary": c2,
-            "team_match_high_press_shots_conceded":        hp,
-            "team_match_counter_attacking_shots_conceded": ca,
-            "team_match_shots_in_clear_conceded":          cl,
-            "team_match_deep_progressions_conceded":       dp,
-            "team_match_xg_conceded_after_loss":           round(xg, 3),
-        })
-
-    df = pd.DataFrame(results)
-    df["VAP"]           = 4*df["team_match_high_press_shots_conceded"] + 3*df["team_match_counter_attacking_shots_conceded"] + 2*df["team_match_shots_in_clear_conceded"] + 0.1*df["team_match_deep_progressions_conceded"]
     df["Risco"]         = df["VAP"].apply(classificar_risco)
     df["Media_Movel_3"] = df["VAP"].rolling(3, min_periods=1).mean()
-    return df
+
+    # mes_ano fallback
+    if "mes_ano" not in df.columns or df["mes_ano"].isna().all():
+        MESES = {1:"Janeiro",2:"Fevereiro",3:"Março",4:"Abril",5:"Maio",6:"Junho",
+                 7:"Julho",8:"Agosto",9:"Setembro",10:"Outubro",11:"Novembro",12:"Dezembro"}
+        df["mes_ano"] = pd.to_datetime(df["match_date"]).apply(
+            lambda d: f"{MESES[d.month]} {d.year}")
+
+    return df.sort_values("match_date").reset_index(drop=True)
 
 # ── Plotly: barras empilhadas por adversário ───────────────────────────────
 
@@ -466,14 +445,27 @@ if pagina == "📊 Vulnerabilidade":
     col_logo, col_title = st.columns([1, 10])
     with col_logo:
         if fama_logo:
-            st.image(fama_logo + "/small", width=70)
+            st.image(fama_logo, width=70)
         else:
             st.markdown("🔴")
     with col_title:
         st.title("Famalicão — Vulnerabilidade após Perda")
-    st.caption(f"Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
+    st.caption("Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
 
     df = carregar_vap(team_matches)
+
+    # Calcular métricas novas a partir do CSV
+    # (o CSV já vem com estas colunas do Colab)
+    for col, default in [
+        ("exposicao_defensiva_pct", 0.0),
+        ("counterpress_efficiency_pct", 0.0),
+        ("transition_risk_index", 0.0),
+        ("n_losses", 0),
+    ]:
+        if col not in df.columns:
+            df[col] = default
+
+    df["TRI_MM3"] = df["transition_risk_index"].rolling(3, min_periods=1).mean()
 
     # Filtros
     st.sidebar.header("Filtros")
@@ -489,66 +481,175 @@ if pagina == "📊 Vulnerabilidade":
     if df_f.empty:
         st.warning("Nenhum jogo encontrado."); st.stop()
 
-    # Resumo
+    # ── Resumo Executivo ───────────────────────────────────────────────────
     st.subheader("Resumo Executivo")
     c1,c2,c3,c4,c5 = st.columns(5)
-    c1.metric("VAP média",        f"{df_f['VAP'].mean():.2f}")
-    c2.metric("Maior VAP",        f"{df_f['VAP'].max():.2f}")
-    c3.metric("Menor VAP",        f"{df_f['VAP'].min():.2f}")
-    c4.metric("Jogo mais crítico", df_f.loc[df_f["VAP"].idxmax(),"label_full"])
-    c5.metric("xG sofrido total", f"{df_f['team_match_xg_conceded_after_loss'].sum():.2f}")
+    c1.metric("TRI médio",
+              f"{df_f['transition_risk_index'].mean():.1f}",
+              help="Transition Risk Index médio")
+    c2.metric("xG sofrido total",
+              f"{df_f['team_match_xg_conceded_after_loss'].sum():.2f}")
+    c3.metric("Exposição Defensiva média",
+              f"{df_f['exposicao_defensiva_pct'].mean():.1f}%")
+    c4.metric("Counterpress médio",
+              f"{df_f['counterpress_efficiency_pct'].mean():.1f}%")
+    c5.metric("Jogo mais crítico (TRI)",
+              df_f.loc[df_f["transition_risk_index"].idxmax(), "label_full"])
 
-    # Semáforo
+    # ── Semáforo último jogo ───────────────────────────────────────────────
     ultimo = df_f.iloc[-1]
+    tri_ult = ultimo["transition_risk_index"]
+    if tri_ult < 10:   semaforo = "🟢 Baixo Risco"
+    elif tri_ult < 20: semaforo = "🟡 Risco Médio"
+    else:              semaforo = "🔴 Alto Risco"
     st.subheader("Semáforo de risco do último jogo")
-    st.markdown(f"### {ultimo['Risco']}  |  {ultimo['label_full']}  |  VAP = {ultimo['VAP']:.2f}")
+    st.markdown(f"### {semaforo}  |  {ultimo['label_full']}  |  TRI = {tri_ult:.1f}")
 
-    # Linha cronológica
-    st.subheader("Linha cronológica da vulnerabilidade")
-    st.plotly_chart(plotly_line_chart(df_f.reset_index(drop=True),
-                    "VAP por jogo — linha cronológica"), use_container_width=True)
+    # ── Notas explicativas ─────────────────────────────────────────────────
+    with st.expander("ℹ️ O que significa cada métrica?", expanded=False):
+        st.markdown("""
+**Transition Risk Index (TRI)** — Índice composto de risco (0-100) que combina quatro componentes normalizados:
+- xG sofrido após perda (peso 40%)
+- Remates concedidos por perda (peso 25%)
+- Entradas adversárias no último terço por perda (peso 20%)
+- Progressão média adversária após perda (peso 15%)
 
-    # Barras VAP
-    st.subheader("VAP por adversário")
-    st.plotly_chart(plotly_stacked_bars(df_f, "VAP", "VAP por adversário", "VAP"),
-                    use_container_width=True)
+Quanto maior o TRI, maior o perigo criado pelo adversário após recuperar a bola contra o Famalicão na 1ª fase de construção.
 
-    # Barras xG
-    st.subheader("xG sofrido após perda por adversário")
-    st.plotly_chart(plotly_stacked_bars(df_f, "team_match_xg_conceded_after_loss",
-                    "xG sofrido após perda", "xG"), use_container_width=True)
+---
 
-    # Tabela com logos
+**xG sofrido após perda** — Soma do Expected Goals (modelo StatsBomb) dos remates adversários ocorridos nos 10 segundos após cada perda de bola do Famalicão no 1º terço. Mede o perigo concreto gerado, não apenas a frequência de remates.
+
+---
+
+**Exposição Defensiva (%)** — Percentagem de perdas de bola na construção que resultaram em pelo menos um remate adversário nos 10 segundos seguintes. Ex: 10% significa que 1 em cada 10 perdas gerou um remate.
+
+---
+
+**Counterpress Efficiency (%)** — Percentagem de perdas em que o Famalicão conseguiu recuperar a bola em menos de 5 segundos (contra-pressão). Quanto maior, mais eficaz a reação imediata à perda. Calculado com o campo `counterpress` dos dados StatsBomb.
+
+---
+
+**VAP (Vulnerabilidade Após Perda)** — Índice histórico de referência: 4×remates sob pressão alta + 3×remates em contra-ataque + 2×remates em situação clara + 0.1×entradas no último terço. Mantido para comparação histórica.
+        """)
+
+    # ── TRI — linha cronológica ────────────────────────────────────────────
+    st.subheader("Transition Risk Index — evolução ao longo da época")
+
+    fig_tri = go.Figure()
+    ymax = max(df_f["transition_risk_index"].max() + 5, 30)
+    fig_tri.add_hrect(y0=0,  y1=10,   fillcolor="#2ecc71", opacity=0.06, line_width=0)
+    fig_tri.add_hrect(y0=10, y1=20,   fillcolor="#e67e22", opacity=0.06, line_width=0)
+    fig_tri.add_hrect(y0=20, y1=ymax, fillcolor="#e74c3c", opacity=0.06, line_width=0)
+    fig_tri.add_hline(y=10, line_dash="dot", line_color="#2ecc71", line_width=1)
+    fig_tri.add_hline(y=20, line_dash="dot", line_color="#e67e22", line_width=1)
+    fig_tri.add_trace(go.Scatter(
+        x=df_f["label_full"], y=df_f["transition_risk_index"],
+        mode="lines", line=dict(color="#e74c3c", width=2), name="TRI",
+    ))
+    fig_tri.add_trace(go.Scatter(
+        x=df_f["label_full"], y=df_f["TRI_MM3"],
+        mode="lines+markers", line=dict(color="#3498db", width=1.5, dash="dash"),
+        marker=dict(size=5), name="Média Móvel 3",
+    ))
+    # pontos coloridos por clube
+    fig_tri.add_trace(go.Scatter(
+        x=df_f["label_full"], y=df_f["transition_risk_index"],
+        mode="markers",
+        marker=dict(color=df_f["color"].tolist(), size=10,
+                    line=dict(color="white", width=1.5)),
+        name="TRI (cor do clube)",
+        hovertemplate="<b>%{x}</b><br>TRI: %{y:.1f}<br>%{customdata}<extra></extra>",
+        customdata=df_f.apply(lambda r: f"xG: {r['team_match_xg_conceded_after_loss']:.2f} | Exp: {r['exposicao_defensiva_pct']:.1f}%", axis=1),
+    ))
+    fig_tri.update_layout(
+        xaxis=dict(tickangle=-35),
+        yaxis=dict(title="TRI", range=[0, ymax]),
+        plot_bgcolor="white", height=400,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        hovermode="x unified",
+        margin=dict(l=40, r=20, t=40, b=120),
+    )
+    fig_tri.update_xaxes(showgrid=False)
+    fig_tri.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
+    st.plotly_chart(fig_tri, use_container_width=True)
+
+    # ── Gráficos das novas métricas ────────────────────────────────────────
+    col_a, col_b = st.columns(2)
+
+    with col_a:
+        st.subheader("xG sofrido após perda")
+        st.plotly_chart(plotly_stacked_bars(df_f, "team_match_xg_conceded_after_loss",
+                        "xG sofrido após perda por adversário", "xG"),
+                        use_container_width=True)
+
+    with col_b:
+        st.subheader("Exposição Defensiva (%)")
+        st.plotly_chart(plotly_stacked_bars(df_f, "exposicao_defensiva_pct",
+                        "% perdas que geraram remate adversário", "%"),
+                        use_container_width=True)
+
+    col_c, col_d = st.columns(2)
+
+    with col_c:
+        st.subheader("Counterpress Efficiency (%)")
+        st.plotly_chart(plotly_stacked_bars(df_f, "counterpress_efficiency_pct",
+                        "% recuperações em <5s após perda", "%"),
+                        use_container_width=True)
+
+    with col_d:
+        st.subheader("Transition Risk Index")
+        st.plotly_chart(plotly_stacked_bars(df_f, "transition_risk_index",
+                        "TRI por adversário", "TRI"),
+                        use_container_width=True)
+
+    # ── VAP (referência histórica) ─────────────────────────────────────────
+    with st.expander("📊 VAP — Referência histórica", expanded=False):
+        st.caption("Índice original. Mantido apenas para comparação histórica.")
+        st.plotly_chart(plotly_stacked_bars(df_f, "VAP", "VAP por adversário", "VAP"),
+                        use_container_width=True)
+
+    # ── Tabela completa ────────────────────────────────────────────────────
     st.subheader("Tabela completa")
     df_display = df_f.copy()
-    df_display.insert(0, "Logo", df_display["opponent"].apply(
-        lambda x: logos.get(x, "") or ""
-    ))
+    df_display.insert(0, "Logo", df_display["opponent"].apply(lambda x: logos.get(x, "") or ""))
     cols = ["Logo"] + [c for c in [
-        "match_id","match_date","opponent","jogo_num","mes_ano",
-        "team_match_high_press_shots_conceded",
-        "team_match_counter_attacking_shots_conceded",
-        "team_match_shots_in_clear_conceded",
-        "team_match_deep_progressions_conceded",
+        "match_date", "opponent", "jogo_num", "mes_ano",
+        "n_losses",
         "team_match_xg_conceded_after_loss",
-        "VAP","Risco","Media_Movel_3"
+        "exposicao_defensiva_pct",
+        "counterpress_efficiency_pct",
+        "avg_opp_progression_m",
+        "transition_risk_index",
+        "VAP",
     ] if c in df_display.columns]
     st.data_editor(
         df_display[cols],
         column_config={
-            "Logo": st.column_config.ImageColumn("Logo", width="small")
+            "Logo":                           st.column_config.ImageColumn("Logo", width="small"),
+            "n_losses":                       st.column_config.NumberColumn("Perdas", format="%d"),
+            "team_match_xg_conceded_after_loss": st.column_config.NumberColumn("xG sofrido", format="%.3f"),
+            "exposicao_defensiva_pct":        st.column_config.NumberColumn("Exp. Def. %", format="%.1f%%"),
+            "counterpress_efficiency_pct":    st.column_config.NumberColumn("Counterpress %", format="%.1f%%"),
+            "avg_opp_progression_m":          st.column_config.NumberColumn("Prog. Adv. (m)", format="%.1f"),
+            "transition_risk_index":          st.column_config.NumberColumn("TRI", format="%.1f"),
+            "VAP":                            st.column_config.NumberColumn("VAP (hist.)", format="%.1f"),
         },
         use_container_width=True,
         hide_index=True,
         disabled=True,
     )
 
-    # Ranking
-    st.subheader("Ranking dos jogos mais vulneráveis")
-    ranking = df_f.sort_values("VAP", ascending=False)[
-        ["label_full","VAP","team_match_xg_conceded_after_loss","Risco"]
-    ].reset_index(drop=True)
+    # ── Ranking ────────────────────────────────────────────────────────────
+    st.subheader("Ranking dos jogos mais vulneráveis (TRI)")
+    ranking = df_f.sort_values("transition_risk_index", ascending=False)[[
+        "label_full", "transition_risk_index",
+        "team_match_xg_conceded_after_loss",
+        "exposicao_defensiva_pct",
+        "counterpress_efficiency_pct",
+    ]].reset_index(drop=True)
     ranking.index += 1
+    ranking.columns = ["Jogo", "TRI", "xG sofrido", "Exp. Def. %", "Counterpress %"]
     st.dataframe(ranking, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════════════
