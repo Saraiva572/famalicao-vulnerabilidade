@@ -1,0 +1,335 @@
+match_id,possession,first_event_id,first_event_index,first_player,first_position,first_start_x,first_end_x,n_actions_in_possession,n_distinct_players,validated_success_partial,validated_success_total,success_partial_start_action_number,success_partial_end_action_number,success_total_start_action_number,success_total_end_action_number,outcome_label
+4005039,20,791e4b52-f899-5eeb-9040-a87c6e3b4736,263,Leonardo Javier Realpe Montaño,Right Center Back,5.4,5.9,19,8,True,True,8.0,10.0,12.0,14.0,success_total
+4005039,41,0f767b97-a165-55ce-86ad-b959a0a91a0d,552,Justin de Haas,Left Center Back,5.6,3.8,10,3,True,False,3.0,5.0,,,success_partial
+4005039,42,c5dfe647-413b-5188-845a-de40c99c23c2,571,Lazar Carević,Goalkeeper,6.0,13.0,7,5,True,False,4.0,6.0,,,success_partial
+4005039,84,e010c290-a922-5561-af6c-99d08b8488ea,1178,Lazar Carević,Goalkeeper,11.2,29.2,9,4,True,False,2.0,4.0,,,success_partial
+4005039,100,65eb9ae1-27e6-5587-a816-e9c8871e0d7c,1533,Leonardo Javier Realpe Montaño,Right Center Back,12.6,17.4,22,8,True,True,4.0,6.0,4.0,6.0,success_total
+4005039,121,71c5751c-88d0-5d51-aafa-b454858d1d24,1902,Lazar Carević,Goalkeeper,7.0,5.4,5,3,False,False,,,,,unsuccessful
+4005039,133,30373d7f-6813-5b36-a8f2-6bbd0def2822,2063,Lazar Carević,Goalkeeper,6.9,19.9,6,4,True,True,4.0,6.0,4.0,6.0,success_total
+4005050,21,9c03cd52-25bd-5b11-8594-3edc542c897b,235,Lazar Carević,Goalkeeper,7.0,28.4,3,3,False,False,,,,,unsuccessful
+4005050,29,49839661-6497-5dc7-8edc-481fcd2ea66c,313,Lazar Carević,Goalkeeper,14.7,22.0,9,5,True,False,7.0,9.0,,,success_partial
+4005050,31,59d98734-6c22-5dec-a366-20747a9923ce,331,Justin de Haas,Left Center Back,35.8,27.4,27,8,True,True,5.0,7.0,17.0,19.0,success_total
+4005050,40,767b56fd-dd87-541c-a500-2bfe9233ceb1,466,Lazar Carević,Goalkeeper,10.7,28.2,13,5,True,True,8.0,10.0,11.0,13.0,success_total
+4005050,45,d0cf5f51-9ea3-5446-8095-f0453ae49990,533,Lazar Carević,Goalkeeper,14.0,37.4,7,4,False,False,,,,,unsuccessful
+4005050,61,6275c6c2-5c46-5af2-9fa4-67655a7f5c4f,803,Lazar Carević,Goalkeeper,11.1,22.5,11,4,True,False,7.0,9.0,,,success_partial
+4005050,71,8f95e6bb-e22e-531a-bc88-ca50a4e53e43,961,Lazar Carević,Goalkeeper,16.9,27.3,7,4,True,True,3.0,5.0,4.0,6.0,success_total
+4005050,84,b685003c-8ad2-5465-9399-88f09d485468,1101,Leonardo Javier Realpe Montaño,Right Center Back,23.1,16.9,9,6,True,True,4.0,6.0,5.0,7.0,success_total
+4005050,101,b10d6b07-a0ff-56ab-958d-2254e7a43a2e,1318,Lazar Carević,Goalkeeper,7.0,19.1,16,6,True,False,9.0,11.0,,,success_partial
+4005050,103,c4b69685-c709-5452-a0a1-585497b61bc5,1358,Lazar Carević,Goalkeeper,7.0,17.5,15,7,True,True,6.0,8.0,9.0,11.0,success_total
+4005050,110,42ecdbf2-9166-5cc6-9bb6-e67c50f5a189,1475,Lazar Carević,Goalkeeper,7.0,15.5,4,3,False,False,,,,,unsuccessful
+4005050,123,abc52398-f888-5e61-b696-c4943413f5db,1650,Lazar Carević,Goalkeeper,14.9,37.2,7,4,False,False,,,,,unsuccessful
+4005050,128,a42f6a94-aae9-5d3a-a5f2-70534b79cf77,1700,Lazar Carević,Goalkeeper,26.7,26.7,4,3,False,False,,,,,unsuccessful
+4005050,140,c253559b-3edc-522d-915b-8e7a5bf9d5b2,1880,Lazar Carević,Goalkeeper,3.8,15.1,6,4,True,False,4.0,6.0,,,success_partial
+4005050,145,1b14c3c9-dd2f-5551-aad3-b751df80431b,1943,Lazar Carević,Goalkeeper,10.9,29.0,23,8,True,True,3.0,5.0,11.0,13.0,success_total
+4005050,150,8813f59d-8764-56a3-b7ae-f3d4ec424826,2041,Lazar Carević,Goalkeeper,10.3,33.4,5,3,True,False,2.0,4.0,,,success_partial
+4005050,157,73e0eceb-7c31-5056-8331-3560c24d8bb7,2130,Lazar Carević,Goalkeeper,5.9,38.8,6,5,True,False,4.0,6.0,,,success_partial
+4005050,181,dfac4e2d-8ef7-5186-8ecd-8403e4219791,2395,Lazar Carević,Goalkeeper,4.8,9.9,11,7,True,True,4.0,6.0,6.0,8.0,success_total
+4005050,186,376940f1-3988-5d05-9f81-9250927648de,2522,Lazar Carević,Goalkeeper,4.4,5.9,5,3,False,False,,,,,unsuccessful
+4005050,206,d769841b-f230-5b0f-b368-feb83a4faa38,2803,Lazar Carević,Goalkeeper,12.6,16.0,15,8,True,True,2.0,4.0,6.0,8.0,success_total
+4005739,26,d63ad2ae-6ecf-51a7-9aae-b95b840f9e14,383,Justin de Haas,Left Center Back,20.6,34.4,21,7,True,False,3.0,5.0,,,success_partial
+4005739,32,6449635e-9859-5b1d-8bf2-bf0565452d11,482,Justin de Haas,Left Center Back,27.2,14.5,20,6,True,True,11.0,13.0,14.0,16.0,success_total
+4005739,37,3cbdb593-89d3-5fc8-8226-0fe70be65953,620,Lazar Carević,Goalkeeper,1.1,19.7,14,6,False,False,,,,,unsuccessful
+4005739,61,7c7065a9-373d-5eec-8b7a-e907a7321996,888,Leonardo Javier Realpe Montaño,Right Center Back,10.8,7.2,10,4,False,False,,,,,unsuccessful
+4005739,79,a57eab09-ff92-58ae-aa32-66d1860e7f40,1034,Justin de Haas,Left Center Back,17.4,11.0,7,3,False,False,,,,,unsuccessful
+4005739,83,9785f279-59af-50ee-b88d-0d7c6ea10969,1077,Lazar Carević,Goalkeeper,6.8,22.7,18,6,True,True,2.0,4.0,6.0,8.0,success_total
+4005739,87,f6d87df9-ab54-5813-bf6b-8d178356452f,1157,Lazar Carević,Goalkeeper,6.6,22.5,7,4,True,False,4.0,6.0,,,success_partial
+4005739,101,2ea92e56-739d-5ddb-9c6e-1add357fd209,1411,Lazar Carević,Goalkeeper,8.6,25.3,8,5,True,False,3.0,5.0,,,success_partial
+4005739,123,8fdb0aa3-afcc-59d4-8bcc-9a9d51c5d7b9,1850,Leonardo Javier Realpe Montaño,Right Center Back,37.2,35.8,5,3,True,False,3.0,5.0,,,success_partial
+4005739,138,720fa2b9-7ac1-5871-805a-99142818b1c9,2050,Lazar Carević,Goalkeeper,7.0,15.4,4,3,False,False,,,,,unsuccessful
+4005739,153,38f6d976-9ce2-5d47-ae40-92e76c7969be,2212,Lazar Carević,Goalkeeper,5.6,17.2,3,3,False,False,,,,,unsuccessful
+4005739,159,918f23db-65a1-5722-b61e-d4577d8544ae,2284,Lazar Carević,Goalkeeper,10.9,23.6,5,3,False,False,,,,,unsuccessful
+4005739,163,86c6f234-0d4a-5808-9a6e-ad6b793067b6,2339,Lazar Carević,Goalkeeper,13.7,21.4,10,8,True,True,7.0,9.0,7.0,9.0,success_total
+4005739,174,279e8ec6-096f-5c82-a935-c80f2e2fecab,2461,Leonardo Javier Realpe Montaño,Right Center Back,31.0,14.3,11,5,True,True,8.0,10.0,9.0,11.0,success_total
+4005739,211,6e219e93-8082-5c94-af4e-b90fa59882e7,2832,Lazar Carević,Goalkeeper,19.4,28.5,9,4,False,False,,,,,unsuccessful
+4005739,213,c979e0da-9885-57af-9882-9bdc27905195,2860,Lazar Carević,Goalkeeper,24.0,29.1,6,4,True,False,4.0,6.0,,,success_partial
+4005739,220,0dda0e56-cfeb-5e61-80a8-f179d4caa79d,2948,Lazar Carević,Goalkeeper,14.9,29.5,15,9,True,True,2.0,4.0,3.0,5.0,success_total
+4005739,230,43c3e4cc-5948-567b-b3f5-f188bea7e7e3,3072,Leonardo Javier Realpe Montaño,Right Center Back,35.7,35.5,8,4,True,False,3.0,5.0,,,success_partial
+4005745,13,3a892a65-d3a5-50d2-adea-c37437c8a885,162,Leonardo Javier Realpe Montaño,Right Center Back,7.8,13.7,12,5,True,True,8.0,10.0,8.0,10.0,success_total
+4005745,28,e73968e9-aead-5930-a4a1-c3e606178a14,362,Justin de Haas,Left Center Back,6.0,4.8,7,4,True,False,5.0,7.0,,,success_partial
+4005745,31,7cdf92dc-5fc5-5bcc-a5e3-ec55977de352,389,Justin de Haas,Left Center Back,6.0,5.1,6,4,False,False,,,,,unsuccessful
+4005745,59,7c916b7b-1143-52eb-9bdb-5cac3794f86d,831,Lazar Carević,Goalkeeper,8.8,20.2,17,5,True,True,2.0,4.0,5.0,7.0,success_total
+4005745,77,59272fdf-9cfc-527f-99ad-5ebf17792757,1088,Leonardo Javier Realpe Montaño,Right Center Back,33.4,13.9,7,4,False,False,,,,,unsuccessful
+4005745,93,864e14e7-84e1-52cd-879c-3775def9c0ac,1283,Lazar Carević,Goalkeeper,11.7,28.3,64,10,True,True,2.0,4.0,7.0,9.0,success_total
+4005745,98,51f87c22-eccb-5912-aab7-3f8d498b23fe,1410,Justin de Haas,Left Center Back,6.0,6.0,8,5,True,True,3.0,5.0,3.0,5.0,success_total
+4005745,107,d7a5b022-11b0-5486-93e8-9557abb0d020,1511,Lazar Carević,Goalkeeper,6.2,22.1,6,4,True,True,3.0,5.0,3.0,5.0,success_total
+4005745,146,3e5a8a7b-cf89-5683-a8a3-2c1c7b418a55,1932,Lazar Carević,Goalkeeper,16.1,32.9,7,4,True,True,2.0,4.0,3.0,5.0,success_total
+4005745,165,6907fed5-6ffe-5fd0-b797-1530e3a6693b,2163,Lazar Carević,Goalkeeper,6.4,6.7,9,5,True,False,3.0,5.0,,,success_partial
+4005745,176,3e36db5c-b1d1-50b6-b229-d3d25c750506,2309,Justin de Haas,Left Center Back,6.3,5.8,9,3,False,False,,,,,unsuccessful
+4005753,29,4ff73627-b76b-5f24-a3eb-a830902c39b5,408,Ibrahima Ba,Right Center Back,16.7,14.8,4,4,False,False,,,,,unsuccessful
+4005753,33,a573badd-7706-5e19-9138-a1297866a825,455,Ibrahima Ba,Right Center Back,12.6,25.6,4,3,False,False,,,,,unsuccessful
+4005753,42,57af3991-5902-5c47-9167-96fa7020618e,573,Lazar Carević,Goalkeeper,7.2,19.1,7,5,True,True,3.0,5.0,3.0,5.0,success_total
+4005753,69,ed9b2f13-c3f1-556a-96dc-6463f002d7e3,934,Justin de Haas,Left Center Back,7.0,6.0,5,3,False,False,,,,,unsuccessful
+4005753,86,08762cc3-8065-5854-8be5-6642d6dff79c,1181,Lazar Carević,Goalkeeper,14.8,38.0,5,3,True,True,2.0,4.0,2.0,4.0,success_total
+4005753,165,e5947fb8-b0b0-5478-b8fb-9ab9df9d376b,2180,Lazar Carević,Goalkeeper,8.2,11.0,4,3,False,False,,,,,unsuccessful
+4005753,172,f212d4ff-3b81-56ff-976d-7732eb68cfd7,2227,Justin de Haas,Left Center Back,5.8,3.5,15,6,True,True,2.0,4.0,4.0,6.0,success_total
+4005753,236,6f2500f8-0c52-5156-ba0c-182b473af332,3198,Lazar Carević,Goalkeeper,14.5,35.3,6,5,True,True,2.0,4.0,2.0,4.0,success_total
+4005769,17,4e6e2ff5-daa7-520d-9e67-11dfaf6b15ab,136,Justin de Haas,Left Center Back,6.8,6.6,8,4,False,False,,,,,unsuccessful
+4005769,69,67d91432-c03c-5f35-af7e-4e970f57f53c,807,Justin de Haas,Left Center Back,36.2,35.4,15,5,False,False,,,,,unsuccessful
+4005769,74,31556ee9-4165-5fa9-b371-02ceef0436f9,857,Leonardo Javier Realpe Montaño,Right Center Back,7.0,6.8,14,6,True,True,10.0,12.0,12.0,14.0,success_total
+4005769,82,09b02013-7685-507c-8cca-68fcb34a97db,969,Lazar Carević,Goalkeeper,13.7,27.5,8,5,True,True,3.0,5.0,5.0,7.0,success_total
+4005769,84,cf4ad132-e859-5ac8-84e9-91170f1a16a2,994,Leonardo Javier Realpe Montaño,Right Center Back,27.6,36.8,19,6,True,True,2.0,4.0,9.0,11.0,success_total
+4005769,112,582baafe-1950-57aa-a6ab-6d238ee31999,1362,Lazar Carević,Goalkeeper,9.6,19.7,4,4,False,False,,,,,unsuccessful
+4005769,123,c88404bc-5b75-579d-8cd4-30a27a379a24,1523,Leonardo Javier Realpe Montaño,Right Center Back,21.5,24.2,3,3,False,False,,,,,unsuccessful
+4005769,124,dd81bfcf-e39e-5693-9204-f5266620687a,1536,Justin de Haas,Left Center Back,21.5,7.3,5,3,False,False,,,,,unsuccessful
+4005769,145,339b82ad-a5c2-53a5-991d-1eedd930d869,1817,Justin de Haas,Left Center Back,20.8,32.1,7,4,True,False,5.0,7.0,,,success_partial
+4005769,151,3c5b5bc1-f7c9-5e82-96f5-8ec2d2762b75,1856,Justin de Haas,Left Center Back,7.1,10.8,4,3,False,False,,,,,unsuccessful
+4005769,176,f850d86a-4f96-5413-aeca-25a352e4782e,2137,Lazar Carević,Goalkeeper,13.3,13.5,5,3,False,False,,,,,unsuccessful
+4005769,237,81696a7d-7c87-54f4-b659-896a34443ffb,2715,Lazar Carević,Goalkeeper,8.8,24.7,7,5,True,False,3.0,5.0,,,success_partial
+4005776,14,0cedecd5-abf1-57ce-9397-30e8ff2e5654,192,Lazar Carević,Goalkeeper,14.5,33.7,6,4,True,True,3.0,5.0,4.0,6.0,success_total
+4005776,18,a13237bf-99d8-5033-8992-aa11b613d927,281,Lazar Carević,Goalkeeper,6.0,16.0,4,3,False,False,,,,,unsuccessful
+4005776,33,1e63b693-2c45-55f8-91bc-a547f6245b73,431,Lazar Carević,Goalkeeper,20.8,24.7,31,9,True,True,3.0,5.0,7.0,9.0,success_total
+4005776,47,1931e15d-6356-5899-9e1a-02a12336ed6e,613,Lazar Carević,Goalkeeper,16.4,20.8,7,4,True,False,3.0,5.0,,,success_partial
+4005776,63,50752e9b-e991-59fa-8387-ca55734c419c,942,Lazar Carević,Goalkeeper,16.0,20.0,14,6,True,True,2.0,4.0,5.0,7.0,success_total
+4005776,75,c0994aeb-fc99-56b1-8614-a59bd4628c4d,1132,Justin de Haas,Left Center Back,13.1,21.6,7,5,True,False,4.0,6.0,,,success_partial
+4005776,159,a9ba3031-adc7-5d62-89af-ff8ceff2ccaa,2317,Lazar Carević,Goalkeeper,4.1,31.0,6,4,True,False,2.0,4.0,,,success_partial
+4005776,189,5388230a-5f7f-5f5e-95ed-7b5e372cd355,2664,Lazar Carević,Goalkeeper,6.2,6.3,17,8,True,True,5.0,7.0,7.0,9.0,success_total
+4005776,194,e482441c-9849-5ebb-862f-d739516b2187,2734,Lazar Carević,Goalkeeper,23.9,28.8,6,4,True,True,3.0,5.0,4.0,6.0,success_total
+4005776,235,6d7aa96b-90e5-5e25-802b-d8ae92f7c437,3258,Lazar Carević,Goalkeeper,5.8,15.6,14,7,True,True,7.0,9.0,8.0,10.0,success_total
+4005780,33,dbb5209c-489f-513c-b1ba-c64b40efee0f,382,Justin de Haas,Left Center Back,33.9,36.2,4,3,True,False,2.0,4.0,,,success_partial
+4005780,48,44aba564-19e0-501c-bde2-e2d40aa1b33a,578,Leonardo Javier Realpe Montaño,Right Center Back,15.8,9.2,8,5,True,False,3.0,5.0,,,success_partial
+4005780,57,f1529af8-8233-53b6-b498-9de06a7e8ce3,704,Lazar Carević,Goalkeeper,7.6,30.6,44,10,True,True,18.0,20.0,28.0,30.0,success_total
+4005780,73,1364aa0d-b1fe-54f1-8c8b-5254d495854d,925,Justin de Haas,Left Center Back,5.8,5.8,17,8,True,True,10.0,12.0,13.0,15.0,success_total
+4005780,85,0ec38cd9-0ef8-5350-8596-0876c7d4a5ab,1119,Justin de Haas,Left Center Back,13.2,32.0,8,5,False,False,,,,,unsuccessful
+4005780,96,bda2ee9a-91ab-5a11-8c58-5be17aa4ea77,1269,Justin de Haas,Left Center Back,31.2,20.2,20,7,True,False,15.0,17.0,,,success_partial
+4005780,104,01deb02e-8c3e-52ca-83c1-724f9214b420,1388,Justin de Haas,Left Center Back,7.0,16.8,5,4,False,False,,,,,unsuccessful
+4005780,107,9ac5a574-2cbe-5aa0-a62a-8c91dafce3d6,1456,Leonardo Javier Realpe Montaño,Right Center Back,38.1,30.8,6,4,True,False,3.0,5.0,,,success_partial
+4005780,126,f32184ec-5d3d-5240-bdf1-1ca168f41eaa,1658,Leonardo Javier Realpe Montaño,Right Center Back,6.0,5.0,14,7,True,True,8.0,10.0,12.0,14.0,success_total
+4005780,132,062421f5-f946-53d9-a536-bb08bdb9182c,1751,Leonardo Javier Realpe Montaño,Right Center Back,6.0,6.5,6,3,False,False,,,,,unsuccessful
+4005780,134,a8db33c2-f324-5944-b33e-a5bfa5704dcf,1775,Lazar Carević,Goalkeeper,6.0,16.6,21,7,True,True,5.0,7.0,6.0,8.0,success_total
+4005780,137,2cb94f94-aafc-5dfd-b5f1-c938f6f6b3db,1865,Leonardo Javier Realpe Montaño,Right Center Back,21.9,33.6,8,5,True,True,4.0,6.0,5.0,7.0,success_total
+4005780,169,773e89cc-71ed-526c-945d-b66817428b8b,2268,Lazar Carević,Goalkeeper,20.2,32.3,16,6,True,True,2.0,4.0,9.0,11.0,success_total
+4005780,173,59c065b1-c24b-5e03-98a4-6466aabcaabf,2313,Lazar Carević,Goalkeeper,5.8,7.7,17,7,True,True,8.0,10.0,9.0,11.0,success_total
+4005780,175,8072f5d8-91ec-5e04-be97-939522c4d7b5,2346,Lazar Carević,Goalkeeper,6.0,20.7,13,5,True,True,9.0,11.0,10.0,12.0,success_total
+4005780,192,5504dfb7-6ad1-5478-8b08-283c3a64e160,2557,Lazar Carević,Goalkeeper,14.0,28.9,12,7,True,True,3.0,5.0,10.0,12.0,success_total
+4005780,215,0c70a85a-bb39-54f9-9c19-1eab25594928,2797,Lazar Carević,Goalkeeper,21.9,29.3,11,6,True,True,7.0,9.0,9.0,11.0,success_total
+4005780,218,ea630a91-3400-596d-9425-6c1e048d7f21,2828,Lazar Carević,Goalkeeper,26.7,29.7,8,5,True,True,4.0,6.0,6.0,8.0,success_total
+4005792,21,d4b7f75f-2d3c-5e85-b607-4e55fe83a5ca,242,Justin de Haas,Left Center Back,35.5,11.8,12,6,True,False,9.0,11.0,,,success_partial
+4005792,26,d0bd6bad-a9cc-5c77-a3f5-8af6f856bb30,292,Leonardo Javier Realpe Montaño,Right Center Back,15.5,21.3,10,4,True,True,3.0,5.0,8.0,10.0,success_total
+4005792,58,c9915c08-826b-570f-bf67-c5b14ef3cac0,668,Lazar Carević,Goalkeeper,6.0,6.0,6,3,False,False,,,,,unsuccessful
+4005792,64,be9eaecb-43c4-5fa4-b4fe-edfa91f1a91e,794,Leonardo Javier Realpe Montaño,Right Center Back,26.9,20.6,17,8,True,True,9.0,11.0,10.0,12.0,success_total
+4005792,69,01671273-390c-5189-9eb0-8549e888acd1,837,Lazar Carević,Goalkeeper,7.8,13.9,5,4,False,False,,,,,unsuccessful
+4005792,91,f2c9463b-befc-5681-8e3b-8b83f60b9036,1131,Justin de Haas,Left Center Back,32.3,39.0,7,4,True,False,5.0,7.0,,,success_partial
+4005792,93,96845ad2-2a0b-5150-a8bb-2f16b85686fa,1164,Leonardo Javier Realpe Montaño,Right Center Back,32.7,13.4,6,5,True,False,4.0,6.0,,,success_partial
+4005792,103,c5c1a1e0-6b9a-5314-8942-d2c42492e1f6,1359,Justin de Haas,Left Center Back,22.3,36.7,5,3,True,False,3.0,5.0,,,success_partial
+4005792,152,d0fd86ac-0e0c-5659-bba8-c5a1974afb1c,1994,Justin de Haas,Left Center Back,24.7,18.9,9,5,True,False,5.0,7.0,,,success_partial
+4005792,163,8460d736-be0a-5c40-86b6-1a02b685982b,2145,Justin de Haas,Left Center Back,14.2,16.1,6,4,True,True,2.0,4.0,3.0,5.0,success_total
+4005792,167,55ca7a6e-c468-53ef-a74b-47c035435faf,2229,Justin de Haas,Left Center Back,17.9,27.9,8,4,False,False,,,,,unsuccessful
+4005792,177,30a88d41-b691-571f-afc7-5049b8ed1317,2329,Lazar Carević,Goalkeeper,11.7,17.2,8,4,True,True,6.0,8.0,6.0,8.0,success_total
+4005803,7,9452faee-0dd3-58e8-b1cb-84c960f27b13,50,Lazar Carević,Goalkeeper,9.8,10.9,5,4,False,False,,,,,unsuccessful
+4005803,13,3f79c096-06fc-5b21-9658-4ceec1d8ab5b,106,Leonardo Javier Realpe Montaño,Left Center Back,31.3,31.3,20,6,True,True,3.0,5.0,18.0,20.0,success_total
+4005803,23,a871117d-2e29-52d4-9c8f-8039f57801a3,294,Lazar Carević,Goalkeeper,6.0,13.1,4,3,False,False,,,,,unsuccessful
+4005803,31,30ed5e48-6bff-5088-a52c-bcf7167de8cd,422,Lazar Carević,Goalkeeper,6.0,36.3,7,4,False,False,,,,,unsuccessful
+4005803,35,6cb6613e-68db-5d15-abf9-c02893e592e8,480,Ibrahima Ba,Right Center Back,17.2,35.7,9,3,True,False,3.0,5.0,,,success_partial
+4005803,40,d849b398-34f4-55d2-95ec-1c9c5256f387,532,Ibrahima Ba,Right Center Back,12.8,20.8,12,6,True,True,4.0,6.0,5.0,7.0,success_total
+4005803,45,1e80c438-3efa-5c09-b490-d694d932cd63,623,Leonardo Javier Realpe Montaño,Left Center Back,27.9,13.6,5,3,False,False,,,,,unsuccessful
+4005803,92,15ae4700-f641-5d33-9695-5deaf90d950f,1200,Lazar Carević,Goalkeeper,5.8,23.2,4,3,False,False,,,,,unsuccessful
+4005803,96,f8f07a05-ce7a-5a7c-8556-f1704ce7d922,1263,Lazar Carević,Goalkeeper,6.0,10.2,11,4,True,True,7.0,9.0,9.0,11.0,success_total
+4005803,143,bcf97aeb-3dcd-548a-ba54-6d1481ae554d,1784,Lazar Carević,Goalkeeper,12.8,6.6,13,5,True,False,9.0,11.0,,,success_partial
+4005803,152,e22749d5-ab05-5b97-a840-cb4431eca704,1875,Leonardo Javier Realpe Montaño,Left Center Back,30.2,39.7,6,4,False,False,,,,,unsuccessful
+4005803,167,7d3422ae-6681-5d66-a8c8-0d10541417e8,2001,Lazar Carević,Goalkeeper,11.9,19.5,5,3,False,False,,,,,unsuccessful
+4005803,202,3c0a775c-d558-5207-9517-74d22419d7fb,2341,Lazar Carević,Goalkeeper,12.7,22.6,25,9,True,True,3.0,5.0,4.0,6.0,success_total
+4005803,224,4d65e87c-dc1a-51d1-9faa-d004f25f7b0c,2573,Leonardo Javier Realpe Montaño,Left Center Back,38.6,34.3,11,5,True,True,2.0,4.0,2.0,4.0,success_total
+4005812,3,7b7798a2-794d-56a8-99bd-f3e3173065b4,15,Ibrahima Ba,Right Center Back,7.0,6.7,9,4,True,False,6.0,8.0,,,success_partial
+4005812,27,3bf4c267-d831-5121-b5ff-0c321ad67235,327,Lazar Carević,Goalkeeper,7.0,5.2,6,5,True,True,2.0,4.0,2.0,4.0,success_total
+4005812,62,b283e50d-5eac-578b-877a-900539caedcc,846,Lazar Carević,Goalkeeper,7.0,10.0,4,3,True,False,2.0,4.0,,,success_partial
+4005812,72,e0fdac3d-608d-56c7-ad55-049c41aab1b3,944,Lazar Carević,Goalkeeper,7.0,5.5,6,4,False,False,,,,,unsuccessful
+4005812,77,fac882f5-5699-5776-b6d6-bd7de7f3aa12,1006,Ibrahima Ba,Right Center Back,6.8,7.6,13,5,True,True,5.0,7.0,5.0,7.0,success_total
+4005812,82,2fa5a249-f6ca-5196-bf95-f1c62dbb3266,1089,Lazar Carević,Goalkeeper,22.8,23.4,7,4,True,True,5.0,7.0,5.0,7.0,success_total
+4005812,86,94cd7680-de6a-5a9e-8dee-6229ab4fa8dc,1145,Ibrahima Ba,Right Center Back,7.0,7.8,6,3,False,False,,,,,unsuccessful
+4005812,104,69f26986-81aa-5dcc-bc10-054bc2efe5ca,1379,Ibrahima Ba,Right Center Back,7.0,7.4,6,4,False,False,,,,,unsuccessful
+4005812,132,0c812c28-2564-5525-a4e9-e21027058059,1733,Leonardo Javier Realpe Montaño,Left Center Back,19.5,8.3,18,10,True,True,2.0,4.0,5.0,7.0,success_total
+4005812,138,df5705e1-da17-5e69-a2ae-f77fb1919471,1828,Ibrahima Ba,Right Center Back,22.6,13.1,16,8,True,False,5.0,7.0,,,success_partial
+4005812,189,94cc5be8-77c1-532b-98a0-d017e82739b2,2341,Ibrahima Ba,Right Center Back,5.7,6.7,6,4,True,False,4.0,6.0,,,success_partial
+4005812,191,820f51ed-eace-563f-84f5-b1589c95316c,2372,Lazar Carević,Goalkeeper,4.7,14.0,4,4,False,False,,,,,unsuccessful
+4005812,203,39880f6d-775d-5384-8a1e-0ce78cdabab0,2675,Leonardo Javier Realpe Montaño,Left Center Back,5.3,2.0,31,8,True,True,4.0,6.0,7.0,9.0,success_total
+4005812,210,838ffa25-03f5-58cd-8137-7656b6dc3f14,2888,Ibrahima Ba,Right Center Back,6.0,6.7,5,4,False,False,,,,,unsuccessful
+4005812,217,c82ebe02-469d-587d-b5f8-6f7ed33964e2,2938,Lazar Carević,Goalkeeper,6.0,23.3,6,4,True,False,2.0,4.0,,,success_partial
+4005812,237,03ba343a-6058-5247-80ca-a3cb237f9cd0,3257,Lazar Carević,Goalkeeper,2.5,5.5,6,4,True,False,2.0,4.0,,,success_partial
+4005817,17,6b5d414d-c8cb-5432-bda7-affaeb696150,199,Justin de Haas,Left Center Back,5.8,3.8,12,6,True,True,8.0,10.0,10.0,12.0,success_total
+4005817,45,1027b4af-8214-5644-82cb-178c5b20eccf,643,Ibrahima Ba,Right Center Back,29.2,19.7,11,5,True,True,8.0,10.0,9.0,11.0,success_total
+4005817,60,16b7b0fc-7d10-5884-943e-b74d15217d25,858,Justin de Haas,Left Center Back,5.6,3.4,7,3,False,False,,,,,unsuccessful
+4005817,110,4e9c7c37-5ecd-5449-b279-61c578740830,1647,Lazar Carević,Goalkeeper,13.7,13.9,16,6,True,False,7.0,9.0,,,success_partial
+4005817,185,b177a399-02ab-5717-b256-be9aeea8cf7a,2611,Lazar Carević,Goalkeeper,10.5,11.1,7,4,False,False,,,,,unsuccessful
+4005817,195,55bdce91-08d6-5a2a-bc43-308a5cd236cb,2790,Justin de Haas,Left Center Back,19.6,7.9,8,6,True,False,2.0,4.0,,,success_partial
+4005817,207,bddb6bc9-db32-546f-aa40-30afa0ea3afe,3033,Lazar Carević,Goalkeeper,7.0,17.2,4,3,False,False,,,,,unsuccessful
+4005828,12,34bcf0ab-d34d-5a11-9886-628e7241212e,189,Lazar Carević,Goalkeeper,6.3,16.0,9,5,True,False,7.0,9.0,,,success_partial
+4005828,47,1717060d-6d04-57a1-a844-d835259fc927,785,Lazar Carević,Goalkeeper,9.4,12.8,4,3,False,False,,,,,unsuccessful
+4005828,48,be4e2e48-58dc-5fcf-8788-ed0a81806856,794,Leonardo Javier Realpe Montaño,Right Center Back,20.2,6.9,5,3,False,False,,,,,unsuccessful
+4005828,55,dfb59119-b37e-5f5c-8b61-c8c6377c0025,989,Leonardo Javier Realpe Montaño,Right Center Back,28.1,36.1,6,4,True,False,3.0,5.0,,,success_partial
+4005828,67,1861db97-ec1d-569f-b510-f6e5b7da9aaf,1222,Leonardo Javier Realpe Montaño,Right Center Back,37.4,38.0,9,5,True,True,2.0,4.0,5.0,7.0,success_total
+4005828,72,32e21c70-bc9e-5f0b-9d66-289c8ca8a08f,1283,Leonardo Javier Realpe Montaño,Right Center Back,13.3,8.8,4,3,False,False,,,,,unsuccessful
+4005828,75,de112430-1bc8-5e17-95e3-bb6285dbd466,1309,Leonardo Javier Realpe Montaño,Right Center Back,6.1,11.6,7,4,True,False,3.0,5.0,,,success_partial
+4005828,84,bcf72d7f-a8b0-533b-8c59-97b68219357e,1452,Leonardo Javier Realpe Montaño,Right Center Back,34.0,24.3,9,5,False,False,,,,,unsuccessful
+4005828,114,f28f0f4a-4ffd-5c35-afa2-443ea298a00b,1730,Lazar Carević,Goalkeeper,9.9,26.4,12,5,False,False,,,,,unsuccessful
+4005828,137,9567538d-a9e0-54e9-9e11-13560f609374,2103,Justin de Haas,Left Center Back,5.2,5.2,4,3,False,False,,,,,unsuccessful
+4005828,146,74d963b8-2cc0-545f-9f7a-6eefb5430e8a,2243,Justin de Haas,Left Center Back,5.7,7.6,4,4,False,False,,,,,unsuccessful
+4005828,175,9d8225c6-0e4e-5a43-8633-3a276a3673ce,2483,Leonardo Javier Realpe Montaño,Right Center Back,19.9,9.3,14,5,True,True,3.0,5.0,10.0,12.0,success_total
+4005828,208,e72750b5-049c-5428-a267-c2fc2df83e70,2985,Leonardo Javier Realpe Montaño,Right Center Back,20.1,7.5,8,5,True,True,5.0,7.0,6.0,8.0,success_total
+4005840,23,5a31f00e-b8d1-5f45-9752-924606fad5fb,273,Lazar Carević,Goalkeeper,4.5,9.4,10,6,True,False,5.0,7.0,,,success_partial
+4005840,31,d8e6ddd1-5e34-5743-800c-6f281c65582a,377,Lazar Carević,Goalkeeper,6.9,11.1,7,4,False,False,,,,,unsuccessful
+4005840,48,a797ab1e-42de-5256-83c3-c2aad32342ff,746,Lazar Carević,Goalkeeper,5.6,5.5,4,3,False,False,,,,,unsuccessful
+4005840,53,16eab1ce-162a-50ce-842b-25ddecd1f393,836,Lazar Carević,Goalkeeper,14.9,18.3,10,5,True,False,7.0,9.0,,,success_partial
+4005840,88,f9001ad4-1c4e-5e1d-a3a2-0cfbe963636c,1308,Lazar Carević,Goalkeeper,4.7,7.5,8,4,False,False,,,,,unsuccessful
+4005840,91,19cf5dba-ca35-5458-ae70-e7d6558bc95c,1353,Leonardo Javier Realpe Montaño,Right Center Back,16.0,21.7,8,5,True,False,6.0,8.0,,,success_partial
+4005840,127,550cafae-d157-5179-8951-bae18e77eae8,1823,Justin de Haas,Left Center Back,15.7,7.7,33,9,True,True,3.0,5.0,7.0,9.0,success_total
+4005840,162,ed44c18d-61a7-5d77-b015-ad1099a184b3,2296,Justin de Haas,Left Center Back,5.3,5.1,8,4,True,False,6.0,8.0,,,success_partial
+4005840,167,f77e41e2-818e-51d2-a77d-be4f1a3bef5d,2398,Lazar Carević,Goalkeeper,5.7,11.7,12,6,True,True,2.0,4.0,2.0,4.0,success_total
+4005840,190,9a0b1e18-8e8b-597c-beff-8c5c36c0fc40,2808,Leonardo Javier Realpe Montaño,Right Center Back,4.8,6.3,4,3,False,False,,,,,unsuccessful
+4005840,194,2782f233-51eb-59bb-bee9-279c8f24952b,2855,Justin de Haas,Left Center Back,6.1,14.7,8,4,False,False,,,,,unsuccessful
+4005840,198,b6c64e1c-1c72-570f-8a59-83a54e966b58,2920,Lazar Carević,Goalkeeper,8.6,20.1,20,9,True,True,15.0,17.0,17.0,19.0,success_total
+4005840,206,09e3f284-9c05-5155-ac4e-757622080c6d,3024,Leonardo Javier Realpe Montaño,Right Center Back,34.6,9.3,7,4,True,False,5.0,7.0,,,success_partial
+4005843,33,cd17dfec-767c-5e3f-9800-bcf185577272,570,Lazar Carević,Goalkeeper,7.0,6.4,31,10,True,True,5.0,7.0,6.0,8.0,success_total
+4005843,42,8925b56e-6381-55f6-831b-6b0013110ebf,817,Lazar Carević,Goalkeeper,6.8,18.2,4,3,False,False,,,,,unsuccessful
+4005843,46,bda882d8-9f92-5e0c-ae74-79676b58df1d,855,Justin de Haas,Left Center Back,6.5,6.5,4,3,False,False,,,,,unsuccessful
+4005843,70,fd0130a5-5351-50ac-8d73-e2db22b77de6,1360,Leonardo Javier Realpe Montaño,Right Center Back,30.1,22.7,10,6,True,True,4.0,6.0,6.0,8.0,success_total
+4005843,81,e4cb386c-f1e0-5898-ae05-bb318e7b4d88,1507,Lazar Carević,Goalkeeper,6.0,14.4,4,3,False,False,,,,,unsuccessful
+4005843,82,40c74969-7cfb-51ee-bb24-665c7a2ba0d3,1516,Justin de Haas,Left Center Back,36.5,20.1,11,6,True,True,6.0,8.0,6.0,8.0,success_total
+4005843,87,ad3e3245-8bfc-539d-85de-e3990e29ebe0,1594,Justin de Haas,Left Center Back,13.8,18.3,7,4,False,False,,,,,unsuccessful
+4005843,117,63c92507-3563-53a2-9e56-089059f26148,2102,Lazar Carević,Goalkeeper,5.1,11.5,4,4,True,False,2.0,4.0,,,success_partial
+4005843,120,70ce0da1-81d8-5590-9b4d-bf770788d8e2,2133,Justin de Haas,Left Center Back,16.9,13.8,4,3,False,False,,,,,unsuccessful
+4005843,140,1bfeb07e-9664-58b6-98e3-f430e850138c,2416,Leonardo Javier Realpe Montaño,Right Center Back,3.9,11.6,4,3,False,False,,,,,unsuccessful
+4005843,146,a47da528-ced6-59a0-ac40-774f333d37b1,2461,Lazar Carević,Goalkeeper,5.1,7.2,6,4,False,False,,,,,unsuccessful
+4005843,150,4e9fad56-7679-5367-b5f0-77a055334fea,2517,Lazar Carević,Goalkeeper,10.0,18.5,8,5,True,False,6.0,8.0,,,success_partial
+4005843,170,b986ac13-f506-5246-96a3-addad59f08e2,2897,Leonardo Javier Realpe Montaño,Right Center Back,25.9,35.1,12,7,True,True,6.0,8.0,9.0,11.0,success_total
+4005843,190,0eda276a-5128-5c02-8e0b-01b264bc31e3,3302,Lazar Carević,Goalkeeper,3.9,9.4,10,4,False,False,,,,,unsuccessful
+4005843,203,ccbfd1e9-84bb-5eab-98ca-dcca46944c08,3443,Lazar Carević,Goalkeeper,1.3,16.4,10,6,True,False,7.0,9.0,,,success_partial
+4005856,56,374c888a-406b-556b-bf2b-16d12d937651,717,Lazar Carević,Goalkeeper,15.3,35.2,13,4,True,True,2.0,4.0,11.0,13.0,success_total
+4005856,72,81cddc1a-8f5b-5a73-a16f-6344fe9bcba0,936,Justin de Haas,Left Center Back,11.3,27.5,6,3,False,False,,,,,unsuccessful
+4005856,75,6d60304e-0b3f-5fb7-98c5-364234960ae8,999,Justin de Haas,Left Center Back,4.0,5.5,13,6,False,False,,,,,unsuccessful
+4005856,77,5efaba00-a910-501a-bf42-135fca321d83,1032,Leonardo Javier Realpe Montaño,Right Center Back,10.7,8.6,10,4,True,True,4.0,6.0,6.0,8.0,success_total
+4005856,84,d2f31f17-775a-5988-8629-71e7f2345945,1140,Lazar Carević,Goalkeeper,4.6,22.3,4,3,True,True,2.0,4.0,2.0,4.0,success_total
+4005856,87,7ecdf2bf-5b40-5c3e-b619-aa05eae065f4,1162,Justin de Haas,Left Center Back,6.7,6.8,4,3,False,False,,,,,unsuccessful
+4005856,111,977595cc-43ba-5e00-a5ee-9d69ee037e9e,1480,Lazar Carević,Goalkeeper,13.5,33.4,10,5,True,True,2.0,4.0,2.0,4.0,success_total
+4005856,121,2801673f-bf37-5435-83f1-d999d944ddc5,1629,Justin de Haas,Left Center Back,31.6,23.3,13,6,True,True,8.0,10.0,9.0,11.0,success_total
+4005856,224,1c9aef61-0c56-535d-b609-ac197bd0843e,2897,Leonardo Javier Realpe Montaño,Right Center Back,26.4,8.0,12,5,True,True,5.0,7.0,8.0,10.0,success_total
+4005861,9,2a95e43f-3b6a-5a3b-989f-0ecc5870e206,75,Lazar Carević,Goalkeeper,12.0,34.9,15,7,True,False,2.0,4.0,,,success_partial
+4005861,11,5c4f7e65-4f07-5196-9c4f-9513c71e6c9d,104,Lazar Carević,Goalkeeper,13.7,29.5,5,3,False,False,,,,,unsuccessful
+4005861,32,c86d574d-ea1e-5cc1-9558-198dcbb5c16c,492,Leonardo Javier Realpe Montaño,Right Center Back,32.8,37.5,4,3,False,False,,,,,unsuccessful
+4005861,44,f0407945-ac60-538d-bcb8-ffa02225b9ff,780,Lazar Carević,Goalkeeper,6.0,15.5,4,3,True,False,2.0,4.0,,,success_partial
+4005861,49,42ff7811-683c-5d6b-b183-79ad72af6c63,833,Leonardo Javier Realpe Montaño,Right Center Back,19.8,4.1,9,5,True,True,5.0,7.0,5.0,7.0,success_total
+4005861,62,8a8fa8e1-4d45-56b4-816b-52685ade0a1a,1205,Justin de Haas,Left Center Back,6.2,18.7,12,5,False,False,,,,,unsuccessful
+4005861,64,5594e461-7317-54b1-976e-f4d6e0d4b357,1230,Justin de Haas,Left Center Back,27.4,24.7,25,7,True,True,4.0,6.0,4.0,6.0,success_total
+4005861,75,1d622212-060f-5d97-a627-317e6a2f4f27,1431,Justin de Haas,Left Center Back,36.8,13.7,11,6,True,True,3.0,5.0,7.0,9.0,success_total
+4005861,114,ff07724a-49d2-5a3d-9ad7-520cf8a9aeac,2035,Lazar Carević,Goalkeeper,7.1,29.8,24,7,True,True,18.0,20.0,19.0,21.0,success_total
+4005861,127,24801f54-d183-5cd9-815b-ccd06f91794e,2167,Lazar Carević,Goalkeeper,5.3,11.1,5,3,True,False,3.0,5.0,,,success_partial
+4005861,139,7312f16f-f5dd-505f-a421-ce60f0b0c2eb,2313,Justin de Haas,Left Center Back,15.9,11.6,8,3,False,False,,,,,unsuccessful
+4005861,194,1c6160a5-3914-5608-969b-c08ae7081ab0,2977,Lazar Carević,Goalkeeper,6.4,14.1,8,5,False,False,,,,,unsuccessful
+4005861,213,5e0dcdbd-6da2-5658-bf95-2234f30ae856,3156,Lazar Carević,Goalkeeper,7.0,7.7,8,5,True,True,5.0,7.0,5.0,7.0,success_total
+4005861,222,400876a7-671c-597c-b190-dab9e7b2067c,3269,Lazar Carević,Goalkeeper,6.8,12.3,4,3,False,False,,,,,unsuccessful
+4005861,228,3ae9bcf6-e5b8-5446-989e-5a861544b806,3306,Justin de Haas,Left Center Back,34.5,21.0,5,3,False,False,,,,,unsuccessful
+4005861,232,ecce6ead-c641-5998-ae22-98f042707d57,3330,Leonardo Javier Realpe Montaño,Right Center Back,27.4,35.9,11,5,True,True,3.0,5.0,5.0,7.0,success_total
+4005872,9,215089e5-9b36-4472-940b-bb8b3d30fe05,91,Justin de Haas,Left Center Back,8.6,25.0,22,8,True,True,2.0,4.0,20.0,22.0,success_total
+4005872,24,35551ad5-8167-41d3-b50f-407bdb2895a6,265,Lazar Carević,Goalkeeper,5.8,6.5,16,6,True,True,3.0,5.0,3.0,5.0,success_total
+4005872,37,0c721113-76a5-4b24-a262-707264cf2edd,471,Lazar Carević,Goalkeeper,8.6,21.3,21,9,True,True,9.0,11.0,10.0,12.0,success_total
+4005872,72,7597f8ca-2abf-4576-8b2f-aa85e8fa52a4,993,Justin de Haas,Left Center Back,30.2,5.0,16,8,True,True,7.0,9.0,7.0,9.0,success_total
+4005872,84,08edc006-8403-4cd3-adcb-02dd62069bc6,1192,Lazar Carević,Goalkeeper,4.8,15.9,4,3,True,False,2.0,4.0,,,success_partial
+4005872,117,69cbe827-23ce-449c-962a-8819f0117293,1651,Lazar Carević,Goalkeeper,11.7,29.9,27,9,True,True,2.0,4.0,6.0,8.0,success_total
+4005872,125,2d5cf692-2ba4-4293-9783-be7873009b8b,1797,Lazar Carević,Goalkeeper,14.8,21.3,8,4,False,False,,,,,unsuccessful
+4005872,142,6262264a-251a-43da-a0d8-1f95ef13c7af,1965,Lazar Carević,Goalkeeper,4.6,8.1,4,3,False,False,,,,,unsuccessful
+4005872,157,2cda9c0a-571e-445c-a836-d353a40f0dd3,2228,Lazar Carević,Goalkeeper,7.0,11.7,4,3,False,False,,,,,unsuccessful
+4005872,183,51ab3786-e929-4938-aa87-52a501482afe,2551,Lazar Carević,Goalkeeper,8.6,11.9,4,3,False,False,,,,,unsuccessful
+4005872,187,76caa85e-91ff-4acd-9b4b-2f96df540427,2588,Ibrahima Ba,Right Center Back,27.4,28.3,6,5,False,False,,,,,unsuccessful
+4005872,193,f4635d1c-079d-49f6-81fe-f60e2f4d0e64,2637,Lazar Carević,Goalkeeper,4.6,14.4,4,3,True,True,2.0,4.0,2.0,4.0,success_total
+4005881,6,0f845056-4641-4b6d-a2b4-cacfb48bb198,46,Lazar Carević,Goalkeeper,12.3,18.4,4,3,False,False,,,,,unsuccessful
+4005881,41,b5cb4402-be24-4e49-8c35-e65e02979b09,428,Lazar Carević,Goalkeeper,20.1,22.2,7,5,False,False,,,,,unsuccessful
+4005881,60,b3e78dec-dcf7-48ad-85e1-9f0116bec989,672,Justin de Haas,Left Center Back,5.8,5.3,5,3,False,False,,,,,unsuccessful
+4005881,63,6870dfbf-283b-48f4-8fa8-37ff01be684f,699,Lazar Carević,Goalkeeper,26.3,28.0,6,4,False,False,,,,,unsuccessful
+4005881,66,fb7da5ab-f521-4315-aaeb-642140e405a1,743,Lazar Carević,Goalkeeper,5.3,4.3,14,8,True,True,4.0,6.0,6.0,8.0,success_total
+4005881,74,bae8c30b-4b1a-42fe-8a4e-fdb28a7225eb,887,Justin de Haas,Left Center Back,5.5,8.2,8,5,True,True,4.0,6.0,4.0,6.0,success_total
+4005881,82,a23b1b30-184b-40cf-b66e-46eb0b2a48d6,1079,Ibrahima Ba,Right Center Back,19.5,11.4,6,4,False,False,,,,,unsuccessful
+4005881,96,bc0beae5-9cc3-4d6d-896d-fce60dc13fd6,1206,Justin de Haas,Left Center Back,4.8,5.5,14,6,False,False,,,,,unsuccessful
+4005881,107,ac996a03-32f4-4fa6-a815-4022c68f644d,1336,Ibrahima Ba,Right Center Back,29.7,22.8,35,9,True,True,5.0,7.0,7.0,9.0,success_total
+4005881,141,a9fe4558-1533-4605-8465-a81282241494,1856,Lazar Carević,Goalkeeper,15.3,20.4,25,6,True,True,12.0,14.0,14.0,16.0,success_total
+4005881,179,bbe65ac3-f276-4654-bf16-cd977103f7ac,2498,Justin de Haas,Left Center Back,4.8,4.3,19,6,True,False,16.0,18.0,,,success_partial
+4005881,184,fe795d57-da13-478b-8255-516a393c717a,2643,Ibrahima Ba,Right Center Back,34.8,31.1,26,6,False,False,,,,,unsuccessful
+4005881,191,4fc4da57-10c1-4b0c-8be1-1b355e95a584,2757,Ibrahima Ba,Right Center Back,33.3,23.4,16,5,False,False,,,,,unsuccessful
+4005887,7,431be23b-cd98-4fc6-a8bd-0ceede5d3d5a,86,Justin de Haas,Left Center Back,10.1,4.4,7,4,False,False,,,,,unsuccessful
+4005887,18,3ba91f62-a766-4ec2-929c-3d2dcd7aa82d,250,Justin de Haas,Left Center Back,4.8,3.1,10,6,True,False,6.0,8.0,,,success_partial
+4005887,21,c30f5dac-1251-4bf8-80c0-034fe1d45ec9,292,Ibrahima Ba,Right Center Back,12.5,5.3,14,3,False,False,,,,,unsuccessful
+4005887,25,aeae53a4-7c08-4c76-b8a0-0775006d86f8,404,Lazar Carević,Goalkeeper,23.3,26.5,9,4,True,False,3.0,5.0,,,success_partial
+4005887,49,7ed450a5-0167-48ae-8578-cf2908624b10,864,Lazar Carević,Goalkeeper,4.4,7.0,6,4,False,False,,,,,unsuccessful
+4005887,73,de717612-be3d-46c1-acf0-0ef83b572556,1210,Lazar Carević,Goalkeeper,12.1,24.6,18,5,True,False,15.0,17.0,,,success_partial
+4005887,76,ba113ca4-937e-46e4-82fc-453b680e18be,1296,Lazar Carević,Goalkeeper,3.5,20.6,11,6,False,False,,,,,unsuccessful
+4005887,86,cc228678-0ae6-46dc-a912-d3647a7e0ab5,1434,Justin de Haas,Left Center Back,31.6,19.7,9,5,True,False,5.0,7.0,,,success_partial
+4005887,112,b84883e4-1d9b-40a4-aa6d-d1d7ca3ef8fe,1869,Lazar Carević,Goalkeeper,9.9,20.9,17,6,False,False,,,,,unsuccessful
+4005887,118,b2b2a1e8-605f-4805-b58f-b9b80207b3c7,1993,Justin de Haas,Left Center Back,8.9,18.6,7,4,False,False,,,,,unsuccessful
+4005887,126,31e7bb1e-1fc3-407b-8933-ede9260fa5cb,2144,Lazar Carević,Goalkeeper,5.5,11.9,5,3,False,False,,,,,unsuccessful
+4005887,140,3ee2af21-d93b-4920-813c-32dbfbed621b,2312,Lazar Carević,Goalkeeper,23.8,27.4,12,5,True,False,6.0,8.0,,,success_partial
+4005887,150,0cede1bb-6335-4f43-a38c-8965860238f2,2561,Lazar Carević,Goalkeeper,9.4,16.9,8,4,False,False,,,,,unsuccessful
+4005904,11,508240e3-51e8-4217-8926-54ecfbbabf4f,114,Ibrahima Ba,Right Center Back,18.1,23.1,7,3,True,False,3.0,5.0,,,success_partial
+4005904,26,b7a814d2-a8d8-4243-a9f0-6c3a77b02011,275,Justin de Haas,Left Center Back,36.9,35.6,16,7,True,True,2.0,4.0,3.0,5.0,success_total
+4005904,34,5cc10f81-5726-4dd0-b681-4e5b34b3e79c,424,Ibrahima Ba,Right Center Back,15.9,30.3,23,6,True,True,2.0,4.0,12.0,14.0,success_total
+4005904,94,d177c9d8-9ccd-4c63-935d-f9b28ffb7e72,1278,Lazar Carević,Goalkeeper,4.1,35.3,8,5,True,True,2.0,4.0,6.0,8.0,success_total
+4005904,101,14151bc8-e637-4e67-a8d4-4c02ceb7404f,1344,Lazar Carević,Goalkeeper,2.2,10.3,5,4,True,True,3.0,5.0,3.0,5.0,success_total
+4005904,104,c6bacb16-1448-4246-be4d-de910ae8a621,1363,Lazar Carević,Goalkeeper,4.1,24.7,4,3,True,True,2.0,4.0,2.0,4.0,success_total
+4005904,153,9d732dc7-115d-4191-92d7-0cd089a9f2a2,2046,Lazar Carević,Goalkeeper,4.2,14.4,5,3,True,False,3.0,5.0,,,success_partial
+4005904,182,8e47baca-7c26-4284-a69c-1d488b3bc411,2441,Justin de Haas,Left Center Back,38.0,13.7,22,9,True,True,15.0,17.0,17.0,19.0,success_total
+4005904,187,0e8fec32-92ec-4b17-ac08-fb6d4bb9a5a4,2570,Justin de Haas,Left Center Back,39.7,20.1,12,7,True,True,7.0,9.0,7.0,9.0,success_total
+4005904,192,285368ce-726e-4629-ab7b-056e501fd131,2634,Justin de Haas,Left Center Back,33.0,20.0,15,5,False,False,,,,,unsuccessful
+4005904,200,b80a29e1-50c5-459f-a808-abca73aa9a9f,2702,Lazar Carević,Goalkeeper,10.1,21.7,13,4,False,False,,,,,unsuccessful
+4005904,209,ff36f28e-c0d7-4450-a9b1-4eca026280e9,2946,Lazar Carević,Goalkeeper,8.0,25.7,12,4,False,False,,,,,unsuccessful
+4005912,26,f6e17520-46b9-4739-ab1e-10fd69ba4b66,363,Ibrahima Ba,Right Center Back,5.0,6.0,4,3,False,False,,,,,unsuccessful
+4005912,31,e0c2ebca-a064-4377-8015-f557e70b543f,461,Ibrahima Ba,Right Center Back,5.8,5.0,12,6,False,False,,,,,unsuccessful
+4005912,38,3fa0188b-ecd5-4ac3-9f67-99abb77289db,607,Lazar Carević,Goalkeeper,12.3,27.2,5,4,False,False,,,,,unsuccessful
+4005912,83,a77cd373-e1cc-43fa-9530-64035b560669,1183,Lazar Carević,Goalkeeper,4.5,5.2,4,4,False,False,,,,,unsuccessful
+4005912,121,74c40aac-fea1-4458-8e7c-44d94ad5271e,1833,Lazar Carević,Goalkeeper,10.1,14.6,12,5,True,True,3.0,5.0,3.0,5.0,success_total
+4005912,157,98205513-b9cd-41b4-851f-b2934a67a082,2428,Ibrahima Ba,Right Center Back,20.7,23.8,9,5,False,False,,,,,unsuccessful
+4005912,200,938321ed-2dfe-41e0-b0ed-f31f8d077ecd,3002,Justin de Haas,Left Center Back,35.5,35.5,5,3,True,False,3.0,5.0,,,success_partial
+4005912,228,7bc9bb7f-73e1-4656-9727-ba81eb596975,3305,Lazar Carević,Goalkeeper,3.5,4.0,4,3,False,False,,,,,unsuccessful
+4005920,4,345d9790-d53e-4cf3-8895-d2a5c156d8e1,29,Ibrahima Ba,Right Center Back,5.7,11.8,11,5,True,False,9.0,11.0,,,success_partial
+4005920,23,a3bfcb2d-1eb3-4cdb-aeb5-f0d622b62572,248,Lazar Carević,Goalkeeper,5.5,16.2,9,5,True,False,6.0,8.0,,,success_partial
+4005920,36,c04d848f-ed6d-4660-a22a-4fe921fdff56,445,Ibrahima Ba,Right Center Back,34.7,34.8,15,5,True,True,2.0,4.0,6.0,8.0,success_total
+4005920,43,3d01a458-7eab-48a5-a451-9abc8dd4ffff,546,Lazar Carević,Goalkeeper,21.8,30.0,17,6,True,True,4.0,6.0,10.0,12.0,success_total
+4005920,47,a99e8d87-939c-4262-b092-18aa8979e9ba,627,Lazar Carević,Goalkeeper,5.2,15.0,11,7,True,True,4.0,6.0,9.0,11.0,success_total
+4005920,53,50463cc3-ca29-4d7e-859a-f6d099946313,718,Lazar Carević,Goalkeeper,26.0,34.8,18,8,True,True,2.0,4.0,3.0,5.0,success_total
+4005920,57,f4db8137-3724-49b4-a06b-976eac1ef965,769,Ibrahima Ba,Right Center Back,13.5,11.3,38,8,True,True,5.0,7.0,11.0,13.0,success_total
+4005920,97,23e36d0d-cfda-43f6-b4c7-faaf9a4ce201,1227,Justin de Haas,Left Center Back,36.3,35.8,15,6,True,False,2.0,4.0,,,success_partial
+4005920,108,0873171b-4120-48eb-b3b8-6f1044ce3c09,1343,Lazar Carević,Goalkeeper,10.8,28.8,8,5,True,False,2.0,4.0,,,success_partial
+4005920,111,4f04949b-b06e-4dae-85ad-3f2bf1f3bc66,1395,Lazar Carević,Goalkeeper,5.7,10.7,10,5,True,False,8.0,10.0,,,success_partial
+4005920,129,abaa54aa-eb74-48aa-912a-63fb668d47d7,1597,Ibrahima Ba,Right Center Back,39.9,12.6,14,5,True,True,6.0,8.0,7.0,9.0,success_total
+4005920,151,0c190a72-30d2-47fe-a493-26d267c163a0,1976,Lazar Carević,Goalkeeper,12.6,21.9,8,5,False,False,,,,,unsuccessful
+4005920,154,17eb65f7-e101-4386-b721-a379c1bb1f76,2045,Lazar Carević,Goalkeeper,9.1,26.3,4,3,True,False,2.0,4.0,,,success_partial
+4005920,157,6cf964c8-8c49-462e-bf9e-afde583680fc,2068,Lazar Carević,Goalkeeper,5.3,31.6,3,3,False,False,,,,,unsuccessful
+4005920,164,32f3563c-4fcc-42a4-b8c9-0c902e049b33,2128,Lazar Carević,Goalkeeper,5.0,30.8,3,3,False,False,,,,,unsuccessful
+4005920,167,074cb1b3-fb52-430a-be92-3924c2c1e925,2156,Lazar Carević,Goalkeeper,6.3,16.3,7,4,False,False,,,,,unsuccessful
+4005920,169,52a2ecca-85db-4e9d-9416-3ce03166671b,2192,Justin de Haas,Left Center Back,12.9,17.3,5,3,False,False,,,,,unsuccessful
+4005920,175,5e6c9003-3203-473f-8c55-cd7e5d1de399,2226,Lazar Carević,Goalkeeper,6.3,22.1,5,4,True,False,2.0,4.0,,,success_partial
+4005920,193,b9cced57-0420-483b-9e05-03bce9ea2287,2415,Lazar Carević,Goalkeeper,3.9,27.4,3,3,False,False,,,,,unsuccessful
+4005926,12,f3b8cc5b-f327-4aa2-9df1-c09c1720e4c7,101,Lazar Carević,Goalkeeper,4.3,9.2,5,3,False,False,,,,,unsuccessful
+4005926,55,20013a55-cf6f-4571-95ba-58280a306247,647,Leonardo Javier Realpe Montaño,Left Center Back,5.0,24.0,5,3,True,False,3.0,5.0,,,success_partial
+4005926,60,0d38d56f-58a4-4b38-88e1-89a60eea5574,685,Lazar Carević,Goalkeeper,5.0,4.3,9,4,True,False,6.0,8.0,,,success_partial
+4005926,73,cb3338fc-78ce-4e72-8e13-4bf78c3b3887,821,Lazar Carević,Goalkeeper,4.3,15.6,8,4,False,False,,,,,unsuccessful
+4005926,85,4311ca02-d3d1-4d7f-878a-696b9302d177,1048,Lazar Carević,Goalkeeper,4.5,15.4,9,6,True,True,2.0,4.0,4.0,6.0,success_total
+4005926,87,833c5400-f628-45db-89ef-5c5be06c1a49,1069,Lazar Carević,Goalkeeper,19.5,22.0,9,5,True,True,3.0,5.0,3.0,5.0,success_total
+4005926,133,67bc02d3-8cb8-4967-b517-af56ad53c379,1676,Leonardo Javier Realpe Montaño,Left Center Back,32.4,18.3,13,6,True,True,5.0,7.0,11.0,13.0,success_total
+4005926,152,8069b8bd-b853-4c61-b96e-17237bd7cefb,1940,Leonardo Javier Realpe Montaño,Left Center Back,5.5,4.9,7,4,False,False,,,,,unsuccessful
+4005926,169,15e9e986-aa31-4f72-a585-28bde39df93e,2142,Lazar Carević,Goalkeeper,13.3,28.4,10,6,True,True,2.0,4.0,3.0,5.0,success_total
+4005926,176,b63ed4d8-57bf-49b6-a1c9-b327e8807b52,2278,Lazar Carević,Goalkeeper,6.3,31.8,9,6,True,True,4.0,6.0,5.0,7.0,success_total
+4005926,183,da2e7acd-56de-4b22-93e0-baf0280adb5b,2370,Ibrahima Ba,Right Center Back,3.8,3.8,18,9,True,False,9.0,11.0,,,success_partial
+4005926,193,22645ced-6d04-4810-b766-8f7806bd3a6b,2548,Lazar Carević,Goalkeeper,18.4,27.6,15,5,True,True,4.0,6.0,5.0,7.0,success_total
+4005938,6,235a048c-f161-403d-bc34-134d79ad56ea,47,Justin de Haas,Left Center Back,32.1,19.9,22,8,True,True,9.0,11.0,9.0,11.0,success_total
+4005938,10,a0c6dbdb-1278-436c-8cd8-dacec93569df,157,Lazar Carević,Goalkeeper,5.0,8.9,22,9,True,False,5.0,7.0,,,success_partial
+4005938,12,cbf7837f-b276-4a16-ac33-5ad3ad694afc,199,Lazar Carević,Goalkeeper,4.7,9.8,19,7,True,True,15.0,17.0,15.0,17.0,success_total
+4005938,26,a9d9fd5e-8a6d-4491-9614-9a13f35c4ef2,439,Ibrahima Ba,Right Center Back,10.8,16.8,14,6,True,True,10.0,12.0,11.0,13.0,success_total
+4005938,33,c4aab50a-fa69-40e0-8c79-f6eb85693718,532,Lazar Carević,Goalkeeper,8.6,28.6,5,3,True,True,2.0,4.0,3.0,5.0,success_total
+4005938,44,309cf2fb-96c3-408a-ae9d-031cc0287c4b,695,Lazar Carević,Goalkeeper,6.2,12.8,8,5,True,False,4.0,6.0,,,success_partial
+4005938,52,5d41fa34-cb8b-4d33-9ba1-992089e3dba2,833,Lazar Carević,Goalkeeper,10.4,21.3,14,6,True,True,6.0,8.0,12.0,14.0,success_total
+4005938,62,a766fb8b-5ce2-440c-96bb-7493fd61646d,1026,Ibrahima Ba,Right Center Back,28.9,13.8,9,5,True,True,7.0,9.0,7.0,9.0,success_total
+4005938,67,d477b41e-f985-4536-af3b-a21c5c290c30,1091,Justin de Haas,Left Center Back,32.6,37.3,12,5,True,True,2.0,4.0,10.0,12.0,success_total
+4005938,103,b3fb2571-bf18-42f5-9f7d-acb26311109c,1555,Lazar Carević,Goalkeeper,16.4,33.1,11,5,True,False,5.0,7.0,,,success_partial
+4005938,115,12744352-cabc-459d-b3a7-77a2ce67cfca,1665,Ibrahima Ba,Right Center Back,29.8,8.2,33,9,True,True,23.0,25.0,25.0,27.0,success_total
+4005938,139,7d556ce7-76c9-4034-86ea-a6bcd044b6fd,2227,Lazar Carević,Goalkeeper,3.7,8.8,6,4,True,True,2.0,4.0,3.0,5.0,success_total
+4005938,149,61fe5b81-4f95-45bf-a52e-6edd419e5cee,2344,Justin de Haas,Left Center Back,9.0,2.8,4,3,False,False,,,,,unsuccessful
+4005938,177,365f44ed-c3c3-428a-8f13-9e1552942ee1,2729,Lazar Carević,Goalkeeper,6.2,22.8,8,5,True,True,6.0,8.0,6.0,8.0,success_total
+4005938,183,8a597a4c-c1ff-4404-bdc4-6d2d18fcd1d8,2807,Lazar Carević,Goalkeeper,3.3,14.5,25,8,True,True,5.0,7.0,5.0,7.0,success_total
+4005941,54,edc84cf2-213f-4ac0-8e52-9bfc81dddaf5,910,Lazar Carević,Goalkeeper,6.8,11.9,17,9,True,True,2.0,4.0,10.0,12.0,success_total
+4005941,71,12a6ab8e-609e-484f-8e01-6b2696b8d293,1121,Lazar Carević,Goalkeeper,16.3,24.6,10,6,True,True,2.0,4.0,6.0,8.0,success_total
+4005941,76,e124b569-41ac-42b8-aefb-ca8b5c17e430,1200,Lazar Carević,Goalkeeper,12.1,15.4,5,3,False,False,,,,,unsuccessful
+4005941,87,49f3a5f6-14bc-4158-b000-ec2f43f744e9,1372,Lazar Carević,Goalkeeper,14.1,15.9,5,3,False,False,,,,,unsuccessful
+4005941,114,c82d663b-3c15-49f5-8ba0-6fc67e4d4149,1781,Ibrahima Ba,Right Center Back,28.5,20.5,17,7,True,False,15.0,17.0,,,success_partial
+4005941,126,7822b121-4488-4120-9a7e-6d646f96978f,2006,Justin de Haas,Left Center Back,5.3,4.5,10,5,True,False,7.0,9.0,,,success_partial
+4005941,156,f04877ea-dc74-4171-876a-8825e1a130f6,2452,Ibrahima Ba,Right Center Back,28.3,9.7,8,5,False,False,,,,,unsuccessful
+4005941,161,3349d8cb-2f67-486c-b41c-e38d8e6b252c,2595,Justin de Haas,Left Center Back,15.3,4.5,10,5,True,False,7.0,9.0,,,success_partial
+4005941,164,69a4ab2c-f42a-4b12-a431-da3b44eb6e94,2623,Justin de Haas,Left Center Back,30.0,35.8,10,5,True,False,4.0,6.0,,,success_partial
+4005941,172,65f1cb28-9c2f-4071-92af-2174a821b094,2746,Justin de Haas,Left Center Back,39.2,24.2,9,4,False,False,,,,,unsuccessful
+4005941,174,c925377c-71dd-4ccf-a612-77489cbb751f,2772,Ibrahima Ba,Right Center Back,19.0,31.0,22,9,True,False,5.0,7.0,,,success_partial
