@@ -422,58 +422,85 @@ def calculate_build_up_metrics(summary_df, team_matches):
     
     return match_agg
 
-# ── Gráficos de barras empilhadas ──────────────────────────────────────────────
+# ── Gráficos de barras ────────────────────────────────────────────────────────
 def plotly_stacked_bar(df, col_j1, col_j2, title, ylabel):
     df_sorted = df.sort_values("match_date")
-    x_vals = df_sorted["label_full"].tolist()
-    y_j1 = df_sorted[col_j1].tolist()
-    y_j2 = df_sorted[col_j2].tolist() if col_j2 in df_sorted.columns else [0]*len(x_vals)
-    colors_j1 = [get_colors(o)[0] for o in df_sorted["opponent"]]
-    colors_j2 = [get_colors(o)[1] for o in df_sorted["opponent"]]
-    hover_j1 = [f"{opp}<br>{col_j1}: {v:.2f}" for opp,v in zip(df_sorted["opponent"],y_j1)]
-    hover_j2 = [f"{opp} (J2)<br>{col_j2}: {v:.2f}" for opp,v in zip(df_sorted["opponent"],y_j2)]
+
+    is_j2 = df_sorted["label_full"].str.contains(r"\(J2\)", regex=True, na=False)
+    j1_df = df_sorted[~is_j2]
+    j2_df = df_sorted[is_j2]
 
     fig = go.Figure()
+
+    # Barras J1 — cor sólida do clube
     fig.add_trace(go.Bar(
-        x=x_vals, y=y_j1,
-        marker_color=colors_j1,
+        x=j1_df["label_full"],
+        y=j1_df[col_j1],
+        marker=dict(
+            color=[get_colors(o)[0] for o in j1_df["opponent"]],
+            line=dict(color="white", width=0.8),
+        ),
         name="1º Jogo",
-        hovertemplate="%{customdata}<extra></extra>",
-        customdata=hover_j1,
+        hovertemplate="<b>%{x}</b><br>" + ylabel + ": %{y:.3f}<extra></extra>",
     ))
-    visible_j2 = [v for v in y_j2 if v > 0]
-    if visible_j2:
+
+    # Barras J2 — cor secundária + hachura diagonal
+    if not j2_df.empty:
         fig.add_trace(go.Bar(
-            x=x_vals, y=y_j2,
-            marker_color=colors_j2,
-            marker_pattern_shape="/",
+            x=j2_df["label_full"],
+            y=j2_df[col_j1],
+            marker=dict(
+                color=[get_colors(o)[1] for o in j2_df["opponent"]],
+                pattern=dict(shape="/", size=8, solidity=0.45),
+                line=dict(color="white", width=0.8),
+            ),
             name="2º Jogo",
-            hovertemplate="%{customdata}<extra></extra>",
-            customdata=hover_j2,
+            hovertemplate="<b>%{x}</b><br>" + ylabel + ": %{y:.3f}<extra></extra>",
         ))
+
     fig.update_layout(
-        barmode="stack",
-        title=dict(text=title, font=dict(size=14, family="Arial")),
-        xaxis=dict(title="Adversário", tickangle=-35),
-        yaxis=dict(title=ylabel),
+        barmode="overlay",
+        title=dict(text=title, font=dict(size=15, family="Arial", color="#1a1a2e")),
+        xaxis=dict(
+            title="Adversário",
+            tickangle=-45,
+            tickfont=dict(size=10),
+            showgrid=False,
+        ),
+        yaxis=dict(
+            title=ylabel,
+            tickfont=dict(size=11),
+            showgrid=True,
+            gridcolor="#E5E5E5",
+            zeroline=True,
+            zerolinecolor="#cccccc",
+        ),
         plot_bgcolor="white",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        height=420,
-        margin=dict(l=40, r=20, t=60, b=100),
+        paper_bgcolor="#fafafa",
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+            bgcolor="rgba(255,255,255,0.9)", bordercolor="#ddd", borderwidth=1,
+            font=dict(size=12),
+        ),
+        height=500,
+        margin=dict(l=55, r=20, t=75, b=140),
+        hovermode="x unified",
     )
-    fig.update_xaxes(showgrid=False)
-    fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
     return fig
 
 # ── Plotly: linha cronológica ──────────────────────────────────────────────────
 def plotly_line_chart(df, y_col, title, ylabel):
     fig = go.Figure()
     ymax = max(df[y_col].max() + 3, 25)
-    fig.add_hrect(y0=0,  y1=10,   fillcolor="#2ecc71", opacity=0.06, line_width=0)
-    fig.add_hrect(y0=10, y1=20,   fillcolor="#e67e22", opacity=0.06, line_width=0)
-    fig.add_hrect(y0=20, y1=ymax, fillcolor="#e74c3c", opacity=0.06, line_width=0)
-    fig.add_hline(y=10, line_dash="dot", line_color="#2ecc71", line_width=1, opacity=0.6)
-    fig.add_hline(y=20, line_dash="dot", line_color="#e67e22", line_width=1, opacity=0.6)
+    fig.add_hrect(y0=0,  y1=10,   fillcolor="#2ecc71", opacity=0.14, line_width=0)
+    fig.add_hrect(y0=10, y1=20,   fillcolor="#e67e22", opacity=0.14, line_width=0)
+    fig.add_hrect(y0=20, y1=ymax, fillcolor="#e74c3c", opacity=0.14, line_width=0)
+    fig.add_hline(y=10, line_dash="dot", line_color="#27ae60", line_width=1.5, opacity=0.8,
+                  annotation_text="Baixo/Médio", annotation_position="right",
+                  annotation_font=dict(size=10, color="#27ae60"))
+    fig.add_hline(y=20, line_dash="dot", line_color="#e67e22", line_width=1.5, opacity=0.8,
+                  annotation_text="Médio/Alto", annotation_position="right",
+                  annotation_font=dict(size=10, color="#e67e22"))
 
     fig.add_trace(go.Scatter(
         x=df["label_full"], y=df[y_col],
@@ -494,17 +521,21 @@ def plotly_line_chart(df, y_col, title, ylabel):
         ))
 
     fig.update_layout(
-        title=dict(text=title, font=dict(size=14, family="Arial")),
-        xaxis=dict(tickangle=-35),
-        yaxis=dict(title=ylabel, range=[0, ymax]),
+        title=dict(text=title, font=dict(size=15, family="Arial", color="#1a1a2e")),
+        xaxis=dict(tickangle=-45, tickfont=dict(size=10), showgrid=False),
+        yaxis=dict(title=ylabel, range=[0, ymax], tickfont=dict(size=11)),
         plot_bgcolor="white",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        height=400,
-        margin=dict(l=40, r=20, t=60, b=120),
+        paper_bgcolor="#fafafa",
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+            bgcolor="rgba(255,255,255,0.9)", bordercolor="#ddd", borderwidth=1,
+        ),
+        height=430,
+        margin=dict(l=55, r=80, t=70, b=130),
         hovermode="x unified",
     )
     fig.update_xaxes(showgrid=False)
-    fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
+    fig.update_yaxes(showgrid=True, gridcolor="#E5E5E5", zeroline=True, zerolinecolor="#ccc")
     return fig
 
 # ── Campo com grelha ───────────────────────────────────────────────────────────
@@ -622,6 +653,25 @@ def build_up_progression_chart(actions_df, outcome_filter=None):
     fig.tight_layout()
     return fig
 
+# ── Header estilizado ─────────────────────────────────────────────────────────
+def render_header(title, subtitle="Liga Portugal 25/26 · Dados StatsBomb · Atualizado em tempo real"):
+    logo_url = CLUB_LOGOS.get("Famalicão", "")
+    st.markdown(f"""
+    <div style="display:flex; align-items:center; background:linear-gradient(90deg, #003d7a 0%, #0066cc 100%);
+                padding:14px 22px; border-radius:10px; margin-bottom:18px; gap:18px;
+                box-shadow:0 3px 10px rgba(0,0,0,0.18);">
+        <img src="{logo_url}" width="62"
+             style="object-fit:contain; filter:drop-shadow(0 2px 5px rgba(0,0,0,0.35)); flex-shrink:0;">
+        <div>
+            <div style="color:white; font-size:1.55rem; font-weight:700; letter-spacing:-0.3px;
+                        font-family:Arial,sans-serif; line-height:1.2;">{title}</div>
+            <div style="color:#b3d4ff; font-size:0.78rem; margin-top:4px;
+                        font-family:Arial,sans-serif;">{subtitle}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # NAVEGAÇÃO
 # ══════════════════════════════════════════════════════════════════════════════
@@ -639,15 +689,7 @@ fama_logo = CLUB_LOGOS.get("Famalicão")
 # ══════════════════════════════════════════════════════════════════════════════
 
 if pagina == "📊 Vulnerabilidade":
-    col_logo, col_title = st.columns([1, 10])
-    with col_logo:
-        if fama_logo:
-            st.image(fama_logo, width=70)
-        else:
-            st.markdown("⚽")
-    with col_title:
-        st.title("Famalicão — Vulnerabilidade após Perda")
-    st.caption("Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
+    render_header("Famalicão — Vulnerabilidade após Perda")
 
     df = carregar_vap(team_matches)
 
@@ -757,15 +799,7 @@ if pagina == "📊 Vulnerabilidade":
 # ══════════════════════════════════════════════════════════════════════════════
 
 elif pagina == "🏗️ Construção":
-    col_logo, col_title = st.columns([1, 10])
-    with col_logo:
-        if fama_logo:
-            st.image(fama_logo, width=70)
-        else:
-            st.markdown("⚽")
-    with col_title:
-        st.title("Famalicão — Análise da 1ª Fase de Construção")
-    st.caption("Liga Portugal 25/26 | Dados StatsBomb | ⚡ Análise em tempo real")
+    render_header("Famalicão — Análise da 1ª Fase de Construção")
 
     # Filtros
     st.sidebar.header("Filtros")
@@ -923,9 +957,15 @@ elif pagina == "🏗️ Construção":
         fig_taxa = go.Figure()
         
         # Zonas de referência
-        fig_taxa.add_hrect(y0=60, y1=100, fillcolor="#28a745", opacity=0.1, line_width=0)
-        fig_taxa.add_hrect(y0=40, y1=60, fillcolor="#fd7e14", opacity=0.1, line_width=0)
-        fig_taxa.add_hrect(y0=0, y1=40, fillcolor="#dc3545", opacity=0.1, line_width=0)
+        fig_taxa.add_hrect(y0=60, y1=100, fillcolor="#28a745", opacity=0.18, line_width=0)
+        fig_taxa.add_hrect(y0=40, y1=60, fillcolor="#fd7e14", opacity=0.18, line_width=0)
+        fig_taxa.add_hrect(y0=0, y1=40, fillcolor="#dc3545", opacity=0.18, line_width=0)
+        fig_taxa.add_hline(y=60, line_dash="dot", line_color="#28a745", line_width=1.5, opacity=0.8,
+                           annotation_text="Eficaz (60%)", annotation_position="right",
+                           annotation_font=dict(size=10, color="#28a745"))
+        fig_taxa.add_hline(y=40, line_dash="dot", line_color="#dc3545", line_width=1.5, opacity=0.8,
+                           annotation_text="Crítico (40%)", annotation_position="right",
+                           annotation_font=dict(size=10, color="#dc3545"))
         
         fig_taxa.add_trace(go.Scatter(
             x=metrics_df["label_full"],
@@ -946,15 +986,21 @@ elif pagina == "🏗️ Construção":
         ))
         
         fig_taxa.update_layout(
-            title="Taxa de Sucesso (%) — Construções com x > 40",
-            xaxis_tickangle=-35,
-            yaxis=dict(title="%", range=[0, 100]),
-            height=400,
+            title=dict(text="Taxa de Sucesso (%) — Construções com x > 40",
+                       font=dict(size=15, family="Arial", color="#1a1a2e")),
+            xaxis=dict(tickangle=-45, tickfont=dict(size=10), showgrid=False),
+            yaxis=dict(title="%", range=[0, 100], tickfont=dict(size=11)),
+            height=430,
             plot_bgcolor="white",
-            legend=dict(orientation="h", y=1.1),
+            paper_bgcolor="#fafafa",
+            legend=dict(
+                orientation="h", y=1.02, yanchor="bottom", x=1, xanchor="right",
+                bgcolor="rgba(255,255,255,0.9)", bordercolor="#ddd", borderwidth=1,
+            ),
+            margin=dict(l=55, r=100, t=70, b=130),
         )
         fig_taxa.update_xaxes(showgrid=False)
-        fig_taxa.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
+        fig_taxa.update_yaxes(showgrid=True, gridcolor="#E5E5E5", zeroline=True, zerolinecolor="#ccc")
         
         st.plotly_chart(fig_taxa, use_container_width=True)
 
@@ -1027,15 +1073,7 @@ elif pagina == "🏗️ Construção":
 # ══════════════════════════════════════════════════════════════════════════════
 
 elif pagina == "🗺️ Heatmaps":
-    col_logo, col_title = st.columns([1, 10])
-    with col_logo:
-        if fama_logo:
-            st.image(fama_logo, width=70)
-        else:
-            st.markdown("⚽")
-    with col_title:
-        st.title("Heatmaps — Construção e Perdas")
-    st.caption("Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
+    render_header("Heatmaps — Construção e Perdas")
 
     st.sidebar.header("Filtros")
     meses = ["Todos"] + list(dict.fromkeys(team_matches["mes_ano"].tolist()))
