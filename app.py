@@ -714,6 +714,7 @@ elif pagina == "🗺️ Heatmaps":
 elif pagina == "⚠️ Métricas Pós-Perda":
     
     import numpy as np
+    import os
     
     # ── Header ──────────────────────────────────────────────────────────────
     col_logo, col_title = st.columns([1, 10])
@@ -724,382 +725,359 @@ elif pagina == "⚠️ Métricas Pós-Perda":
             st.markdown("🔴")
     with col_title:
         st.title("Famalicão — Métricas Pós-Perda")
-    st.caption("Liga Portugal 25/26 | Análise de Transições Adversárias após Perdas na 1ª Fase")
+    st.caption("Liga Portugal 25/26 | Análise de Transições Adversárias por Adversário")
     
-    # ── URLs dos dados (ATUALIZA COM OS TEUS URLs) ──────────────────────────
-    # Estes CSVs devem ser exportados do notebook do teu colega
+    # ── Carregar CSV local ──────────────────────────────────────────────────
     
-    EVENTS_CSV_URL = "https://raw.githubusercontent.com/SEU_REPO/events_all.csv"  # Atualiza
-    SUMMARY_CSV_URL = "https://raw.githubusercontent.com/SEU_REPO/sequence_summary.csv"  # Atualiza
-    METRICS_CSV_URL = "https://raw.githubusercontent.com/SEU_REPO/possession_metrics.csv"  # Atualiza
+    @st.cache_data
+    def carregar_opponent_metrics():
+        """Carrega o CSV opponent_metrics do repositório."""
+        # Tentar vários nomes possíveis do ficheiro
+        possible_names = [
+            "opponent_metrics (4).csv",
+            "opponent_metrics.csv",
+            "opponent_metrics__4_.csv"
+        ]
+        
+        for filename in possible_names:
+            if os.path.exists(filename):
+                return pd.read_csv(filename)
+        
+        return None
     
-    # ── Funções de carregamento ─────────────────────────────────────────────
+    # Carregar dados
+    df = carregar_opponent_metrics()
     
-    @st.cache_data(ttl=3600)
-    def carregar_events_perda():
-        try:
-            df = pd.read_csv(EVENTS_CSV_URL, encoding="utf-8", low_memory=False)
-        except:
-            try:
-                df = pd.read_csv(EVENTS_CSV_URL, encoding="cp1252", low_memory=False)
-            except:
-                return None
-        return df
+    if df is None or df.empty:
+        st.error("❌ Ficheiro 'opponent_metrics (4).csv' não encontrado. Certifica-te que está no repositório.")
+        st.stop()
     
-    @st.cache_data(ttl=3600)
-    def carregar_metrics_perda():
-        try:
-            df = pd.read_csv(METRICS_CSV_URL, encoding="utf-8")
-        except:
-            try:
-                df = pd.read_csv(METRICS_CSV_URL, encoding="cp1252")
-            except:
-                return None
-        return df
+    # ── Cores dos clubes ────────────────────────────────────────────────────
+    CLUB_COLORS = {
+        "AVS": "#1E3A8A", "Alverca": "#009B3A", "Benfica": "#E30613",
+        "Casa Pia AC": "#1E3A5F", "Estoril": "#FFD700", "Estrela Amadora": "#E30613",
+        "FC Arouca": "#FFD700", "FC Porto": "#003893", "Gil Vicente": "#E30613",
+        "Moreirense": "#006847", "Nacional": "#000000", "Rio Ave": "#006847",
+        "Santa Clara": "#E30613", "Sporting Braga": "#E30613", "Sporting CP": "#006847",
+        "Tondela": "#006847", "Vitória Guimarães": "#000000",
+    }
     
-    # ── Funções auxiliares ──────────────────────────────────────────────────
+    # ── Funções de gráficos ─────────────────────────────────────────────────
     
-    def get_xy_from_location(location_value):
-        try:
-            if isinstance(location_value, list):
-                return location_value[0], location_value[1]
-            if isinstance(location_value, str):
-                clean = location_value.replace("[", "").replace("]", "")
-                parts = clean.split(",")
-                return float(parts[0]), float(parts[1])
-            return None, None
-        except:
-            return None, None
-    
-    # ── Gráficos ────────────────────────────────────────────────────────────
-    
-    def plot_danger_by_opponent(df):
-        agg = df.groupby("opponent")["danger_score"].mean().reset_index()
-        agg = agg.sort_values("danger_score", ascending=True)
+    def plot_horizontal_bar(data, col_value, title, xlabel, color="#e74c3c"):
+        """Gráfico de barras horizontais ordenado."""
+        agg = data.sort_values(col_value, ascending=True)
+        colors = [CLUB_COLORS.get(opp, color) for opp in agg["opponent"]]
         
         fig = go.Figure()
         fig.add_trace(go.Bar(
             y=agg["opponent"],
-            x=agg["danger_score"],
+            x=agg[col_value],
             orientation='h',
-            marker_color=agg["danger_score"],
-            marker_colorscale='RdYlGn_r',
-            text=agg["danger_score"].round(2),
-            textposition='outside'
+            marker_color=colors,
+            text=agg[col_value].round(2),
+            textposition='outside',
+            hovertemplate="<b>%{y}</b><br>" + xlabel + ": %{x:.2f}<extra></extra>"
         ))
         
         fig.update_layout(
-            title="Danger Score Médio por Adversário",
-            xaxis_title="Danger Score",
+            title=dict(text=title, font=dict(size=14, family="Arial")),
+            xaxis_title=xlabel,
             yaxis_title="",
-            height=400,
-            plot_bgcolor='white'
-        )
-        fig.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
-        return fig
-    
-    def plot_progression_by_opponent(df):
-        agg = df.groupby("opponent")["progression"].mean().reset_index()
-        agg = agg.sort_values("progression", ascending=True)
-        
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            y=agg["opponent"],
-            x=agg["progression"],
-            orientation='h',
-            marker_color='#3498db',
-            text=agg["progression"].round(1),
-            textposition='outside'
-        ))
-        
-        fig.update_layout(
-            title="Progressão Média por Adversário (metros)",
-            xaxis_title="Progressão (m)",
-            yaxis_title="",
-            height=400,
-            plot_bgcolor='white'
-        )
-        fig.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
-        return fig
-    
-    def plot_shots_by_opponent(df):
-        agg = df.groupby("opponent")["n_shots"].sum().reset_index()
-        agg = agg.sort_values("n_shots", ascending=True)
-        
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            y=agg["opponent"],
-            x=agg["n_shots"],
-            orientation='h',
-            marker_color='#e74c3c',
-            text=agg["n_shots"],
-            textposition='outside'
-        ))
-        
-        fig.update_layout(
-            title="Total de Remates após Perda por Adversário",
-            xaxis_title="Remates",
-            yaxis_title="",
-            height=400,
-            plot_bgcolor='white'
-        )
-        fig.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
-        return fig
-    
-    def plot_entry_by_opponent(df):
-        agg = df.groupby("opponent")["entry_last_third"].sum().reset_index()
-        agg = agg.sort_values("entry_last_third", ascending=True)
-        
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            y=agg["opponent"],
-            x=agg["entry_last_third"],
-            orientation='h',
-            marker_color='#e67e22',
-            text=agg["entry_last_third"],
-            textposition='outside'
-        ))
-        
-        fig.update_layout(
-            title="Entradas no Último Terço (<10s) por Adversário",
-            xaxis_title="Entradas",
-            yaxis_title="",
-            height=400,
-            plot_bgcolor='white'
-        )
-        fig.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
-        return fig
-    
-    def plot_danger_evolution(df, matches):
-        match_danger = df.groupby("match_id").agg({
-            "danger_score": "mean",
-            "n_shots": "sum",
-            "progression": "mean"
-        }).reset_index()
-        
-        # Juntar info de jogos
-        matches_info = matches[["match_id", "match_date", "opponent"]].drop_duplicates()
-        match_danger = match_danger.merge(matches_info, on="match_id", how="left")
-        match_danger = match_danger.sort_values("match_date")
-        match_danger["danger_mm3"] = match_danger["danger_score"].rolling(3, min_periods=1).mean()
-        
-        fig = go.Figure()
-        
-        max_val = max(match_danger["danger_score"].max() + 1, 6)
-        fig.add_hrect(y0=0, y1=2, fillcolor="#2ecc71", opacity=0.08, line_width=0)
-        fig.add_hrect(y0=2, y1=4, fillcolor="#e67e22", opacity=0.08, line_width=0)
-        fig.add_hrect(y0=4, y1=max_val, fillcolor="#e74c3c", opacity=0.08, line_width=0)
-        fig.add_hline(y=2, line_dash="dot", line_color="#2ecc71", line_width=1, opacity=0.6)
-        fig.add_hline(y=4, line_dash="dot", line_color="#e67e22", line_width=1, opacity=0.6)
-        
-        fig.add_trace(go.Scatter(
-            x=match_danger["opponent"],
-            y=match_danger["danger_score"],
-            mode='lines+markers',
-            name='Danger Score',
-            line=dict(color='#e74c3c', width=2),
-            marker=dict(size=10)
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=match_danger["opponent"],
-            y=match_danger["danger_mm3"],
-            mode='lines',
-            name='Média Móvel 3',
-            line=dict(color='#3498db', width=2, dash='dash')
-        ))
-        
-        fig.update_layout(
-            title="Evolução do Danger Score por Jogo",
-            xaxis_title="Adversário",
-            yaxis_title="Danger Score",
-            height=420,
+            height=450,
             plot_bgcolor='white',
+            margin=dict(l=120, r=40, t=60, b=40),
+        )
+        fig.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
+        fig.update_yaxes(showgrid=False)
+        return fig
+    
+    def plot_stacked_metrics(data, col_mean, col_max, title, ylabel):
+        """Gráfico de barras empilhadas (média + máximo)."""
+        df_sorted = data.sort_values(col_mean, ascending=False)
+        
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=df_sorted["opponent"],
+            y=df_sorted[col_mean],
+            name="Média",
+            marker_color="#3498db",
+            hovertemplate="<b>%{x}</b><br>Média: %{y:.2f}<extra></extra>"
+        ))
+        fig.add_trace(go.Bar(
+            x=df_sorted["opponent"],
+            y=df_sorted[col_max] - df_sorted[col_mean],
+            name="Máximo",
+            marker_color="#e74c3c",
+            hovertemplate="<b>%{x}</b><br>Máximo: " + df_sorted[col_max].astype(str) + "<extra></extra>"
+        ))
+        
+        fig.update_layout(
+            barmode="stack",
+            title=dict(text=title, font=dict(size=14, family="Arial")),
+            xaxis=dict(title="Adversário", tickangle=-35),
+            yaxis=dict(title=ylabel),
+            plot_bgcolor="white",
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            xaxis_tickangle=-35
+            height=420,
+            margin=dict(l=40, r=20, t=60, b=100),
         )
         fig.update_xaxes(showgrid=False)
-        fig.update_yaxes(showgrid=True, gridcolor='#EEEEEE')
-        
+        fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
         return fig
     
-    # ── Tentar carregar dados ───────────────────────────────────────────────
-    
-    # Verificar se há CSV de métricas pré-calculadas
-    metrics_df = carregar_metrics_perda()
-    
-    if metrics_df is None or metrics_df.empty:
-        st.warning("""
-        ⚠️ **Dados não configurados**
+    def plot_danger_index(data):
+        """Gráfico com índice de perigo calculado."""
+        df_calc = data.copy()
         
-        Para usar esta página, precisas de:
+        # Normalizar cada métrica
+        for col in ["n_shots_mean", "entry_last_third_mean", "progression_mean", "transition_speed_mean"]:
+            if col in df_calc.columns:
+                max_val = df_calc[col].max()
+                if max_val > 0:
+                    df_calc[col + "_norm"] = df_calc[col] / max_val
+                else:
+                    df_calc[col + "_norm"] = 0
         
-        1. **Exportar os CSVs** do notebook do teu colega:
-           - `possession_metrics.csv` (com as colunas: match_id, loss_possession, n_shots, xg, progression, entry_last_third, danger_score, opponent)
+        # Índice composto
+        df_calc["danger_index"] = (
+            df_calc.get("n_shots_mean_norm", 0) * 0.30 +
+            df_calc.get("entry_last_third_mean_norm", 0) * 0.25 +
+            df_calc.get("progression_mean_norm", 0) * 0.25 +
+            df_calc.get("transition_speed_mean_norm", 0) * 0.20
+        ) * 100
         
-        2. **Fazer upload para um repositório** (ex: GitHub raw)
+        df_calc = df_calc.sort_values("danger_index", ascending=True)
         
-        3. **Atualizar o URL** na variável `METRICS_CSV_URL` no código
+        fig = go.Figure()
+        fig.add_vrect(x0=0, x1=33, fillcolor="#2ecc71", opacity=0.08, line_width=0)
+        fig.add_vrect(x0=33, x1=66, fillcolor="#e67e22", opacity=0.08, line_width=0)
+        fig.add_vrect(x0=66, x1=100, fillcolor="#e74c3c", opacity=0.08, line_width=0)
         
-        ---
+        colors = ["#2ecc71" if x < 33 else "#e67e22" if x < 66 else "#e74c3c" for x in df_calc["danger_index"]]
         
-        **Ou então**, podes usar dados de demonstração abaixo:
-        """)
+        fig.add_trace(go.Bar(
+            y=df_calc["opponent"],
+            x=df_calc["danger_index"],
+            orientation='h',
+            marker_color=colors,
+            text=df_calc["danger_index"].round(1),
+            textposition='outside',
+            hovertemplate="<b>%{y}</b><br>Índice de Perigo: %{x:.1f}<extra></extra>"
+        ))
         
-        # Dados de demonstração
-        demo_data = {
-            "match_id": [4005039, 4005039, 4005050, 4005050, 4005739, 4005745, 4005753],
-            "loss_possession": [42, 84, 29, 45, 31, 18, 55],
-            "next_possession": [43, 85, 30, 46, 32, 19, 56],
-            "n_shots": [0, 0, 0, 0, 1, 0, 1],
-            "xg": [0.0, 0.0, 0.0, 0.0, 0.08, 0.0, 0.12],
-            "entry_last_third": [0, 0, 0, 0, 1, 0, 1],
-            "progression": [20.4, 13.2, 0.0, 16.0, 35.5, 8.3, 42.1],
-            "danger_score": [2.04, 1.32, 0.0, 1.6, 6.15, 0.83, 6.81],
-            "opponent": ["Santa Clara", "Santa Clara", "Tondela", "Tondela", "Gil Vicente", "AVS", "Sporting CP"]
-        }
-        metrics_df = pd.DataFrame(demo_data)
-        
-        if st.checkbox("📊 Usar dados de demonstração"):
-            st.success("A mostrar visualizações com dados de demonstração")
-        else:
-            st.stop()
-    
-    # Garantir colunas necessárias
-    if "danger_score" not in metrics_df.columns:
-        metrics_df["danger_score"] = (
-            metrics_df.get("xg", 0) * 5 +
-            metrics_df.get("n_shots", 0) * 2 +
-            metrics_df.get("progression", 0) * 0.1
+        fig.update_layout(
+            title=dict(text="Índice de Perigo de Transição por Adversário", font=dict(size=14, family="Arial")),
+            xaxis_title="Índice de Perigo (0-100)",
+            yaxis_title="",
+            height=500,
+            plot_bgcolor='white',
+            margin=dict(l=120, r=40, t=60, b=40),
         )
+        fig.update_xaxes(showgrid=True, gridcolor='#EEEEEE', range=[0, 105])
+        fig.update_yaxes(showgrid=False)
+        
+        return fig, df_calc
     
-    # Adicionar opponent se não existir
-    if "opponent" not in metrics_df.columns:
-        def get_opponent(match_id):
-            match = team_matches[team_matches["match_id"] == match_id]
-            if match.empty:
-                return "Desconhecido"
-            return match.iloc[0]["opponent"]
-        metrics_df["opponent"] = metrics_df["match_id"].apply(get_opponent)
+    def plot_radar_chart(data, opponent):
+        """Radar chart para um adversário específico."""
+        row = data[data["opponent"] == opponent].iloc[0]
+        
+        metrics = ["n_shots_mean", "entry_last_third_mean", "shot_10_15_mean", "progression_mean", "transition_speed_mean"]
+        labels = ["Remates (média)", "Entry 3rd (média)", "Remates 10-15s", "Progressão", "Vel. Transição"]
+        
+        values = []
+        for m in metrics:
+            if m in data.columns:
+                max_val = data[m].max()
+                if max_val > 0:
+                    values.append(row[m] / max_val)
+                else:
+                    values.append(0)
+            else:
+                values.append(0)
+        
+        values.append(values[0])
+        labels.append(labels[0])
+        
+        fig = go.Figure()
+        fig.add_trace(go.Scatterpolar(
+            r=values,
+            theta=labels,
+            fill='toself',
+            fillcolor=CLUB_COLORS.get(opponent, "#3498db") + "40",
+            line=dict(color=CLUB_COLORS.get(opponent, "#3498db"), width=2),
+            name=opponent
+        ))
+        
+        fig.update_layout(
+            polar=dict(
+                radialaxis=dict(visible=True, range=[0, 1], showticklabels=False),
+                angularaxis=dict(tickfont=dict(size=10))
+            ),
+            title=dict(text=f"Perfil de Transição: {opponent}", font=dict(size=14)),
+            height=400,
+            showlegend=False,
+            margin=dict(l=60, r=60, t=80, b=60)
+        )
+        return fig
     
     # ── Filtros ─────────────────────────────────────────────────────────────
-    st.sidebar.header("Filtros - Métricas Perda")
+    st.sidebar.header("Filtros")
     
-    adversarios = ["Todos"] + sorted(metrics_df["opponent"].dropna().unique().tolist())
+    adversarios = ["Todos"] + sorted(df["opponent"].unique().tolist())
     sel_adv = st.sidebar.selectbox("Adversário", adversarios, key="perda_adv")
     
-    df_f = metrics_df.copy()
+    min_jogos = st.sidebar.slider("Nº mínimo de jogos", 1, int(df["n_games"].max()), 1)
+    
+    df_f = df.copy()
     if sel_adv != "Todos":
         df_f = df_f[df_f["opponent"] == sel_adv]
+    df_f = df_f[df_f["n_games"] >= min_jogos]
     
     if df_f.empty:
-        st.warning("Nenhuma perda encontrada com os filtros selecionados.")
+        st.warning("Nenhum adversário encontrado com os filtros selecionados.")
         st.stop()
     
     # ── Resumo Executivo ────────────────────────────────────────────────────
     st.subheader("📊 Resumo Executivo")
     
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Danger Score Médio", f"{df_f['danger_score'].mean():.2f}")
-    c2.metric("Total de Remates", f"{df_f['n_shots'].sum()}")
-    c3.metric("xG Sofrido Total", f"{df_f['xg'].sum():.3f}")
-    c4.metric("Progressão Média", f"{df_f['progression'].mean():.1f}m")
-    c5.metric("Entradas Último Terço", f"{df_f['entry_last_third'].sum()}")
+    c1.metric("Adversários Analisados", f"{len(df_f)}")
+    c2.metric("Remates Médios (opp)", f"{df_f['n_shots_mean'].mean():.2f}")
+    c3.metric("Entry 3rd Média", f"{df_f['entry_last_third_mean'].mean():.2f}")
+    c4.metric("Progressão Média", f"{df_f['progression_mean'].mean():.1f}m")
+    c5.metric("Vel. Transição Média", f"{df_f['transition_speed_mean'].mean():.1f}")
     
     # ── Semáforo ────────────────────────────────────────────────────────────
-    danger_medio = df_f['danger_score'].mean()
-    if danger_medio < 2:
-        semaforo = "🟢 Baixo Perigo"
-    elif danger_medio < 4:
-        semaforo = "🟡 Perigo Médio"
+    progression_media = df_f['progression_mean'].mean()
+    if progression_media < 25:
+        semaforo = "🟢 Baixa Progressão Adversária"
+    elif progression_media < 35:
+        semaforo = "🟡 Progressão Moderada"
     else:
-        semaforo = "🔴 Alto Perigo"
+        semaforo = "🔴 Alta Progressão Adversária"
     
-    st.markdown(f"### Nível de Perigo Pós-Perda: {semaforo}")
+    st.markdown(f"### Nível Geral: {semaforo}")
     
     # ── Notas explicativas ──────────────────────────────────────────────────
-    with st.expander("ℹ️ O que significam estas métricas?", expanded=False):
+    with st.expander("ℹ️ O que significa cada métrica?", expanded=False):
         st.markdown("""
-**Danger Score** — Índice composto que mede o perigo criado pelo adversário após recuperar a bola:
-- Fórmula: `xG × 5 + Remates × 2 + Progressão × 0.1`
-- Quanto maior, mais perigosa foi a transição adversária
+**n_shots_mean / n_shots_max** — Número médio e máximo de remates adversários após perda de bola do Famalicão.
 
 ---
 
-**Progressão** — Distância em metros que o adversário avançou no campo nos primeiros 10 segundos após a perda.
+**entry_last_third_mean / max** — Frequência com que o adversário conseguiu entrar no último terço do campo após recuperar a bola (0-1 = percentagem).
 
 ---
 
-**Entry Last Third** — Número de vezes que o adversário entrou no último terço do campo em até 10 segundos após a perda.
+**shot_10_15_mean / max** — Remates adversários no intervalo de 10-15 segundos após a perda (transições mais lentas).
 
 ---
 
-**n_shots / xG** — Remates e Expected Goals do adversário até 15 segundos após cada perda.
+**progression_mean / max** — Distância média/máxima (em metros) que o adversário avançou no campo após recuperar a bola.
+
+---
+
+**transition_speed_mean / max** — Velocidade média da transição adversária (metros/segundo nos primeiros segundos).
+
+---
+
+**n_games** — Número de jogos analisados contra cada adversário.
         """)
     
-    # ── Gráficos ────────────────────────────────────────────────────────────
-    st.subheader("📈 Evolução Temporal")
-    st.plotly_chart(plot_danger_evolution(df_f, team_matches), use_container_width=True)
+    # ── Índice de Perigo ────────────────────────────────────────────────────
+    st.subheader("🎯 Índice de Perigo de Transição")
+    st.caption("Índice composto: 30% remates + 25% entry 3rd + 25% progressão + 20% velocidade")
     
-    st.subheader("🎯 Análise por Adversário")
+    fig_danger, df_danger = plot_danger_index(df_f)
+    st.plotly_chart(fig_danger, use_container_width=True)
+    
+    if len(df_danger) > 0:
+        mais_perigoso = df_danger.iloc[-1]["opponent"]
+        idx_perigo = df_danger.iloc[-1]["danger_index"]
+        st.info(f"⚠️ **Adversário mais perigoso em transição:** {mais_perigoso} (Índice: {idx_perigo:.1f})")
+    
+    # ── Gráficos por Métrica ────────────────────────────────────────────────
+    st.subheader("📈 Análise por Métrica")
     
     col1, col2 = st.columns(2)
     with col1:
-        st.plotly_chart(plot_danger_by_opponent(df_f), use_container_width=True)
+        st.plotly_chart(
+            plot_stacked_metrics(df_f, "progression_mean", "progression_max", 
+                                "Progressão Adversária (metros)", "Progressão (m)"),
+            use_container_width=True
+        )
     with col2:
-        st.plotly_chart(plot_progression_by_opponent(df_f), use_container_width=True)
+        st.plotly_chart(
+            plot_stacked_metrics(df_f, "entry_last_third_mean", "entry_last_third_max",
+                                "Entrada no Último Terço", "Entry Last Third"),
+            use_container_width=True
+        )
     
     col3, col4 = st.columns(2)
     with col3:
-        st.plotly_chart(plot_shots_by_opponent(df_f), use_container_width=True)
+        st.plotly_chart(
+            plot_stacked_metrics(df_f, "n_shots_mean", "n_shots_max",
+                                "Remates Adversários após Perda", "Remates"),
+            use_container_width=True
+        )
     with col4:
-        st.plotly_chart(plot_entry_by_opponent(df_f), use_container_width=True)
+        st.plotly_chart(
+            plot_stacked_metrics(df_f, "transition_speed_mean", "transition_speed_max",
+                                "Velocidade de Transição", "Vel. Transição"),
+            use_container_width=True
+        )
     
-    # ── Top 10 Perdas Mais Perigosas ────────────────────────────────────────
-    st.subheader("🔥 Top 10 Perdas Mais Perigosas")
+    # ── Radar Chart ─────────────────────────────────────────────────────────
+    st.subheader("🕸️ Perfil de Transição por Adversário")
     
-    cols_to_show = ["match_id", "opponent", "loss_possession", "danger_score", "n_shots", "xg", "progression", "entry_last_third"]
-    cols_available = [c for c in cols_to_show if c in df_f.columns]
+    sel_radar = st.selectbox("Seleciona um adversário para ver o perfil radar:", df_f["opponent"].tolist())
     
-    top10 = df_f.nlargest(10, "danger_score")[cols_available].copy()
+    if sel_radar:
+        col_r1, col_r2 = st.columns([1, 2])
+        
+        with col_r1:
+            st.plotly_chart(plot_radar_chart(df_f, sel_radar), use_container_width=True)
+        
+        with col_r2:
+            row = df_f[df_f["opponent"] == sel_radar].iloc[0]
+            st.markdown(f"### {sel_radar}")
+            st.markdown(f"**Jogos analisados:** {int(row['n_games'])}")
+            st.markdown("---")
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                st.metric("Remates (média)", f"{row['n_shots_mean']:.2f}")
+                st.metric("Entry Last Third (média)", f"{row['entry_last_third_mean']:.2f}")
+                if "shot_10_15_mean" in row:
+                    st.metric("Remates 10-15s (média)", f"{row['shot_10_15_mean']:.2f}")
+            with c2:
+                st.metric("Progressão (média)", f"{row['progression_mean']:.1f}m")
+                st.metric("Progressão (máx)", f"{row['progression_max']:.1f}m")
+                st.metric("Vel. Transição (média)", f"{row['transition_speed_mean']:.1f}")
     
-    rename_map = {
-        "match_id": "Match ID",
-        "opponent": "Adversário", 
-        "loss_possession": "Posse",
-        "danger_score": "Danger Score",
-        "n_shots": "Remates",
-        "xg": "xG",
-        "progression": "Progressão",
-        "entry_last_third": "Entry 3rd"
-    }
-    top10 = top10.rename(columns={k: v for k, v in rename_map.items() if k in top10.columns})
+    # ── Ranking e Tabela Completa ───────────────────────────────────────────
+    st.subheader("📋 Ranking de Adversários")
     
-    if "Danger Score" in top10.columns:
-        top10["Danger Score"] = top10["Danger Score"].round(2)
-    if "xG" in top10.columns:
-        top10["xG"] = top10["xG"].round(4)
-    if "Progressão" in top10.columns:
-        top10["Progressão"] = top10["Progressão"].round(1)
+    df_display = df_danger[["opponent", "danger_index"]].merge(
+        df_f[["opponent", "n_games", "n_shots_mean", "entry_last_third_mean", "progression_mean", "transition_speed_mean"]],
+        on="opponent"
+    )
+    df_display = df_display.sort_values("danger_index", ascending=False).reset_index(drop=True)
+    df_display.index += 1
     
-    st.dataframe(top10, use_container_width=True, hide_index=True)
+    df_display.columns = ["Adversário", "Índice Perigo", "Jogos", "Remates (média)", 
+                          "Entry 3rd (média)", "Progressão (média)", "Vel. Transição (média)"]
     
-    # ── Tabela por Adversário ───────────────────────────────────────────────
-    st.subheader("📋 Resumo por Adversário")
+    df_display["Índice Perigo"] = df_display["Índice Perigo"].round(1)
+    df_display["Remates (média)"] = df_display["Remates (média)"].round(2)
+    df_display["Entry 3rd (média)"] = df_display["Entry 3rd (média)"].round(2)
+    df_display["Progressão (média)"] = df_display["Progressão (média)"].round(1)
+    df_display["Vel. Transição (média)"] = df_display["Vel. Transição (média)"].round(1)
     
-    by_opponent = df_f.groupby("opponent").agg({
-        "danger_score": "mean",
-        "n_shots": "sum",
-        "xg": "sum",
-        "progression": "mean",
-        "entry_last_third": "sum",
-        "loss_possession": "count"
-    }).reset_index()
+    st.dataframe(df_display, use_container_width=True)
     
-    by_opponent.columns = ["Adversário", "Danger Score", "Remates", "xG", "Progressão", "Entry 3rd", "Nº Perdas"]
-    by_opponent = by_opponent.sort_values("Danger Score", ascending=False)
-    by_opponent["Danger Score"] = by_opponent["Danger Score"].round(2)
-    by_opponent["xG"] = by_opponent["xG"].round(3)
-    by_opponent["Progressão"] = by_opponent["Progressão"].round(1)
-    
-    st.dataframe(by_opponent, use_container_width=True, hide_index=True)
+    # ── Tabela Completa (Raw) ───────────────────────────────────────────────
+    with st.expander("📄 Ver tabela completa (dados originais)", expanded=False):
+        st.dataframe(df_f, use_container_width=True, hide_index=True)
