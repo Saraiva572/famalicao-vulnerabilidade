@@ -655,21 +655,23 @@ def build_up_progression_chart(actions_df, outcome_filter=None):
 
 # ── Header estilizado ─────────────────────────────────────────────────────────
 def render_header(title, subtitle="Liga Portugal 25/26 · Dados StatsBomb · Atualizado em tempo real"):
-    logo_url = CLUB_LOGOS.get("Famalicão", "")
-    st.markdown(f"""
-    <div style="display:flex; align-items:center; background:linear-gradient(90deg, #003d7a 0%, #0066cc 100%);
-                padding:14px 22px; border-radius:10px; margin-bottom:18px; gap:18px;
-                box-shadow:0 3px 10px rgba(0,0,0,0.18);">
-        <img src="{logo_url}" width="62"
-             style="object-fit:contain; filter:drop-shadow(0 2px 5px rgba(0,0,0,0.35)); flex-shrink:0;">
-        <div>
-            <div style="color:white; font-size:1.55rem; font-weight:700; letter-spacing:-0.3px;
+    col_logo, col_text = st.columns([0.08, 0.92], gap="small")
+
+    with col_logo:
+        if fama_logo:
+            st.image(fama_logo, width=75)
+
+    with col_text:
+        st.markdown(f"""
+        <div style="background:linear-gradient(90deg, #003d7a 0%, #0066cc 100%);
+                    padding:14px 20px; border-radius:10px;
+                    box-shadow:0 3px 10px rgba(0,0,0,0.18);">
+            <div style="color:white; font-size:1.4rem; font-weight:700;
                         font-family:Arial,sans-serif; line-height:1.2;">{title}</div>
-            <div style="color:#b3d4ff; font-size:0.78rem; margin-top:4px;
+            <div style="color:#b3d4ff; font-size:0.75rem; margin-top:4px;
                         font-family:Arial,sans-serif;">{subtitle}</div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
