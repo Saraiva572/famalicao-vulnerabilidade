@@ -23,7 +23,7 @@ MESES_PT = {
 
 # ── Logos dos clubes — URLs diretas e fiáveis (PNG apenas) ─────────────────────
 CLUB_LOGOS = {
-    "Famalicão": "https://upload.wikimedia.org/wikipedia/pt/3/3f/FC_Famalic%C3%A3o.png",
+    "Famalicão": "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/Escudo_Famalicao.png",
     "Benfica": "https://upload.wikimedia.org/wikipedia/pt/0/02/SL_Benfica_logo.png",
     "Porto": "https://upload.wikimedia.org/wikipedia/pt/8/8e/FC_Porto.png",
     "Sporting": "https://upload.wikimedia.org/wikipedia/pt/c/c1/Sporting_CP.png",
@@ -1140,4 +1140,4 @@ elif pagina == "🗺️ Heatmaps":
     with c4:
         st.markdown("**Perdas — vertical**")
         d = fama_1t[loss_mask]["corredor_v"].value_counts().reset_index()
-        d.columns=["Zona","Perdas"]; st.dataframe(d,use_container_width=True,hide_index=True)
+        d.columns=["Zona","Perdas"]; st.dataframe(d,use_container_
