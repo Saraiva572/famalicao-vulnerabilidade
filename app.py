@@ -21,12 +21,12 @@ MESES_PT = {
     7:"Jul",8:"Ago",9:"Set",10:"Out",11:"Nov",12:"Dez"
 }
 
-# ── Logos dos clubes — URLs diretas e fiáveis (Wikimedia) ──────────────────────
+# ── Logos dos clubes — URLs diretas e fiáveis (PNG apenas) ─────────────────────
 CLUB_LOGOS = {
     "Famalicão": "https://upload.wikimedia.org/wikipedia/pt/3/3f/FC_Famalic%C3%A3o.png",
-    "Benfica": "https://upload.wikimedia.org/wikipedia/pt/0/02/SL_Benfica_logo.svg",
+    "Benfica": "https://upload.wikimedia.org/wikipedia/pt/0/02/SL_Benfica_logo.png",
     "Porto": "https://upload.wikimedia.org/wikipedia/pt/8/8e/FC_Porto.png",
-    "Sporting": "https://upload.wikimedia.org/wikipedia/pt/e/e1/Sporting_Clube_de_Portugal_%28Logo%29.svg",
+    "Sporting": "https://upload.wikimedia.org/wikipedia/pt/c/c1/Sporting_CP.png",
     "Braga": "https://upload.wikimedia.org/wikipedia/pt/5/5f/SC_Braga.png",
     "Vitória": "https://upload.wikimedia.org/wikipedia/pt/8/88/Vit%C3%B3ria_Sport_Clube.png",
     "Moreirense": "https://upload.wikimedia.org/wikipedia/pt/9/94/Moreirense_FC.png",
@@ -39,11 +39,16 @@ CLUB_LOGOS = {
     "Tondela": "https://upload.wikimedia.org/wikipedia/pt/8/86/CD_Tondela.png",
     "Nacional": "https://upload.wikimedia.org/wikipedia/pt/0/01/CD_Nacional.png",
     "Estrela Amadora": "https://upload.wikimedia.org/wikipedia/pt/6/6d/CF_Estrela_da_Amadora.png",
+    "Estrela": "https://upload.wikimedia.org/wikipedia/pt/6/6d/CF_Estrela_da_Amadora.png",
     "Alverca": "https://upload.wikimedia.org/wikipedia/pt/9/90/FC_Alverca.png",
     "AVS": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/AVS_logo.svg/512px-AVS_logo.svg.png",
+    "Boavista": "https://upload.wikimedia.org/wikipedia/pt/8/8b/Boavista_F.C..png",
+    "Farense": "https://upload.wikimedia.org/wikipedia/pt/3/36/SC_Farense.png",
 }
 
 def get_logo_url(team_name):
+    if team_name is None:
+        return None
     for key, url in CLUB_LOGOS.items():
         if key.lower() in team_name.lower():
             return url
@@ -80,10 +85,14 @@ CLUB_COLORS_LIST = [
     ("Estrela",            "#8B0000", "#C44040"),
     ("Alverca",            "#003DA5", "#CC0000"),
     ("AVS",                "#CC2222", "#AAAAAA"),
+    ("Boavista",           "#1C1C1C", "#FFFFFF"),
+    ("Farense",            "#FFFFFF", "#000000"),
 ]
 DEFAULT_COLORS = ("#888888", "#BBBBBB")
 
 def get_colors(opponent):
+    if opponent is None:
+        return DEFAULT_COLORS[0], lighten_hex(DEFAULT_COLORS[0])
     opp_lower = opponent.lower()
     for key, c1, c2 in CLUB_COLORS_LIST:
         if key.lower() in opp_lower:
@@ -206,22 +215,25 @@ def carregar_vap(team_matches):
 VALID_START_POSITIONS = ["Goalkeeper", "Right Center Back", "Left Center Back"]
 
 def extract_end_location(row):
-    """Extrai end_x e end_y de várias colunas possíveis"""
-    # Para Pass
-    if pd.notna(row.get("pass.end_location")):
+    """Extrai end_x e end_y de várias colunas possíveis - VERSÃO CORRIGIDA"""
+    # Para Pass - verificar se a coluna existe E tem valor válido
+    if "pass.end_location" in row.index:
         loc = row["pass.end_location"]
         if isinstance(loc, list) and len(loc) >= 2:
             return loc[0], loc[1]
+    
     # Para Carry
-    if pd.notna(row.get("carry.end_location")):
+    if "carry.end_location" in row.index:
         loc = row["carry.end_location"]
         if isinstance(loc, list) and len(loc) >= 2:
             return loc[0], loc[1]
+    
     # Fallback para location
-    if pd.notna(row.get("location")):
+    if "location" in row.index:
         loc = row["location"]
         if isinstance(loc, list) and len(loc) >= 2:
             return loc[0], loc[1]
+    
     return None, None
 
 def analyze_build_up_possessions(events_df, team_name="Famalicão"):
@@ -230,6 +242,9 @@ def analyze_build_up_possessions(events_df, team_name="Famalicão"):
     Retorna summary e actions DataFrames.
     """
     # Filtrar eventos do Famalicão
+    if "team.name" not in events_df.columns:
+        return pd.DataFrame(), pd.DataFrame()
+    
     fam_events = events_df[events_df["team.name"].str.contains(team_name, case=False, na=False)].copy()
     
     if fam_events.empty:
@@ -242,110 +257,133 @@ def analyze_build_up_possessions(events_df, team_name="Famalicão"):
     if "match_id" not in fam_events.columns:
         fam_events["match_id"] = 0
     
+    # Verificar se coluna possession existe
+    if "possession" not in fam_events.columns:
+        return pd.DataFrame(), pd.DataFrame()
+    
     grouped = fam_events.groupby(["match_id", "possession"])
     
     for (match_id, poss_id), poss_df in grouped:
-        poss_df = poss_df.sort_values(by=["period", "index"]).reset_index(drop=True)
-        
-        # Encontrar primeiro Pass na posição válida
-        passes = poss_df[poss_df["type.name"] == "Pass"]
-        valid_first = passes[passes["position.name"].isin(VALID_START_POSITIONS)]
-        
-        if valid_first.empty:
-            continue
-        
-        first_pass = valid_first.iloc[0]
-        first_idx = first_pass.name
-        
-        # Filtrar sequência a partir do primeiro passe
-        sequence = poss_df.loc[first_idx:].copy()
-        sequence = sequence[sequence["type.name"].isin(["Pass", "Carry"])]
-        
-        if len(sequence) < 3:
-            continue
-        
-        # Contar jogadores distintos
-        n_players = sequence["player.name"].dropna().nunique()
-        if n_players < 3:
-            continue
-        
-        # Calcular end_x para cada ação
-        sequence = sequence.reset_index(drop=True)
-        sequence["action_number"] = range(1, len(sequence) + 1)
-        
-        end_coords = sequence.apply(extract_end_location, axis=1)
-        sequence["end_x"] = [c[0] for c in end_coords]
-        sequence["end_y"] = [c[1] for c in end_coords]
-        
-        # Validar sucesso
-        validated_partial = False
-        validated_total = False
-        partial_start = partial_end = None
-        total_start = total_end = None
-        
-        for i in range(len(sequence) - 2):
-            curr_x = sequence.loc[i, "end_x"]
-            next1_x = sequence.loc[i + 1, "end_x"]
-            next2_x = sequence.loc[i + 2, "end_x"]
+        try:
+            poss_df = poss_df.sort_values(by=["period", "index"]).reset_index(drop=True)
             
-            if pd.notna(curr_x) and pd.notna(next1_x) and pd.notna(next2_x):
-                # Sucesso parcial: x > 40
-                if not validated_partial and curr_x > 40 and next1_x > 40 and next2_x > 40:
-                    validated_partial = True
-                    partial_start = int(sequence.loc[i, "action_number"])
-                    partial_end = int(sequence.loc[i + 2, "action_number"])
+            # Encontrar primeiro Pass na posição válida
+            if "type.name" not in poss_df.columns:
+                continue
+            
+            passes = poss_df[poss_df["type.name"] == "Pass"]
+            
+            if "position.name" not in passes.columns:
+                continue
+            
+            valid_first = passes[passes["position.name"].isin(VALID_START_POSITIONS)]
+            
+            if valid_first.empty:
+                continue
+            
+            first_pass = valid_first.iloc[0]
+            first_idx = first_pass.name
+            
+            # Filtrar sequência a partir do primeiro passe
+            sequence = poss_df.loc[first_idx:].copy()
+            sequence = sequence[sequence["type.name"].isin(["Pass", "Carry"])]
+            
+            if len(sequence) < 3:
+                continue
+            
+            # Contar jogadores distintos
+            if "player.name" not in sequence.columns:
+                continue
+            
+            n_players = sequence["player.name"].dropna().nunique()
+            if n_players < 3:
+                continue
+            
+            # Calcular end_x para cada ação
+            sequence = sequence.reset_index(drop=True)
+            sequence["action_number"] = range(1, len(sequence) + 1)
+            
+            # CORREÇÃO: usar apply com result_type para evitar problemas
+            end_coords = sequence.apply(extract_end_location, axis=1, result_type='expand')
+            if end_coords.shape[1] >= 2:
+                sequence["end_x"] = end_coords[0]
+                sequence["end_y"] = end_coords[1]
+            else:
+                sequence["end_x"] = None
+                sequence["end_y"] = None
+            
+            # Validar sucesso
+            validated_partial = False
+            validated_total = False
+            partial_start = partial_end = None
+            total_start = total_end = None
+            
+            for i in range(len(sequence) - 2):
+                curr_x = sequence.loc[i, "end_x"]
+                next1_x = sequence.loc[i + 1, "end_x"] if i + 1 < len(sequence) else None
+                next2_x = sequence.loc[i + 2, "end_x"] if i + 2 < len(sequence) else None
                 
-                # Sucesso total: x > 60
-                if curr_x > 60 and next1_x > 60 and next2_x > 60:
-                    validated_total = True
-                    total_start = int(sequence.loc[i, "action_number"])
-                    total_end = int(sequence.loc[i + 2, "action_number"])
-                    break
-        
-        # Determinar outcome
-        if validated_total:
-            outcome = "success_total"
-        elif validated_partial:
-            outcome = "success_partial"
-        else:
-            outcome = "unsuccessful"
-        
-        # Start location
-        start_loc = first_pass.get("location", [None, None])
-        start_x = start_loc[0] if isinstance(start_loc, list) else None
-        start_y = start_loc[1] if isinstance(start_loc, list) and len(start_loc) > 1 else None
-        
-        # End location do primeiro passe
-        first_end_x, first_end_y = extract_end_location(first_pass)
-        
-        sequence_summary_list.append({
-            "match_id": match_id,
-            "possession": poss_id,
-            "first_player": first_pass.get("player.name", "Desconhecido"),
-            "first_position": first_pass.get("position.name", "Desconhecido"),
-            "first_start_x": start_x,
-            "first_start_y": start_y,
-            "first_end_x": first_end_x,
-            "n_actions": len(sequence),
-            "n_players": n_players,
-            "validated_partial": validated_partial,
-            "validated_total": validated_total,
-            "outcome": outcome,
-        })
-        
-        # Guardar ações
-        for _, row in sequence.iterrows():
-            sequence_actions_list.append({
+                if pd.notna(curr_x) and pd.notna(next1_x) and pd.notna(next2_x):
+                    # Sucesso parcial: x > 40
+                    if not validated_partial and curr_x > 40 and next1_x > 40 and next2_x > 40:
+                        validated_partial = True
+                        partial_start = int(sequence.loc[i, "action_number"])
+                        partial_end = int(sequence.loc[i + 2, "action_number"])
+                    
+                    # Sucesso total: x > 60
+                    if curr_x > 60 and next1_x > 60 and next2_x > 60:
+                        validated_total = True
+                        total_start = int(sequence.loc[i, "action_number"])
+                        total_end = int(sequence.loc[i + 2, "action_number"])
+                        break
+            
+            # Determinar outcome
+            if validated_total:
+                outcome = "success_total"
+            elif validated_partial:
+                outcome = "success_partial"
+            else:
+                outcome = "unsuccessful"
+            
+            # Start location
+            start_loc = first_pass["location"] if "location" in first_pass.index else [None, None]
+            start_x = start_loc[0] if isinstance(start_loc, list) else None
+            start_y = start_loc[1] if isinstance(start_loc, list) and len(start_loc) > 1 else None
+            
+            # End location do primeiro passe
+            first_end_x, first_end_y = extract_end_location(first_pass)
+            
+            sequence_summary_list.append({
                 "match_id": match_id,
                 "possession": poss_id,
-                "action_number": row["action_number"],
-                "type": row["type.name"],
-                "player": row.get("player.name", ""),
-                "position": row.get("position.name", ""),
-                "end_x": row["end_x"],
-                "end_y": row["end_y"],
+                "first_player": first_pass["player.name"] if "player.name" in first_pass.index else "Desconhecido",
+                "first_position": first_pass["position.name"] if "position.name" in first_pass.index else "Desconhecido",
+                "first_start_x": start_x,
+                "first_start_y": start_y,
+                "first_end_x": first_end_x,
+                "n_actions": len(sequence),
+                "n_players": n_players,
+                "validated_partial": validated_partial,
+                "validated_total": validated_total,
                 "outcome": outcome,
             })
+            
+            # Guardar ações
+            for _, row in sequence.iterrows():
+                sequence_actions_list.append({
+                    "match_id": match_id,
+                    "possession": poss_id,
+                    "action_number": row["action_number"],
+                    "type": row["type.name"] if "type.name" in row.index else "",
+                    "player": row["player.name"] if "player.name" in row.index else "",
+                    "position": row["position.name"] if "position.name" in row.index else "",
+                    "end_x": row["end_x"],
+                    "end_y": row["end_y"],
+                    "outcome": outcome,
+                })
+        except Exception as e:
+            # Log silencioso e continua
+            continue
     
     summary_df = pd.DataFrame(sequence_summary_list)
     actions_df = pd.DataFrame(sequence_actions_list)
@@ -594,7 +632,7 @@ team_matches = carregar_matches()
 # Carregar logos
 all_opponents = list(team_matches["opponent"].unique())
 logos = get_all_logos(tuple(all_opponents))
-fama_logo = logos.get("Famalicão", None)
+fama_logo = CLUB_LOGOS.get("Famalicão")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PÁGINA 1 — VULNERABILIDADE
@@ -606,7 +644,7 @@ if pagina == "📊 Vulnerabilidade":
         if fama_logo:
             st.image(fama_logo, width=70)
         else:
-            st.markdown("🔴")
+            st.markdown("⚽")
     with col_title:
         st.title("Famalicão — Vulnerabilidade após Perda")
     st.caption("Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
@@ -724,7 +762,7 @@ elif pagina == "🏗️ Construção":
         if fama_logo:
             st.image(fama_logo, width=70)
         else:
-            st.markdown("🔴")
+            st.markdown("⚽")
     with col_title:
         st.title("Famalicão — Análise da 1ª Fase de Construção")
     st.caption("Liga Portugal 25/26 | Dados StatsBomb | ⚡ Análise em tempo real")
@@ -989,7 +1027,14 @@ elif pagina == "🏗️ Construção":
 # ══════════════════════════════════════════════════════════════════════════════
 
 elif pagina == "🗺️ Heatmaps":
-    st.title("🗺️ Heatmaps — Construção e Perdas")
+    col_logo, col_title = st.columns([1, 10])
+    with col_logo:
+        if fama_logo:
+            st.image(fama_logo, width=70)
+        else:
+            st.markdown("⚽")
+    with col_title:
+        st.title("Heatmaps — Construção e Perdas")
     st.caption("Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
 
     st.sidebar.header("Filtros")
