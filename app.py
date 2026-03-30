@@ -900,13 +900,22 @@ elif pagina == "⚠️ Métricas Pós-Perda":
         values.append(values[0])
         labels.append(labels[0])
         
+        # Converter hex para rgba
+        hex_color = CLUB_COLORS.get(opponent, "#3498db")
+        # Remove # e converte para RGB
+        hex_clean = hex_color.lstrip('#')
+        r = int(hex_clean[0:2], 16)
+        g = int(hex_clean[2:4], 16)
+        b = int(hex_clean[4:6], 16)
+        fill_rgba = f"rgba({r}, {g}, {b}, 0.25)"
+        
         fig = go.Figure()
         fig.add_trace(go.Scatterpolar(
             r=values,
             theta=labels,
             fill='toself',
-            fillcolor=CLUB_COLORS.get(opponent, "#3498db") + "40",
-            line=dict(color=CLUB_COLORS.get(opponent, "#3498db"), width=2),
+            fillcolor=fill_rgba,
+            line=dict(color=hex_color, width=2),
             name=opponent
         ))
         
