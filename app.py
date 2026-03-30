@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import base64
 import plotly.graph_objects as go
 import plotly.express as px
 import matplotlib.pyplot as plt
@@ -653,25 +654,37 @@ def build_up_progression_chart(actions_df, outcome_filter=None):
     fig.tight_layout()
     return fig
 
+# ── Converter logo para base64 (evita problemas de CORS no browser) ────────────
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_img_base64(url):
+    try:
+        r = requests.get(url, timeout=8)
+        r.raise_for_status()
+        return base64.b64encode(r.content).decode("utf-8")
+    except Exception:
+        return None
+
+
 # ── Header estilizado ─────────────────────────────────────────────────────────
 def render_header(title, subtitle="Liga Portugal 25/26 · Dados StatsBomb · Atualizado em tempo real"):
-    col_logo, col_text = st.columns([0.08, 0.92], gap="small")
+    b64 = get_img_base64(CLUB_LOGOS.get("Famalicão", ""))
+    img_tag = (f'<img src="data:image/png;base64,{b64}" width="62" '
+               f'style="object-fit:contain; flex-shrink:0;">')  if b64 else "⚽"
 
-    with col_logo:
-        if fama_logo:
-            st.image(fama_logo, width=75)
-
-    with col_text:
-        st.markdown(f"""
-        <div style="background:linear-gradient(90deg, #003d7a 0%, #0066cc 100%);
-                    padding:14px 20px; border-radius:10px;
-                    box-shadow:0 3px 10px rgba(0,0,0,0.18);">
+    st.markdown(f"""
+    <div style="display:flex; align-items:center; gap:18px;
+                background:linear-gradient(90deg, #003d7a 0%, #0066cc 100%);
+                padding:14px 22px; border-radius:10px; margin-bottom:18px;
+                box-shadow:0 3px 10px rgba(0,0,0,0.18);">
+        {img_tag}
+        <div>
             <div style="color:white; font-size:1.4rem; font-weight:700;
                         font-family:Arial,sans-serif; line-height:1.2;">{title}</div>
-            <div style="color:#b3d4ff; font-size:0.75rem; margin-top:4px;
+            <div style="color:#b3d4ff; font-size:0.76rem; margin-top:4px;
                         font-family:Arial,sans-serif;">{subtitle}</div>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1140,4 +1153,4 @@ elif pagina == "🗺️ Heatmaps":
     with c4:
         st.markdown("**Perdas — vertical**")
         d = fama_1t[loss_mask]["corredor_v"].value_counts().reset_index()
-        d.columns=["Zona","Perdas"]; st.dataframe(d,use_container_width=True,hide_index=True) 
+        d.columns=["Zona","Perdas"]; st.dataframe(d,use_container_width=True,hide_index=True)
