@@ -411,7 +411,7 @@ def heatmap_fig(x_vals, y_vals, title):
 # NAVEGAÇÃO (ATUALIZADA COM NOVA PÁGINA)
 # ══════════════════════════════════════════════════════════════════════════
 
-pagina = st.sidebar.radio("📂 Página", ["📊 Vulnerabilidade", "🗺️ Heatmaps", "⚠️ Métricas Pós-Perda"])
+pagina = st.sidebar.radio("📂 Página", ["📊 Vulnerabilidade", "🗺️ Heatmaps", "⚠️ Métricas Pós-Perda", "🏗️ Padrões de Construção"])
 team_matches = carregar_matches()
 
 # Carregar logos (cached 24h) — tem de ser depois de team_matches
@@ -1090,3 +1090,729 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     # ── Tabela Completa (Raw) ───────────────────────────────────────────────
     with st.expander("📄 Ver tabela completa (dados originais)", expanded=False):
         st.dataframe(df_f, use_container_width=True, hide_index=True)
+
+# ══════════════════════════════════════════════════════════════════════════
+# PÁGINA 4 — PADRÕES DE CONSTRUÇÃO (Notebooks JR)
+# ══════════════════════════════════════════════════════════════════════════
+
+elif pagina == "🏗️ Padrões de Construção":
+
+    import numpy as np
+    import io as _io
+
+    # ── Header ──────────────────────────────────────────────────────────────
+    col_logo, col_title = st.columns([1, 10])
+    with col_logo:
+        if fama_logo:
+            st.image(fama_logo, width=70)
+        else:
+            st.markdown("🔵")
+    with col_title:
+        st.title("Famalicão — Padrões de Construção")
+    st.caption("Análise das posses na 1ª fase de construção | Dados preparados por JR")
+
+    # ── Carregar CSVs ────────────────────────────────────────────────────────
+
+    @st.cache_data(show_spinner="A carregar dados de construção...")
+    def carregar_dados_jr():
+        uploaded_possession = st.session_state.get("possession_bytes")
+        uploaded_sequence   = st.session_state.get("sequence_bytes")
+        return uploaded_possession, uploaded_sequence
+
+    st.sidebar.header("📂 Dados JR")
+    st.sidebar.caption("Carrega os ficheiros CSV do teu colega JR")
+
+    possession_file = st.sidebar.file_uploader(
+        "possession_features_df.csv", type="csv", key="poss_upload"
+    )
+    sequence_file = st.sidebar.file_uploader(
+        "sequence_summary_df.csv", type="csv", key="seq_upload"
+    )
+
+    if possession_file is None or sequence_file is None:
+        st.info(
+            "👈 Carrega os dois ficheiros CSV na barra lateral para activar esta página.\n\n"
+            "**Ficheiros necessários:**\n"
+            "- `possession_features_df.csv`\n"
+            "- `sequence_summary_df.csv`"
+        )
+        st.stop()
+
+    # ── Ler DataFrames ───────────────────────────────────────────────────────
+
+    @st.cache_data(show_spinner="A processar dados...")
+    def ler_possession(raw: bytes) -> pd.DataFrame:
+        try:
+            return pd.read_csv(_io.BytesIO(raw), encoding="utf-8")
+        except Exception:
+            return pd.read_csv(_io.BytesIO(raw), encoding="cp1252")
+
+    @st.cache_data(show_spinner="A processar dados...")
+    def ler_sequence(raw: bytes) -> pd.DataFrame:
+        try:
+            return pd.read_csv(_io.BytesIO(raw), encoding="utf-8")
+        except Exception:
+            return pd.read_csv(_io.BytesIO(raw), encoding="cp1252")
+
+    df_poss = ler_possession(possession_file.read())
+    df_seq  = ler_sequence(sequence_file.read())
+
+    # ── Helpers ──────────────────────────────────────────────────────────────
+
+    OUTCOME_LABELS = {
+        "success_total":   "✅ Sucesso Total",
+        "success_partial": "🟡 Sucesso Parcial",
+        "unsuccessful":    "❌ Insucesso",
+    }
+    OUTCOME_COLORS = {
+        "success_total":   "#2ecc71",
+        "success_partial": "#f39c12",
+        "unsuccessful":    "#e74c3c",
+    }
+
+    def get_corridor_side(corridor_value):
+        if corridor_value in ["left_outer", "left_inner"]:
+            return "left"
+        elif corridor_value == "center":
+            return "center"
+        elif corridor_value in ["right_inner", "right_outer"]:
+            return "right"
+        return None
+
+    def split_corridor_sequence(seq_val):
+        if pd.isna(seq_val): return []
+        seq_val = str(seq_val).strip()
+        if seq_val == "": return []
+        return seq_val.split("-")
+
+    def classify_big_pattern(corridor_sequence_collapsed):
+        corridor_list = split_corridor_sequence(corridor_sequence_collapsed)
+        if len(corridor_list) == 0:
+            return "other_pattern"
+        has_left_outer  = "left_outer"  in corridor_list
+        has_right_outer = "right_outer" in corridor_list
+        has_any_outer   = has_left_outer or has_right_outer
+        first_corridor  = corridor_list[0]
+        first_side      = get_corridor_side(first_corridor)
+        if has_left_outer and has_right_outer:
+            return "switch_of_play"
+        if not has_any_outer:
+            return "center_exit_pattern"
+        if first_corridor in ["left_outer", "right_outer"]:
+            return "outer_inner_exit"
+        first_outer = next((c for c in corridor_list if c in ["left_outer","right_outer"]), None)
+        if first_outer is None:
+            return "other_pattern"
+        outer_side = get_corridor_side(first_outer)
+        functional_start_side = first_side
+        if first_corridor == "center":
+            idx_outer = corridor_list.index(first_outer)
+            if idx_outer > 0:
+                before = corridor_list[idx_outer - 1]
+                before_side = get_corridor_side(before)
+                if before_side in ["left","right"]:
+                    functional_start_side = before_side
+        if functional_start_side == outer_side:
+            return "interior_exterior_same_side"
+        if functional_start_side in ["left","right"] and functional_start_side != outer_side:
+            return "interior_exterior_opposite_side"
+        return "other_pattern"
+
+    PATTERN_LABELS = {
+        "interior_exterior_same_side":      "Interior → Exterior (mesmo lado)",
+        "interior_exterior_opposite_side":  "Interior → Exterior (lado oposto)",
+        "switch_of_play":                   "Mudança de Corredor",
+        "center_exit_pattern":              "Saída pelo Centro",
+        "outer_inner_exit":                 "Exterior → Interior",
+        "other_pattern":                    "Outro",
+    }
+    PATTERN_COLORS = [
+        "#3498db","#e74c3c","#2ecc71","#f39c12","#9b59b6","#95a5a6"
+    ]
+
+    # ── Derivar corredor (aproximação via first_3_positions) se não existir
+    # corridor_sequence_to_40_collapsed foi calculado no notebook mas não
+    # ficou no CSV exportado — reconstruímos o big_pattern a partir da
+    # sequência de posições como proxy.
+    POSITION_TO_CORRIDOR = {
+        "Goalkeeper":                  "center",
+        "Right Center Back":           "right_inner",
+        "Left Center Back":            "left_inner",
+        "Right Back":                  "right_outer",
+        "Left Back":                   "left_outer",
+        "Right Wing Back":             "right_outer",
+        "Left Wing Back":              "left_outer",
+        "Right Defensive Midfield":    "right_inner",
+        "Left Defensive Midfield":     "left_inner",
+        "Center Defensive Midfield":   "center",
+        "Right Center Midfield":       "right_inner",
+        "Left Center Midfield":        "left_inner",
+        "Center Attacking Midfield":   "center",
+        "Right Attacking Midfield":    "right_inner",
+        "Left Attacking Midfield":     "left_inner",
+        "Right Midfield":              "right_outer",
+        "Left Midfield":               "left_outer",
+        "Right Wing":                  "right_outer",
+        "Left Wing":                   "left_outer",
+        "Right Center Forward":        "right_inner",
+        "Left Center Forward":         "left_inner",
+        "Center Forward":              "center",
+    }
+
+    def positions_to_corridor_seq(positions_str):
+        if pd.isna(positions_str): return ""
+        positions = str(positions_str).split("-")
+        corridors = []
+        for pos in positions:
+            corr = POSITION_TO_CORRIDOR.get(pos.strip())
+            if corr and (not corridors or corridors[-1] != corr):
+                corridors.append(corr)
+        return "-".join(corridors)
+
+    df_poss["_corridor_seq_proxy"] = df_poss["positions_sequence_collapsed_to_40"].apply(
+        positions_to_corridor_seq
+    )
+    df_poss["big_pattern"] = df_poss["_corridor_seq_proxy"].apply(classify_big_pattern)
+    df_poss["big_pattern_label"] = df_poss["big_pattern"].map(PATTERN_LABELS).fillna("Outro")
+
+    # ── Zona 3×5 ─────────────────────────────────────────────────────────────
+
+    def build_zone_3x5(x_val, y_val):
+        if pd.isna(x_val) or pd.isna(y_val):
+            return None
+        x_band = "Zona 1\n(0-40)" if x_val < 40 else ("Zona 2\n(40-80)" if x_val < 80 else "Zona 3\n(80-120)")
+        if y_val < 16:   y_corr = "Ext Esq"
+        elif y_val < 32: y_corr = "Int Esq"
+        elif y_val < 48: y_corr = "Centro"
+        elif y_val < 64: y_corr = "Int Dir"
+        else:            y_corr = "Ext Dir"
+        return f"{x_band}|{y_corr}"
+
+    df_poss["zone_end"] = df_poss.apply(
+        lambda r: build_zone_3x5(r["x_end"], r["y_end"]), axis=1
+    )
+
+    # ══════════════════════════════════════════════════════════════════════
+    # RESUMO EXECUTIVO
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.subheader("📊 Resumo Executivo")
+    n_total     = len(df_poss)
+    n_success_t = (df_poss["outcome_label"] == "success_total").sum()
+    n_success_p = (df_poss["outcome_label"] == "success_partial").sum()
+    n_fail      = (df_poss["outcome_label"] == "unsuccessful").sum()
+    pct_ok      = round((n_success_t + n_success_p) / n_total * 100, 1) if n_total else 0
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Total de posses", n_total)
+    c2.metric("✅ Sucesso Total",   n_success_t)
+    c3.metric("🟡 Sucesso Parcial", n_success_p)
+    c4.metric("❌ Insucesso",       n_fail)
+    c5.metric("Taxa de sucesso",  f"{pct_ok}%")
+
+    # ══════════════════════════════════════════════════════════════════════
+    # 1) DISTRIBUIÇÃO DE OUTCOMES
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.subheader("1️⃣ Distribuição de Outcomes")
+
+    outcome_counts = df_poss["outcome_label"].value_counts().reset_index()
+    outcome_counts.columns = ["outcome", "count"]
+    outcome_counts["label"] = outcome_counts["outcome"].map(OUTCOME_LABELS).fillna(outcome_counts["outcome"])
+    outcome_counts["color"] = outcome_counts["outcome"].map(OUTCOME_COLORS).fillna("#888")
+
+    col_pie, col_bar_out = st.columns([1, 1])
+
+    with col_pie:
+        fig_pie = go.Figure(go.Pie(
+            labels=outcome_counts["label"],
+            values=outcome_counts["count"],
+            marker=dict(colors=outcome_counts["color"].tolist()),
+            hole=0.45,
+            textinfo="label+percent",
+            hovertemplate="<b>%{label}</b><br>%{value} posses (%{percent})<extra></extra>",
+        ))
+        fig_pie.update_layout(
+            title=dict(text="Distribuição de Outcomes", font=dict(size=14, family="Arial")),
+            height=360,
+            margin=dict(l=10, r=10, t=60, b=10),
+            showlegend=False,
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+    with col_bar_out:
+        # Breakdown por n_actions (≤5 vs >5)
+        df_poss["n_actions_cat"] = df_poss["n_actions"].apply(
+            lambda x: "≤5 ações" if x <= 5 else ">5 ações"
+        )
+        outcome_actions = (
+            df_poss.groupby(["outcome_label", "n_actions_cat"])
+            .size()
+            .reset_index(name="count")
+        )
+        fig_bar_out = go.Figure()
+        for cat, dash in [("≤5 ações", ""), (">5 ações", "/")]:
+            sub = outcome_actions[outcome_actions["n_actions_cat"] == cat]
+            sub = sub.set_index("outcome_label").reindex(
+                ["success_total","success_partial","unsuccessful"], fill_value=0
+            ).reset_index()
+            fig_bar_out.add_trace(go.Bar(
+                x=[OUTCOME_LABELS.get(o, o) for o in sub["outcome_label"]],
+                y=sub["count"],
+                name=cat,
+                marker_color=["#2ecc71","#f39c12","#e74c3c"],
+                marker_pattern_shape="/" if cat == ">5 ações" else "",
+                hovertemplate="<b>%{x}</b><br>" + cat + ": %{y}<extra></extra>",
+            ))
+        fig_bar_out.update_layout(
+            barmode="stack",
+            title=dict(text="Outcome por nº de ações", font=dict(size=14, family="Arial")),
+            height=360,
+            plot_bgcolor="white",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin=dict(l=40, r=20, t=60, b=40),
+        )
+        fig_bar_out.update_xaxes(showgrid=False)
+        fig_bar_out.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
+        st.plotly_chart(fig_bar_out, use_container_width=True)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # 2) PADRÕES DE CONSTRUÇÃO + TAXA DE SUCESSO
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.subheader("2️⃣ Padrões de Construção — Frequência e Taxa de Sucesso")
+
+    pattern_summary = (
+        df_poss.groupby("big_pattern_label")
+        .agg(
+            total=("outcome_label", "count"),
+            sucesso_total=("outcome_label", lambda x: (x == "success_total").sum()),
+            sucesso_parcial=("outcome_label", lambda x: (x == "success_partial").sum()),
+            insucesso=("outcome_label", lambda x: (x == "unsuccessful").sum()),
+        )
+        .reset_index()
+    )
+    pattern_summary["taxa_sucesso_total_pct"] = (
+        pattern_summary["sucesso_total"] / pattern_summary["total"] * 100
+    ).round(1)
+    pattern_summary["taxa_sucesso_qualquer_pct"] = (
+        (pattern_summary["sucesso_total"] + pattern_summary["sucesso_parcial"])
+        / pattern_summary["total"] * 100
+    ).round(1)
+    pattern_summary = pattern_summary.sort_values("total", ascending=False)
+
+    col_pat_freq, col_pat_taxa = st.columns([1, 1])
+
+    with col_pat_freq:
+        fig_pat_freq = go.Figure()
+        pat_colors = PATTERN_COLORS[:len(pattern_summary)]
+        fig_pat_freq.add_trace(go.Bar(
+            y=pattern_summary["big_pattern_label"],
+            x=pattern_summary["total"],
+            orientation="h",
+            marker_color=pat_colors,
+            text=pattern_summary["total"],
+            textposition="outside",
+            hovertemplate="<b>%{y}</b><br>Total: %{x} posses<extra></extra>",
+        ))
+        fig_pat_freq.update_layout(
+            title=dict(text="Frequência dos Padrões", font=dict(size=14, family="Arial")),
+            height=380,
+            plot_bgcolor="white",
+            margin=dict(l=200, r=40, t=60, b=40),
+        )
+        fig_pat_freq.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
+        fig_pat_freq.update_yaxes(showgrid=False)
+        st.plotly_chart(fig_pat_freq, use_container_width=True)
+
+    with col_pat_taxa:
+        fig_pat_taxa = go.Figure()
+        fig_pat_taxa.add_trace(go.Bar(
+            y=pattern_summary["big_pattern_label"],
+            x=pattern_summary["taxa_sucesso_qualquer_pct"],
+            orientation="h",
+            marker_color=[
+                "#2ecc71" if v >= 60 else "#f39c12" if v >= 40 else "#e74c3c"
+                for v in pattern_summary["taxa_sucesso_qualquer_pct"]
+            ],
+            text=[f"{v:.0f}%" for v in pattern_summary["taxa_sucesso_qualquer_pct"]],
+            textposition="outside",
+            name="Sucesso (total+parcial)",
+            hovertemplate="<b>%{y}</b><br>Taxa sucesso: %{x:.1f}%<extra></extra>",
+        ))
+        fig_pat_taxa.add_vline(x=50, line_dash="dot", line_color="#888", line_width=1)
+        fig_pat_taxa.update_layout(
+            title=dict(text="Taxa de Sucesso por Padrão (%)", font=dict(size=14, family="Arial")),
+            height=380,
+            plot_bgcolor="white",
+            margin=dict(l=200, r=60, t=60, b=40),
+            xaxis=dict(range=[0, 105]),
+        )
+        fig_pat_taxa.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
+        fig_pat_taxa.update_yaxes(showgrid=False)
+        st.plotly_chart(fig_pat_taxa, use_container_width=True)
+
+    # Breakdown stacked por padrão
+    fig_stack_pat = go.Figure()
+    for outcome, label, color in [
+        ("success_total",   "✅ Sucesso Total",   "#2ecc71"),
+        ("success_partial", "🟡 Sucesso Parcial", "#f39c12"),
+        ("unsuccessful",    "❌ Insucesso",       "#e74c3c"),
+    ]:
+        col_name = outcome.replace("success_total","sucesso_total").replace("success_partial","sucesso_parcial")
+        if outcome == "unsuccessful": col_name = "insucesso"
+        fig_stack_pat.add_trace(go.Bar(
+            x=pattern_summary["big_pattern_label"],
+            y=pattern_summary[col_name],
+            name=label,
+            marker_color=color,
+            hovertemplate="<b>%{x}</b><br>" + label + ": %{y}<extra></extra>",
+        ))
+    fig_stack_pat.update_layout(
+        barmode="stack",
+        title=dict(text="Breakdown Outcome por Padrão", font=dict(size=14, family="Arial")),
+        height=380,
+        plot_bgcolor="white",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=40, r=20, t=60, b=120),
+    )
+    fig_stack_pat.update_xaxes(tickangle=-30, showgrid=False)
+    fig_stack_pat.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
+    st.plotly_chart(fig_stack_pat, use_container_width=True)
+
+    # Tabela resumo padrões
+    with st.expander("📋 Ver tabela de padrões", expanded=False):
+        tbl_pat = pattern_summary.rename(columns={
+            "big_pattern_label":          "Padrão",
+            "total":                      "Total",
+            "sucesso_total":              "Sucesso Total",
+            "sucesso_parcial":            "Sucesso Parcial",
+            "insucesso":                  "Insucesso",
+            "taxa_sucesso_total_pct":     "Taxa Suc. Total %",
+            "taxa_sucesso_qualquer_pct":  "Taxa Suc. Qualquer %",
+        })
+        st.dataframe(tbl_pat, use_container_width=True, hide_index=True)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # 3) HEATMAP DE ZONAS 3×5 NO CAMPO
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.subheader("3️⃣ Heatmap de Zonas no Campo (3×5)")
+    st.caption("Zona do ponto de saída de cada posse. Campo StatsBomb 120×80 dividido em 15 zonas.")
+
+    col_hm_l, col_hm_r = st.columns([1, 1])
+
+    X_BANDS  = ["Zona 1\n(0-40)", "Zona 2\n(40-80)", "Zona 3\n(80-120)"]
+    Y_CORRS  = ["Ext Esq", "Int Esq", "Centro", "Int Dir", "Ext Dir"]
+
+    def build_heatmap_matrix(df_sub, value_col):
+        mat = pd.DataFrame(0.0, index=X_BANDS, columns=Y_CORRS)
+        for _, row in df_sub.iterrows():
+            z = row.get("zone_end")
+            if not z: continue
+            parts = str(z).split("|")
+            if len(parts) != 2: continue
+            xb, yc = parts
+            if xb in mat.index and yc in mat.columns:
+                mat.loc[xb, yc] += row[value_col]
+        return mat
+
+    # Totais por zona
+    zone_total = df_poss.groupby("zone_end").size().reset_index(name="count")
+    zone_succ  = df_poss[df_poss["outcome_label"].isin(["success_total","success_partial"])].groupby("zone_end").size().reset_index(name="count_succ")
+    zone_df    = zone_total.merge(zone_succ, on="zone_end", how="left").fillna(0)
+    zone_df["taxa_succ"] = (zone_df["count_succ"] / zone_df["count"] * 100).round(1)
+    zone_df["zone_end_str"] = zone_df["zone_end"]
+
+    def make_zone_matrix(zone_df, value_col):
+        mat = pd.DataFrame(0.0, index=X_BANDS, columns=Y_CORRS)
+        for _, row in zone_df.iterrows():
+            z = row["zone_end_str"]
+            if not z: continue
+            parts = str(z).split("|")
+            if len(parts) != 2: continue
+            xb, yc = parts
+            if xb in mat.index and yc in mat.columns:
+                mat.loc[xb, yc] = row[value_col]
+        return mat
+
+    mat_count = make_zone_matrix(zone_df, "count")
+    mat_taxa  = make_zone_matrix(zone_df, "taxa_succ")
+
+    with col_hm_l:
+        fig_hm_count = go.Figure(go.Heatmap(
+            z=mat_count.values,
+            x=Y_CORRS,
+            y=X_BANDS,
+            colorscale="YlOrRd",
+            text=mat_count.values.astype(int),
+            texttemplate="%{text}",
+            hovertemplate="Zona X: %{y}<br>Corredor: %{x}<br>Posses: %{z}<extra></extra>",
+            showscale=True,
+            colorbar=dict(title="Posses"),
+        ))
+        fig_hm_count.update_layout(
+            title=dict(text="Frequência de Posses por Zona", font=dict(size=14, family="Arial")),
+            height=340,
+            margin=dict(l=80, r=40, t=60, b=60),
+            xaxis=dict(title="Corredor lateral"),
+            yaxis=dict(title="Zona longitudinal"),
+        )
+        st.plotly_chart(fig_hm_count, use_container_width=True)
+
+    with col_hm_r:
+        fig_hm_taxa = go.Figure(go.Heatmap(
+            z=mat_taxa.values,
+            x=Y_CORRS,
+            y=X_BANDS,
+            colorscale="RdYlGn",
+            zmin=0, zmax=100,
+            text=[[f"{v:.0f}%" if v > 0 else "" for v in row] for row in mat_taxa.values],
+            texttemplate="%{text}",
+            hovertemplate="Zona X: %{y}<br>Corredor: %{x}<br>Taxa sucesso: %{z:.1f}%<extra></extra>",
+            showscale=True,
+            colorbar=dict(title="Taxa %"),
+        ))
+        fig_hm_taxa.update_layout(
+            title=dict(text="Taxa de Sucesso por Zona (%)", font=dict(size=14, family="Arial")),
+            height=340,
+            margin=dict(l=80, r=40, t=60, b=60),
+            xaxis=dict(title="Corredor lateral"),
+            yaxis=dict(title="Zona longitudinal"),
+        )
+        st.plotly_chart(fig_hm_taxa, use_container_width=True)
+
+    # Mapa de pontos no campo (matplotlib)
+    st.markdown("**Distribuição espacial dos pontos de saída das posses**")
+
+    fig_field, ax_field = plt.subplots(figsize=(10, 6.5))
+    ax_field.set_facecolor("#f5f5f0")
+    ax_field.set_xlim(0, 120); ax_field.set_ylim(0, 80)
+    ax_field.set_aspect("equal"); ax_field.axis("off")
+    # Campo básico
+    for patch_args in [
+        dict(xy=(0,0), width=120, height=80, fill=False, edgecolor="#333", linewidth=2),
+        dict(xy=(0,18), width=18, height=44, fill=False, edgecolor="#333", linewidth=1.5),
+        dict(xy=(102,18), width=18, height=44, fill=False, edgecolor="#333", linewidth=1.5),
+        dict(xy=(0,30), width=6, height=20, fill=False, edgecolor="#333", linewidth=1.5),
+        dict(xy=(114,30), width=6, height=20, fill=False, edgecolor="#333", linewidth=1.5),
+    ]:
+        ax_field.add_patch(patches.Rectangle(**patch_args))
+    ax_field.axvline(60, color="#333", linewidth=1.5, linestyle="--", alpha=0.5)
+    # Pontos por outcome
+    for outcome, label, color, marker in [
+        ("success_total",   "✅ Sucesso Total",   "#2ecc71", "o"),
+        ("success_partial", "🟡 Sucesso Parcial", "#f39c12", "s"),
+        ("unsuccessful",    "❌ Insucesso",       "#e74c3c", "^"),
+    ]:
+        sub = df_poss[df_poss["outcome_label"] == outcome]
+        ax_field.scatter(
+            sub["x_end"].dropna(), sub["y_end"].dropna(),
+            c=color, s=28, alpha=0.55, marker=marker, label=label, zorder=3,
+        )
+    ax_field.legend(loc="upper right", fontsize=9, framealpha=0.85)
+    ax_field.set_title("Pontos de saída das posses no campo", fontsize=12, fontweight="bold", pad=8)
+    fig_field.tight_layout()
+    st.pyplot(fig_field); plt.close(fig_field)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # 4) PASS NETWORK POR POSIÇÃO
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.subheader("4️⃣ Pass Network por Posição")
+    st.caption("Ligações mais frequentes entre posições na 1ª fase de construção (janela até x>40).")
+
+    # Extrair pares de posição a partir de pass_links_sequence_to_40
+    @st.cache_data(show_spinner=False)
+    def extrair_pass_links(df_input: pd.DataFrame) -> pd.DataFrame:
+        records = []
+        for _, row in df_input.iterrows():
+            outcome = row["outcome_label"]
+            raw = row.get("pass_links_sequence_to_40")
+            if pd.isna(raw): continue
+            for link in str(raw).split("|"):
+                link = link.strip()
+                if "->" not in link: continue
+                parts = link.split("->")
+                if len(parts) == 2:
+                    records.append({
+                        "origin":  parts[0].strip(),
+                        "dest":    parts[1].strip(),
+                        "outcome": outcome,
+                    })
+        return pd.DataFrame(records)
+
+    links_df = extrair_pass_links(df_poss)
+
+    if links_df.empty:
+        st.warning("Não foi possível extrair pares de passe do CSV.")
+    else:
+        # Agregar
+        link_counts = (
+            links_df.groupby(["origin", "dest"])
+            .size()
+            .reset_index(name="n_passes")
+            .sort_values("n_passes", ascending=False)
+        )
+
+        # Filtro de threshold
+        min_passes = st.slider(
+            "Mostrar apenas ligações com pelo menos N passes:", 1,
+            int(link_counts["n_passes"].max()), 3, key="pass_net_thresh"
+        )
+        lc_filt = link_counts[link_counts["n_passes"] >= min_passes]
+
+        # Filtro por outcome
+        outcome_filter = st.selectbox(
+            "Filtrar por outcome:",
+            ["Todos", "✅ Sucesso Total", "🟡 Sucesso Parcial", "❌ Insucesso"],
+            key="pass_net_outcome"
+        )
+        outcome_map_rev = {v: k for k, v in OUTCOME_LABELS.items()}
+        if outcome_filter != "Todos":
+            outcome_key = outcome_map_rev.get(outcome_filter)
+            sub_links = links_df[links_df["outcome"] == outcome_key]
+            lc_filt = (
+                sub_links.groupby(["origin","dest"])
+                .size()
+                .reset_index(name="n_passes")
+                .query(f"n_passes >= {min_passes}")
+                .sort_values("n_passes", ascending=False)
+            )
+
+        if lc_filt.empty:
+            st.info("Nenhuma ligação com os filtros seleccionados.")
+        else:
+            # Posições únicas + posicionamento médio
+            all_positions = sorted(
+                set(lc_filt["origin"].tolist()) | set(lc_filt["dest"].tolist())
+            )
+            avg_x = df_poss["x_start"].mean() if "x_start" in df_poss.columns else 30
+
+            # Coordenadas fixas aproximadas por posição (campo 0-120 × 0-80)
+            POS_COORDS = {
+                "Goalkeeper":                  (5,  40),
+                "Right Center Back":           (20, 60),
+                "Left Center Back":            (20, 20),
+                "Right Back":                  (18, 72),
+                "Left Back":                   (18, 8),
+                "Right Wing Back":             (25, 75),
+                "Left Wing Back":              (25, 5),
+                "Right Defensive Midfield":    (35, 58),
+                "Left Defensive Midfield":     (35, 22),
+                "Center Defensive Midfield":   (35, 40),
+                "Right Center Midfield":       (50, 58),
+                "Left Center Midfield":        (50, 22),
+                "Center Attacking Midfield":   (65, 40),
+                "Right Attacking Midfield":    (65, 60),
+                "Left Attacking Midfield":     (65, 20),
+                "Right Midfield":              (50, 70),
+                "Left Midfield":               (50, 10),
+                "Right Wing":                  (75, 72),
+                "Left Wing":                   (75, 8),
+                "Right Center Forward":        (85, 55),
+                "Left Center Forward":         (85, 25),
+                "Center Forward":              (90, 40),
+            }
+
+            # Contagem de passes enviados por posição (tamanho do nó)
+            pos_count = lc_filt.groupby("origin")["n_passes"].sum().to_dict()
+
+            # Plotly scatter (campo 0-120 × 0-80)
+            fig_net = go.Figure()
+
+            # Campo (rectângulos e linhas)
+            field_shapes = [
+                dict(type="rect", x0=0, y0=0, x1=120, y1=80,
+                     line=dict(color="#333", width=2), fillcolor="rgba(0,0,0,0)"),
+                dict(type="rect", x0=0, y0=18, x1=18, y1=62,
+                     line=dict(color="#555", width=1), fillcolor="rgba(0,0,0,0)"),
+                dict(type="rect", x0=102, y0=18, x1=120, y1=62,
+                     line=dict(color="#555", width=1), fillcolor="rgba(0,0,0,0)"),
+                dict(type="line", x0=60, y0=0, x1=60, y1=80,
+                     line=dict(color="#555", width=1, dash="dot")),
+            ]
+
+            # Arestas (passes)
+            max_n = lc_filt["n_passes"].max()
+            for _, row_lnk in lc_filt.iterrows():
+                x0, y0 = POS_COORDS.get(row_lnk["origin"], (30, 40))
+                x1, y1 = POS_COORDS.get(row_lnk["dest"],   (30, 40))
+                width  = 1 + 5 * (row_lnk["n_passes"] / max_n)
+                alpha  = 0.3 + 0.5 * (row_lnk["n_passes"] / max_n)
+                fig_net.add_trace(go.Scatter(
+                    x=[x0, x1, None], y=[y0, y1, None],
+                    mode="lines",
+                    line=dict(color=f"rgba(52,152,219,{alpha:.2f})", width=width),
+                    hoverinfo="skip",
+                    showlegend=False,
+                ))
+
+            # Nós (posições)
+            node_x, node_y, node_size, node_text, node_hover = [], [], [], [], []
+            for pos in all_positions:
+                cx, cy = POS_COORDS.get(pos, (30, 40))
+                cnt = pos_count.get(pos, 1)
+                node_x.append(cx); node_y.append(cy)
+                node_size.append(12 + 20 * cnt / max(pos_count.values(), default=1))
+                node_text.append(pos.replace(" ", "\n"))
+                node_hover.append(f"<b>{pos}</b><br>Passes enviados: {cnt}")
+
+            fig_net.add_trace(go.Scatter(
+                x=node_x, y=node_y,
+                mode="markers+text",
+                marker=dict(
+                    size=node_size,
+                    color="#e74c3c",
+                    line=dict(color="white", width=2),
+                ),
+                text=node_text,
+                textposition="top center",
+                textfont=dict(size=8),
+                hovertemplate="%{customdata}<extra></extra>",
+                customdata=node_hover,
+                showlegend=False,
+            ))
+
+            fig_net.update_layout(
+                shapes=field_shapes,
+                xaxis=dict(range=[-5,125], showgrid=False, zeroline=False, visible=False),
+                yaxis=dict(range=[-5,85],  showgrid=False, zeroline=False, visible=False,
+                           scaleanchor="x", scaleratio=1),
+                height=540,
+                plot_bgcolor="#f5f5f0",
+                margin=dict(l=10, r=10, t=50, b=10),
+                title=dict(text=f"Pass Network — {outcome_filter} | min. {min_passes} passes",
+                           font=dict(size=14, family="Arial")),
+                hovermode="closest",
+            )
+            st.plotly_chart(fig_net, use_container_width=True)
+
+            # Top 15 ligações
+            with st.expander("📋 Top 15 ligações mais frequentes", expanded=False):
+                top15 = lc_filt.head(15).copy()
+                top15.columns = ["Origem", "Destino", "N.º Passes"]
+                st.dataframe(top15, use_container_width=True, hide_index=True)
+
+    # ── Nota metodológica ────────────────────────────────────────────────────
+    with st.expander("ℹ️ Nota metodológica", expanded=False):
+        st.markdown("""
+**Padrões de Construção** — Classificação derivada da sequência de corredores percorrida na posse até x>40
+(baseada na lógica do notebook `02_build_analysis.ipynb` do JR):
+
+| Padrão | Descrição |
+|--------|-----------|
+| Interior → Exterior (mesmo lado) | A bola progride do interior para o corredor exterior do mesmo lado |
+| Interior → Exterior (lado oposto) | A bola progride do interior para o corredor exterior do lado contrário |
+| Mudança de Corredor | A bola visitou os dois corredores exteriores (switch of play) |
+| Saída pelo Centro | A bola nunca saiu para os corredores exteriores |
+| Exterior → Interior | A posse começou num corredor exterior e entrou para dentro |
+| Outro | Sequência que não se enquadra nos padrões anteriores |
+
+**Zonas 3×5** — O campo StatsBomb (120×80) é dividido em 3 bandas longitudinais (x<40, 40-80, >80) e 5 corredores laterais.
+O ponto analisado é a posição de saída (x_end, y_end) de cada posse.
+
+**Pass Network** — Cada aresta representa um passe entre duas posições.
+A espessura é proporcional à frequência. Os nós são dimensionados pelo total de passes enviados a partir de cada posição.
+        """)
+
