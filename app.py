@@ -787,16 +787,24 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 📊 Métrica de Destaque")
-    highlight_options = {
+    
+    # Construir options dinamicamente baseado nas colunas existentes
+    all_highlight_options = {
         "shot_occurred_mean": "Taxa de Remate",
+        "n_shots_mean": "Nº Remates",
         "entry_last_third_mean": "Entrada no Último Terço", 
         "progression_mean": "Progressão Média (m)"
     }
-    highlight_metric = st.sidebar.selectbox(
-        "Ordenar rankings por:",
-        options=list(highlight_options.keys()),
-        format_func=lambda x: highlight_options[x]
-    )
+    highlight_options = {k: v for k, v in all_highlight_options.items() if k in df.columns}
+    
+    if len(highlight_options) > 0:
+        highlight_metric = st.sidebar.selectbox(
+            "Ordenar rankings por:",
+            options=list(highlight_options.keys()),
+            format_func=lambda x: highlight_options[x]
+        )
+    else:
+        highlight_metric = "progression_mean"  # fallback
     
     df_f = df.copy()
     if sel_adv != "Todos":
@@ -856,46 +864,60 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     
     st.subheader("🔥 Matriz de Vulnerabilidade por Adversário")
     
-    # Preparar dados para heatmap
-    heatmap_cols = ['entry_last_third_mean', 'shot_occurred_mean', 'progression_mean']
-    heatmap_labels = ['Entrada Terço', 'Taxa Remate', 'Progressão']
+    # Preparar dados para heatmap - usar apenas colunas que existem
+    possible_heatmap_cols = [
+        ('entry_last_third_mean', 'Entrada Terço'),
+        ('shot_occurred_mean', 'Taxa Remate'),
+        ('n_shots_mean', 'Nº Remates'),
+        ('progression_mean', 'Progressão')
+    ]
     
-    heatmap_data = df_f.set_index('opponent')[heatmap_cols].copy()
+    heatmap_cols = []
+    heatmap_labels = []
+    for col, label in possible_heatmap_cols:
+        if col in df_f.columns:
+            heatmap_cols.append(col)
+            heatmap_labels.append(label)
     
-    # Normalizar cada coluna para 0-1
-    heatmap_norm = heatmap_data.copy()
-    for col in heatmap_cols:
-        max_val = heatmap_data[col].max()
-        if max_val > 0:
-            heatmap_norm[col] = heatmap_data[col] / max_val
-        else:
-            heatmap_norm[col] = 0
+    if len(heatmap_cols) >= 2:
+        heatmap_data = df_f.set_index('opponent')[heatmap_cols].copy()
+        
+        # Normalizar cada coluna para 0-1
+        heatmap_norm = heatmap_data.copy()
+        for col in heatmap_cols:
+            max_val = heatmap_data[col].max()
+            if max_val > 0:
+                heatmap_norm[col] = heatmap_data[col] / max_val
+            else:
+                heatmap_norm[col] = 0
+        
+        fig_heatmap = go.Figure(data=go.Heatmap(
+            z=heatmap_norm.values,
+            x=heatmap_labels,
+            y=heatmap_norm.index,
+            colorscale=[
+                [0, '#1a472a'],
+                [0.3, '#2ecc71'],
+                [0.5, '#f39c12'],
+                [0.7, '#e74c3c'],
+                [1, '#8b0000']
+            ],
+            hoverongaps=False,
+            hovertemplate='<b>%{y}</b><br>%{x}: %{z:.2f}<extra></extra>',
+            colorbar=dict(title=dict(text='Nível de Ameaça'))
+        ))
     
-    fig_heatmap = go.Figure(data=go.Heatmap(
-        z=heatmap_norm.values,
-        x=heatmap_labels,
-        y=heatmap_norm.index,
-        colorscale=[
-            [0, '#1a472a'],
-            [0.3, '#2ecc71'],
-            [0.5, '#f39c12'],
-            [0.7, '#e74c3c'],
-            [1, '#8b0000']
-        ],
-        hoverongaps=False,
-        hovertemplate='<b>%{y}</b><br>%{x}: %{z:.2f}<extra></extra>',
-        colorbar=dict(title=dict(text='Nível de Ameaça'))
-    ))
-    
-    fig_heatmap.update_layout(
-        xaxis=dict(side='top', tickfont=dict(size=12)),
-        yaxis=dict(tickfont=dict(size=11), autorange='reversed'),
-        plot_bgcolor='white',
-        margin=dict(l=120, r=80, t=60, b=40),
-        height=max(350, len(heatmap_norm) * 30)
-    )
-    
-    st.plotly_chart(fig_heatmap, use_container_width=True)
+        fig_heatmap.update_layout(
+            xaxis=dict(side='top', tickfont=dict(size=12)),
+            yaxis=dict(tickfont=dict(size=11), autorange='reversed'),
+            plot_bgcolor='white',
+            margin=dict(l=120, r=80, t=60, b=40),
+            height=max(350, len(heatmap_norm) * 30)
+        )
+        
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+    else:
+        st.warning("Dados insuficientes para gerar o heatmap.")
     
     # ══════════════════════════════════════════════════════════════════════════
     # RADAR + RANKING LADO A LADO
@@ -906,38 +928,52 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     col_radar, col_rank = st.columns([1, 1])
     
     with col_radar:
-        # Radar dos top 5 adversários mais perigosos
-        radar_metrics = ['entry_last_third_mean', 'shot_occurred_mean', 'progression_mean']
-        radar_labels = ['Entry Terço', 'Taxa Remate', 'Progressão']
+        # Radar dos top 5 adversários mais perigosos - usar colunas existentes
+        possible_radar = [
+            ('entry_last_third_mean', 'Entry Terço'),
+            ('shot_occurred_mean', 'Taxa Remate'),
+            ('n_shots_mean', 'Nº Remates'),
+            ('progression_mean', 'Progressão')
+        ]
+        
+        radar_metrics = []
+        radar_labels = []
+        for col, label in possible_radar:
+            if col in df_f.columns:
+                radar_metrics.append(col)
+                radar_labels.append(label)
         
         # Normalizar
         radar_data = df_f.copy()
         for col in radar_metrics:
-            max_val = radar_data[col].max()
-            if max_val > 0:
-                radar_data[f'{col}_norm'] = radar_data[col] / max_val
-            else:
-                radar_data[f'{col}_norm'] = 0
+            if col in radar_data.columns:
+                max_val = radar_data[col].max()
+                if max_val > 0:
+                    radar_data[f'{col}_norm'] = radar_data[col] / max_val
+                else:
+                    radar_data[f'{col}_norm'] = 0
         
         # Top 5 adversários
         top_n = min(5, len(radar_data))
-        top_opponents = radar_data.nlargest(top_n, highlight_metric)
+        if highlight_metric in radar_data.columns:
+            top_opponents = radar_data.nlargest(top_n, highlight_metric)
+        else:
+            top_opponents = radar_data.head(top_n)
         
         colors_radar = ['#e74c3c', '#f39c12', '#3498db', '#2ecc71', '#9b59b6']
         
         fig_radar = go.Figure()
         
         for idx, (_, row) in enumerate(top_opponents.iterrows()):
-            values = [
-                row.get('entry_last_third_mean_norm', 0),
-                row.get('shot_occurred_mean_norm', 0),
-                row.get('progression_mean_norm', 0),
-            ]
-            values.append(values[0])  # Fechar
+            values = []
+            for col in radar_metrics:
+                values.append(row.get(f'{col}_norm', 0))
+            if len(values) > 0:
+                values.append(values[0])  # Fechar
             
             fig_radar.add_trace(go.Scatterpolar(
                 r=values,
-                theta=radar_labels + [radar_labels[0]],
+                theta=radar_labels + [radar_labels[0]] if radar_labels else [],
                 fill='toself',
                 fillcolor=f'rgba({int(colors_radar[idx][1:3], 16)}, {int(colors_radar[idx][3:5], 16)}, {int(colors_radar[idx][5:7], 16)}, 0.15)',
                 line=dict(color=colors_radar[idx], width=2),
@@ -995,101 +1031,111 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     # SCATTER PLOT - PROGRESSÃO VS PERIGO
     # ══════════════════════════════════════════════════════════════════════════
     
-    st.subheader("📍 Análise de Progressão vs Entrada no Terço")
+    # Só mostrar scatter se tivermos as colunas necessárias
+    scatter_cols_needed = ['progression_mean', 'entry_last_third_mean', 'n_games']
+    has_scatter_cols = all(col in df_f.columns for col in scatter_cols_needed)
     
-    col_scatter, col_insights = st.columns([2, 1])
-    
-    with col_scatter:
-        import plotly.express as px
+    if has_scatter_cols:
+        st.subheader("📍 Análise de Progressão vs Entrada no Terço")
         
-        fig_scatter = px.scatter(
-            df_f,
-            x='progression_mean',
-            y='entry_last_third_mean',
-            size='n_games',
-            color='shot_occurred_mean',
-            hover_name='opponent',
-            hover_data={
-                'progression_mean': ':.1f',
-                'entry_last_third_mean': ':.2f',
-                'shot_occurred_mean': ':.2f',
-                'n_games': True
-            },
-            color_continuous_scale=['#2ecc71', '#f39c12', '#e74c3c'],
-            size_max=40
-        )
+        col_scatter, col_insights = st.columns([2, 1])
         
-        # Linhas de referência (médias)
-        avg_prog = df_f['progression_mean'].mean()
-        avg_entry = df_f['entry_last_third_mean'].mean()
+        with col_scatter:
+            import plotly.express as px
+            
+            # Determinar coluna de cor
+            color_col = None
+            for c in ['shot_occurred_mean', 'n_shots_mean']:
+                if c in df_f.columns:
+                    color_col = c
+                    break
+            
+            scatter_params = dict(
+                data_frame=df_f,
+                x='progression_mean',
+                y='entry_last_third_mean',
+                size='n_games',
+                hover_name='opponent',
+                size_max=40
+            )
+            
+            if color_col:
+                scatter_params['color'] = color_col
+                scatter_params['color_continuous_scale'] = ['#2ecc71', '#f39c12', '#e74c3c']
+            
+            fig_scatter = px.scatter(**scatter_params)
+            
+            # Linhas de referência (médias)
+            avg_prog = df_f['progression_mean'].mean()
+            avg_entry = df_f['entry_last_third_mean'].mean()
+            
+            fig_scatter.add_hline(y=avg_entry, line_dash="dash", line_color="#888", opacity=0.5)
+            fig_scatter.add_vline(x=avg_prog, line_dash="dash", line_color="#888", opacity=0.5)
+            
+            # Labels de quadrantes
+            fig_scatter.add_annotation(
+                x=df_f['progression_mean'].max() * 0.9,
+                y=df_f['entry_last_third_mean'].max() * 0.95,
+                text="⚠️ ALTO PERIGO",
+                showarrow=False,
+                font=dict(color='#e74c3c', size=11, family="Arial Black")
+            )
+            
+            fig_scatter.add_annotation(
+                x=df_f['progression_mean'].min() + 3,
+                y=df_f['entry_last_third_mean'].min() + 0.02,
+                text="✅ CONTROLADO",
+                showarrow=False,
+                font=dict(color='#2ecc71', size=11, family="Arial Black")
+            )
+            
+            fig_scatter.update_layout(
+                xaxis=dict(title='Progressão Média (metros)', gridcolor='#EEEEEE'),
+                yaxis=dict(title='Taxa de Entrada no Último Terço', gridcolor='#EEEEEE'),
+                coloraxis_colorbar=dict(title='Taxa Remate' if color_col else ''),
+                plot_bgcolor='white',
+                margin=dict(l=60, r=20, t=40, b=60),
+                height=450
+            )
+            
+            st.plotly_chart(fig_scatter, use_container_width=True)
         
-        fig_scatter.add_hline(y=avg_entry, line_dash="dash", line_color="#888", opacity=0.5)
-        fig_scatter.add_vline(x=avg_prog, line_dash="dash", line_color="#888", opacity=0.5)
-        
-        # Labels de quadrantes
-        fig_scatter.add_annotation(
-            x=df_f['progression_mean'].max() * 0.9,
-            y=df_f['entry_last_third_mean'].max() * 0.95,
-            text="⚠️ ALTO PERIGO",
-            showarrow=False,
-            font=dict(color='#e74c3c', size=11, family="Arial Black")
-        )
-        
-        fig_scatter.add_annotation(
-            x=df_f['progression_mean'].min() + 3,
-            y=df_f['entry_last_third_mean'].min() + 0.02,
-            text="✅ CONTROLADO",
-            showarrow=False,
-            font=dict(color='#2ecc71', size=11, family="Arial Black")
-        )
-        
-        fig_scatter.update_layout(
-            xaxis=dict(title='Progressão Média (metros)', gridcolor='#EEEEEE'),
-            yaxis=dict(title='Taxa de Entrada no Último Terço', gridcolor='#EEEEEE'),
-            coloraxis_colorbar=dict(title='Taxa Remate'),
-            plot_bgcolor='white',
-            margin=dict(l=60, r=20, t=40, b=60),
-            height=450
-        )
-        
-        st.plotly_chart(fig_scatter, use_container_width=True)
-    
-    with col_insights:
-        st.markdown("""
-        **🔍 Interpretação do Gráfico**
-        
-        - **Eixo X:** Quanto o adversário avança em média
-        - **Eixo Y:** Com que frequência entra no nosso terço
-        - **Tamanho:** Número de jogos analisados
-        - **Cor:** Taxa de finalização
-        
-        ---
-        """)
-        
-        # Identificar adversários de alto risco
-        danger_prog = df_f['progression_mean'].quantile(0.7)
-        danger_entry = df_f['entry_last_third_mean'].quantile(0.7)
-        
-        high_danger = df_f[
-            (df_f['progression_mean'] >= danger_prog) & 
-            (df_f['entry_last_third_mean'] >= danger_entry)
-        ]
-        
-        if len(high_danger) > 0:
-            st.markdown("**⚠️ Adversários de Alto Risco:**")
-            for _, row in high_danger.iterrows():
-                st.markdown(f"• **{row['opponent']}** - {row['progression_mean']:.1f}m | Entry: {row['entry_last_third_mean']:.0%}")
-        
-        # Adversários controlados
-        low_danger = df_f[
-            (df_f['progression_mean'] <= df_f['progression_mean'].quantile(0.3)) & 
-            (df_f['entry_last_third_mean'] <= df_f['entry_last_third_mean'].quantile(0.3))
-        ]
-        
-        if len(low_danger) > 0:
-            st.markdown("**✅ Adversários Controlados:**")
-            for _, row in low_danger.iterrows():
-                st.markdown(f"• **{row['opponent']}** - {row['progression_mean']:.1f}m")
+        with col_insights:
+            st.markdown("""
+            **🔍 Interpretação do Gráfico**
+            
+            - **Eixo X:** Quanto o adversário avança em média
+            - **Eixo Y:** Com que frequência entra no nosso terço
+            - **Tamanho:** Número de jogos analisados
+            - **Cor:** Taxa de finalização
+            
+            ---
+            """)
+            
+            # Identificar adversários de alto risco
+            danger_prog = df_f['progression_mean'].quantile(0.7)
+            danger_entry = df_f['entry_last_third_mean'].quantile(0.7)
+            
+            high_danger = df_f[
+                (df_f['progression_mean'] >= danger_prog) & 
+                (df_f['entry_last_third_mean'] >= danger_entry)
+            ]
+            
+            if len(high_danger) > 0:
+                st.markdown("**⚠️ Adversários de Alto Risco:**")
+                for _, row in high_danger.iterrows():
+                    st.markdown(f"• **{row['opponent']}** - {row['progression_mean']:.1f}m | Entry: {row['entry_last_third_mean']:.0%}")
+            
+            # Adversários controlados
+            low_danger = df_f[
+                (df_f['progression_mean'] <= df_f['progression_mean'].quantile(0.3)) & 
+                (df_f['entry_last_third_mean'] <= df_f['entry_last_third_mean'].quantile(0.3))
+            ]
+            
+            if len(low_danger) > 0:
+                st.markdown("**✅ Adversários Controlados:**")
+                for _, row in low_danger.iterrows():
+                    st.markdown(f"• **{row['opponent']}** - {row['progression_mean']:.1f}m")
     
     # ══════════════════════════════════════════════════════════════════════════
     # DISTRIBUIÇÃO DE PROGRESSÃO (se tiver dados granulares)
@@ -1199,17 +1245,19 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     
     col1, col2 = st.columns(2)
     with col1:
-        st.plotly_chart(
-            plot_stacked_metrics(df_f, "progression_mean", "progression_max", 
-                                "Progressão Adversária (metros)", "Progressão (m)"),
-            use_container_width=True
-        )
+        if 'progression_mean' in df_f.columns and 'progression_max' in df_f.columns:
+            st.plotly_chart(
+                plot_stacked_metrics(df_f, "progression_mean", "progression_max", 
+                                    "Progressão Adversária (metros)", "Progressão (m)"),
+                use_container_width=True
+            )
     with col2:
-        st.plotly_chart(
-            plot_stacked_metrics(df_f, "entry_last_third_mean", "entry_last_third_max",
-                                "Entrada no Último Terço", "Taxa Entry"),
-            use_container_width=True
-        )
+        if 'entry_last_third_mean' in df_f.columns and 'entry_last_third_max' in df_f.columns:
+            st.plotly_chart(
+                plot_stacked_metrics(df_f, "entry_last_third_mean", "entry_last_third_max",
+                                    "Entrada no Último Terço", "Taxa Entry"),
+                use_container_width=True
+            )
     
     # ══════════════════════════════════════════════════════════════════════════
     # INSIGHTS AUTOMÁTICOS
@@ -1217,26 +1265,33 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     
     st.subheader("💡 Insights Automáticos")
     
-    most_dangerous = df_f.nlargest(1, 'shot_occurred_mean')
-    highest_prog = df_f.nlargest(1, 'progression_mean')
-    highest_entry = df_f.nlargest(1, 'entry_last_third_mean')
-    
     col_i1, col_i2, col_i3 = st.columns(3)
     
     with col_i1:
-        if len(most_dangerous) > 0:
-            opp = most_dangerous.iloc[0]
-            st.info(f"🎯 **Maior Taxa de Remate:** {opp['opponent']} conseguiu rematar em **{opp['shot_occurred_mean']:.0%}** das sequências.")
+        # Tentar shot_occurred_mean ou n_shots_mean
+        shot_col = 'shot_occurred_mean' if 'shot_occurred_mean' in df_f.columns else ('n_shots_mean' if 'n_shots_mean' in df_f.columns else None)
+        if shot_col:
+            most_dangerous = df_f.nlargest(1, shot_col)
+            if len(most_dangerous) > 0:
+                opp = most_dangerous.iloc[0]
+                if shot_col == 'shot_occurred_mean':
+                    st.info(f"🎯 **Maior Taxa de Remate:** {opp['opponent']} conseguiu rematar em **{opp[shot_col]:.0%}** das sequências.")
+                else:
+                    st.info(f"🎯 **Mais Remates:** {opp['opponent']} teve **{opp[shot_col]:.2f}** remates em média.")
     
     with col_i2:
-        if len(highest_prog) > 0:
-            opp = highest_prog.iloc[0]
-            st.warning(f"📈 **Maior Progressão:** {opp['opponent']} avançou em média **{opp['progression_mean']:.1f}m** após recuperar.")
+        if 'progression_mean' in df_f.columns:
+            highest_prog = df_f.nlargest(1, 'progression_mean')
+            if len(highest_prog) > 0:
+                opp = highest_prog.iloc[0]
+                st.warning(f"📈 **Maior Progressão:** {opp['opponent']} avançou em média **{opp['progression_mean']:.1f}m** após recuperar.")
     
     with col_i3:
-        if len(highest_entry) > 0:
-            opp = highest_entry.iloc[0]
-            st.error(f"🚨 **Mais Entradas:** {opp['opponent']} entrou no nosso terço em **{opp['entry_last_third_mean']:.0%}** das transições.")
+        if 'entry_last_third_mean' in df_f.columns:
+            highest_entry = df_f.nlargest(1, 'entry_last_third_mean')
+            if len(highest_entry) > 0:
+                opp = highest_entry.iloc[0]
+                st.error(f"🚨 **Mais Entradas:** {opp['opponent']} entrou no nosso terço em **{opp['entry_last_third_mean']:.0%}** das transições.")
     
     # ══════════════════════════════════════════════════════════════════════════
     # TABELA RANKING
@@ -1244,34 +1299,86 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     
     st.subheader("📋 Ranking Completo de Adversários")
     
-    # Calcular índice de perigo
+    # Calcular índice de perigo usando colunas disponíveis
     df_rank = df_f.copy()
-    for col in ["shot_occurred_mean", "entry_last_third_mean", "progression_mean"]:
+    danger_cols = []
+    weights = []
+    
+    if "shot_occurred_mean" in df_rank.columns:
+        danger_cols.append("shot_occurred_mean")
+        weights.append(0.35)
+    elif "n_shots_mean" in df_rank.columns:
+        danger_cols.append("n_shots_mean")
+        weights.append(0.35)
+    
+    if "entry_last_third_mean" in df_rank.columns:
+        danger_cols.append("entry_last_third_mean")
+        weights.append(0.35)
+    
+    if "progression_mean" in df_rank.columns:
+        danger_cols.append("progression_mean")
+        weights.append(0.30)
+    
+    # Normalizar colunas existentes
+    for col in danger_cols:
         max_val = df_rank[col].max()
         if max_val > 0:
             df_rank[col + "_norm"] = df_rank[col] / max_val
         else:
             df_rank[col + "_norm"] = 0
     
-    df_rank["danger_index"] = (
-        df_rank.get("shot_occurred_mean_norm", 0) * 0.35 +
-        df_rank.get("entry_last_third_mean_norm", 0) * 0.35 +
-        df_rank.get("progression_mean_norm", 0) * 0.30
-    ) * 100
+    # Calcular índice de perigo
+    if len(danger_cols) > 0:
+        # Normalizar pesos para somar 1
+        total_weight = sum(weights)
+        weights = [w / total_weight for w in weights]
+        
+        df_rank["danger_index"] = sum(
+            df_rank[col + "_norm"] * w for col, w in zip(danger_cols, weights)
+        ) * 100
+    else:
+        df_rank["danger_index"] = 0
     
-    df_display = df_rank[["opponent", "danger_index", "n_games", "shot_occurred_mean", 
-                          "entry_last_third_mean", "progression_mean", "progression_max"]].copy()
+    # Construir tabela display com colunas existentes
+    display_cols = ["opponent", "danger_index", "n_games"]
+    display_names = ["Adversário", "Índice Perigo", "Jogos"]
+    
+    if "shot_occurred_mean" in df_rank.columns:
+        display_cols.append("shot_occurred_mean")
+        display_names.append("Taxa Remate")
+    elif "n_shots_mean" in df_rank.columns:
+        display_cols.append("n_shots_mean")
+        display_names.append("Remates (média)")
+    
+    if "entry_last_third_mean" in df_rank.columns:
+        display_cols.append("entry_last_third_mean")
+        display_names.append("Taxa Entry")
+    
+    if "progression_mean" in df_rank.columns:
+        display_cols.append("progression_mean")
+        display_names.append("Prog. Média")
+    
+    if "progression_max" in df_rank.columns:
+        display_cols.append("progression_max")
+        display_names.append("Prog. Máx")
+    
+    df_display = df_rank[display_cols].copy()
     df_display = df_display.sort_values("danger_index", ascending=False).reset_index(drop=True)
     df_display.index += 1
+    df_display.columns = display_names
     
-    df_display.columns = ["Adversário", "Índice Perigo", "Jogos", "Taxa Remate", 
-                          "Taxa Entry", "Prog. Média", "Prog. Máx"]
-    
+    # Formatar colunas
     df_display["Índice Perigo"] = df_display["Índice Perigo"].round(1)
-    df_display["Taxa Remate"] = df_display["Taxa Remate"].apply(lambda x: f"{x:.0%}")
-    df_display["Taxa Entry"] = df_display["Taxa Entry"].apply(lambda x: f"{x:.0%}")
-    df_display["Prog. Média"] = df_display["Prog. Média"].apply(lambda x: f"{x:.1f}m")
-    df_display["Prog. Máx"] = df_display["Prog. Máx"].apply(lambda x: f"{x:.0f}m")
+    if "Taxa Remate" in df_display.columns:
+        df_display["Taxa Remate"] = df_display["Taxa Remate"].apply(lambda x: f"{x:.0%}")
+    if "Remates (média)" in df_display.columns:
+        df_display["Remates (média)"] = df_display["Remates (média)"].apply(lambda x: f"{x:.2f}")
+    if "Taxa Entry" in df_display.columns:
+        df_display["Taxa Entry"] = df_display["Taxa Entry"].apply(lambda x: f"{x:.0%}")
+    if "Prog. Média" in df_display.columns:
+        df_display["Prog. Média"] = df_display["Prog. Média"].apply(lambda x: f"{x:.1f}m")
+    if "Prog. Máx" in df_display.columns:
+        df_display["Prog. Máx"] = df_display["Prog. Máx"].apply(lambda x: f"{x:.0f}m")
     
     st.dataframe(df_display, use_container_width=True)
     
