@@ -1109,53 +1109,34 @@ elif pagina == "🏗️ Padrões de Construção":
             st.markdown("🔵")
     with col_title:
         st.title("Famalicão — Padrões de Construção")
-    st.caption("Análise das posses na 1ª fase de construção | Dados preparados por JR")
+    st.caption("Liga Portugal 25/26 | Análise das posses na 1ª fase de construção")
 
-    # ── Carregar CSVs ────────────────────────────────────────────────────────
+    # ── Carregar CSVs do GitHub ──────────────────────────────────────────────
 
-    @st.cache_data(show_spinner="A carregar dados de construção...")
-    def carregar_dados_jr():
-        uploaded_possession = st.session_state.get("possession_bytes")
-        uploaded_sequence   = st.session_state.get("sequence_bytes")
-        return uploaded_possession, uploaded_sequence
+    POSS_CSV_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/possession_features_df.csv"
+    SEQ_CSV_URL  = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/sequence_summary_df.csv"
 
-    st.sidebar.header("📂 Dados JR")
-    st.sidebar.caption("Carrega os ficheiros CSV do teu colega JR")
+    @st.cache_data(ttl=0, show_spinner="A carregar dados de construção...")
+    def carregar_poss_github():
+        try:
+            return pd.read_csv(POSS_CSV_URL, encoding="utf-8")
+        except Exception:
+            return pd.read_csv(POSS_CSV_URL, encoding="cp1252")
 
-    possession_file = st.sidebar.file_uploader(
-        "possession_features_df.csv", type="csv", key="poss_upload"
-    )
-    sequence_file = st.sidebar.file_uploader(
-        "sequence_summary_df.csv", type="csv", key="seq_upload"
-    )
+    @st.cache_data(ttl=0, show_spinner="A carregar dados de construção...")
+    def carregar_seq_github():
+        try:
+            return pd.read_csv(SEQ_CSV_URL, encoding="utf-8")
+        except Exception:
+            return pd.read_csv(SEQ_CSV_URL, encoding="cp1252")
 
-    if possession_file is None or sequence_file is None:
-        st.info(
-            "👈 Carrega os dois ficheiros CSV na barra lateral para activar esta página.\n\n"
-            "**Ficheiros necessários:**\n"
-            "- `possession_features_df.csv`\n"
-            "- `sequence_summary_df.csv`"
-        )
+    try:
+        df_poss = carregar_poss_github()
+        df_seq  = carregar_seq_github()
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar CSVs do GitHub: {e}")
+        st.info("Certifica-te que `possession_features_df.csv` e `sequence_summary_df.csv` estão no repositório:\nhttps://github.com/Saraiva572/famalicao-vulnerabilidade")
         st.stop()
-
-    # ── Ler DataFrames ───────────────────────────────────────────────────────
-
-    @st.cache_data(show_spinner="A processar dados...")
-    def ler_possession(raw: bytes) -> pd.DataFrame:
-        try:
-            return pd.read_csv(_io.BytesIO(raw), encoding="utf-8")
-        except Exception:
-            return pd.read_csv(_io.BytesIO(raw), encoding="cp1252")
-
-    @st.cache_data(show_spinner="A processar dados...")
-    def ler_sequence(raw: bytes) -> pd.DataFrame:
-        try:
-            return pd.read_csv(_io.BytesIO(raw), encoding="utf-8")
-        except Exception:
-            return pd.read_csv(_io.BytesIO(raw), encoding="cp1252")
-
-    df_poss = ler_possession(possession_file.read())
-    df_seq  = ler_sequence(sequence_file.read())
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
