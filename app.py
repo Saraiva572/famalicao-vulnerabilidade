@@ -1140,4 +1140,4 @@ elif pagina == "🗺️ Heatmaps":
     with c4:
         st.markdown("**Perdas — vertical**")
         d = fama_1t[loss_mask]["corredor_v"].value_counts().reset_index()
-        d.columns=["Zona","Perdas"]; st.dataframe(d,use_container_
+        d.columns=["Zona","Perdas"]; st.dataframe(d,use_container_width=True,hide_index=True) 
