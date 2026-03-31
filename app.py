@@ -1431,6 +1431,10 @@ elif pagina == "🏗️ Padrões de Construção":
 
     POSS_CSV_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/possession_features_df.csv"
     SEQ_CSV_URL  = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/sequence_summary_df.csv"
+    
+    # URLs dos CSVs de padrões (atualizar com o caminho correto no GitHub)
+    PATTERNS_TO_40_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/viz_patterns_to_40.csv"
+    PATTERNS_TO_60_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/viz_patterns_to_60.csv"
 
     @st.cache_data(ttl=0, show_spinner="A carregar dados de construção...")
     def carregar_poss_github():
@@ -1445,6 +1449,20 @@ elif pagina == "🏗️ Padrões de Construção":
             return pd.read_csv(SEQ_CSV_URL, encoding="utf-8")
         except Exception:
             return pd.read_csv(SEQ_CSV_URL, encoding="cp1252")
+    
+    @st.cache_data(ttl=0, show_spinner="A carregar padrões de construção...")
+    def carregar_patterns_to_40():
+        try:
+            return pd.read_csv(PATTERNS_TO_40_URL, encoding="utf-8")
+        except Exception:
+            return pd.read_csv(PATTERNS_TO_40_URL, encoding="cp1252")
+    
+    @st.cache_data(ttl=0, show_spinner="A carregar padrões de construção...")
+    def carregar_patterns_to_60():
+        try:
+            return pd.read_csv(PATTERNS_TO_60_URL, encoding="utf-8")
+        except Exception:
+            return pd.read_csv(PATTERNS_TO_60_URL, encoding="cp1252")
 
     try:
         df_poss = carregar_poss_github()
@@ -1674,39 +1692,21 @@ elif pagina == "🏗️ Padrões de Construção":
         st.plotly_chart(fig_bar_out, use_container_width=True)
 
     # ══════════════════════════════════════════════════════════════════════
-    # 2) PADRÕES DE CONSTRUÇÃO + TAXA DE SUCESSO (lidos do CSV)
+    # 2) PADRÕES DE CONSTRUÇÃO + TAXA DE SUCESSO (lidos do GitHub)
     # ══════════════════════════════════════════════════════════════════════
 
     st.subheader("2️⃣ Padrões de Construção — Frequência e Taxa de Sucesso")
 
-    # ── Upload de ficheiros de padrões ────────────────────────────────────
-    st.write("**Carrega os ficheiros de padrões:**")
-    col_up1, col_up2 = st.columns(2)
-    
-    with col_up1:
-        file_patterns_40 = st.file_uploader(
-            "viz_patterns_to_40.csv",
-            type="csv",
-            key="patterns_40_uploader"
-        )
-    
-    with col_up2:
-        file_patterns_60 = st.file_uploader(
-            "viz_patterns_to_60.csv",
-            type="csv",
-            key="patterns_60_uploader"
-        )
-
-    if file_patterns_40 is not None:
-        # Ler o CSV to_40
-        try:
-            df_patterns_40 = pd.read_csv(file_patterns_40)
-        except Exception:
-            df_patterns_40 = pd.read_csv(file_patterns_40, encoding="cp1252")
+    # ── Carregar CSVs de padrões do GitHub ───────────────────────────────
+    try:
+        df_patterns_40 = carregar_patterns_to_40()
+        df_patterns_60 = carregar_patterns_to_60()
         
-        # Renomear coluna para compatibilidade com código existente
+        # Renomear colunas para compatibilidade
         if "big_pattern_to_40_name" in df_patterns_40.columns:
             df_patterns_40 = df_patterns_40.rename(columns={"big_pattern_to_40_name": "padrão"})
+        if "big_pattern_to_60_name" in df_patterns_60.columns:
+            df_patterns_60 = df_patterns_60.rename(columns={"big_pattern_to_60_name": "padrão"})
         
         # Tabs para to_40 e to_60
         tab_40, tab_60 = st.tabs(["📊 até X > 40", "📊 até X > 60"])
@@ -1769,116 +1769,67 @@ elif pagina == "🏗️ Padrões de Construção":
                 fig_pat_taxa.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
                 fig_pat_taxa.update_yaxes(showgrid=False)
                 st.plotly_chart(fig_pat_taxa, use_container_width=True)
-
-        # Mostrar to_60 se arquivo for carregado
-        if file_patterns_60 is not None:
-            try:
-                df_patterns_60 = pd.read_csv(file_patterns_60)
-            except Exception:
-                df_patterns_60 = pd.read_csv(file_patterns_60, encoding="cp1252")
+        
+        with tab_60:
+            st.write("**Dados dos padrões até X > 60:**")
+            st.dataframe(df_patterns_60, use_container_width=True)
             
-            if "big_pattern_to_60_name" in df_patterns_60.columns:
-                df_patterns_60 = df_patterns_60.rename(columns={"big_pattern_to_60_name": "padrão"})
-            
-            with tab_60:
-                st.write("**Dados dos padrões até X > 60:**")
-                st.dataframe(df_patterns_60, use_container_width=True)
-                
-                col_pat_freq, col_pat_taxa = st.columns([1, 1])
+            col_pat_freq, col_pat_taxa = st.columns([1, 1])
 
-                with col_pat_freq:
-                    df_freq = df_patterns_60.sort_values("total", ascending=True)
-                    fig_pat_freq = go.Figure()
-                    pat_colors = PATTERN_COLORS[:len(df_freq)]
-                    fig_pat_freq.add_trace(go.Bar(
-                        y=df_freq["padrão"],
-                        x=df_freq["total"],
-                        orientation="h",
-                        marker_color=pat_colors,
-                        text=df_freq["total"],
-                        textposition="outside",
-                        hovertemplate="<b>%{y}</b><br>Total: %{x} posses<extra></extra>",
-                    ))
-                    fig_pat_freq.update_layout(
-                        title=dict(text="Frequência dos Padrões (to_60)", font=dict(size=14, family="Arial")),
-                        height=380,
-                        plot_bgcolor="white",
-                        margin=dict(l=200, r=40, t=60, b=40),
-                    )
-                    fig_pat_freq.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
-                    fig_pat_freq.update_yaxes(showgrid=False)
-                    st.plotly_chart(fig_pat_freq, use_container_width=True)
+            with col_pat_freq:
+                df_freq = df_patterns_60.sort_values("total", ascending=True)
+                fig_pat_freq = go.Figure()
+                pat_colors = PATTERN_COLORS[:len(df_freq)]
+                fig_pat_freq.add_trace(go.Bar(
+                    y=df_freq["padrão"],
+                    x=df_freq["total"],
+                    orientation="h",
+                    marker_color=pat_colors,
+                    text=df_freq["total"],
+                    textposition="outside",
+                    hovertemplate="<b>%{y}</b><br>Total: %{x} posses<extra></extra>",
+                ))
+                fig_pat_freq.update_layout(
+                    title=dict(text="Frequência dos Padrões (to_60)", font=dict(size=14, family="Arial")),
+                    height=380,
+                    plot_bgcolor="white",
+                    margin=dict(l=200, r=40, t=60, b=40),
+                )
+                fig_pat_freq.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
+                fig_pat_freq.update_yaxes(showgrid=False)
+                st.plotly_chart(fig_pat_freq, use_container_width=True)
 
-                with col_pat_taxa:
-                    df_taxa = df_patterns_60.sort_values("success_total_pct", ascending=True)
-                    fig_pat_taxa = go.Figure()
-                    fig_pat_taxa.add_trace(go.Bar(
-                        y=df_taxa["padrão"],
-                        x=df_taxa["success_total_pct"],
-                        orientation="h",
-                        marker_color=[
-                            "#2ecc71" if v >= 60 else "#f39c12" if v >= 40 else "#e74c3c"
-                            for v in df_taxa["success_total_pct"]
-                        ],
-                        text=[f"{v:.0f}%" for v in df_taxa["success_total_pct"]],
-                        textposition="outside",
-                        name="Sucesso Total",
-                        hovertemplate="<b>%{y}</b><br>Taxa sucesso: %{x:.1f}%<extra></extra>",
-                    ))
-                    fig_pat_taxa.add_vline(x=50, line_dash="dot", line_color="#888", line_width=1)
-                    fig_pat_taxa.update_layout(
-                        title=dict(text="Taxa de Sucesso Total por Padrão (to_60)", font=dict(size=14, family="Arial")),
-                        height=380,
-                        plot_bgcolor="white",
-                        margin=dict(l=200, r=60, t=60, b=40),
-                        xaxis=dict(range=[0, 105]),
-                    )
-                    fig_pat_taxa.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
-                    fig_pat_taxa.update_yaxes(showgrid=False)
-                    st.plotly_chart(fig_pat_taxa, use_container_width=True)
-    else:
-        st.info("⬆️ Carrega o ficheiro `viz_patterns_to_40.csv` para ver os padrões")
-
-    # Breakdown stacked por padrão
-    fig_stack_pat = go.Figure()
-    for outcome, label, color in [
-        ("success_total",   "✅ Sucesso Total",   "#2ecc71"),
-        ("success_partial", "🟡 Sucesso Parcial", "#f39c12"),
-        ("unsuccessful",    "❌ Insucesso",       "#e74c3c"),
-    ]:
-        col_name = outcome.replace("success_total","sucesso_total").replace("success_partial","sucesso_parcial")
-        if outcome == "unsuccessful": col_name = "insucesso"
-        fig_stack_pat.add_trace(go.Bar(
-            x=pattern_summary["big_pattern_label"],
-            y=pattern_summary[col_name],
-            name=label,
-            marker_color=color,
-            hovertemplate="<b>%{x}</b><br>" + label + ": %{y}<extra></extra>",
-        ))
-    fig_stack_pat.update_layout(
-        barmode="stack",
-        title=dict(text="Breakdown Outcome por Padrão", font=dict(size=14, family="Arial")),
-        height=380,
-        plot_bgcolor="white",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=40, r=20, t=60, b=120),
-    )
-    fig_stack_pat.update_xaxes(tickangle=-30, showgrid=False)
-    fig_stack_pat.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
-    st.plotly_chart(fig_stack_pat, use_container_width=True)
-
-    # Tabela resumo padrões
-    with st.expander("📋 Ver tabela de padrões", expanded=False):
-        tbl_pat = pattern_summary.rename(columns={
-            "big_pattern_label":          "Padrão",
-            "total":                      "Total",
-            "sucesso_total":              "Sucesso Total",
-            "sucesso_parcial":            "Sucesso Parcial",
-            "insucesso":                  "Insucesso",
-            "taxa_sucesso_total_pct":     "Taxa Suc. Total %",
-            "taxa_sucesso_qualquer_pct":  "Taxa Suc. Qualquer %",
-        })
-        st.dataframe(tbl_pat, use_container_width=True, hide_index=True)
+            with col_pat_taxa:
+                df_taxa = df_patterns_60.sort_values("success_total_pct", ascending=True)
+                fig_pat_taxa = go.Figure()
+                fig_pat_taxa.add_trace(go.Bar(
+                    y=df_taxa["padrão"],
+                    x=df_taxa["success_total_pct"],
+                    orientation="h",
+                    marker_color=[
+                        "#2ecc71" if v >= 60 else "#f39c12" if v >= 40 else "#e74c3c"
+                        for v in df_taxa["success_total_pct"]
+                    ],
+                    text=[f"{v:.0f}%" for v in df_taxa["success_total_pct"]],
+                    textposition="outside",
+                    name="Sucesso Total",
+                    hovertemplate="<b>%{y}</b><br>Taxa sucesso: %{x:.1f}%<extra></extra>",
+                ))
+                fig_pat_taxa.add_vline(x=50, line_dash="dot", line_color="#888", line_width=1)
+                fig_pat_taxa.update_layout(
+                    title=dict(text="Taxa de Sucesso Total por Padrão (to_60)", font=dict(size=14, family="Arial")),
+                    height=380,
+                    plot_bgcolor="white",
+                    margin=dict(l=200, r=60, t=60, b=40),
+                    xaxis=dict(range=[0, 105]),
+                )
+                fig_pat_taxa.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
+                fig_pat_taxa.update_yaxes(showgrid=False)
+                st.plotly_chart(fig_pat_taxa, use_container_width=True)
+    
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar padrões de construção do GitHub: {e}")
+        st.info("Certifica-te que os CSVs de padrões estão no repositório:\n- `viz_patterns_to_40.csv`\n- `viz_patterns_to_60.csv`")
 
     # ══════════════════════════════════════════════════════════════════════
     # 3) HEATMAP DE ZONAS 3×5 NO CAMPO
