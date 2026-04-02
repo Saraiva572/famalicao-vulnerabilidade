@@ -728,41 +728,44 @@ elif pagina == "⚠️ Métricas Pós-Perda":
         st.title("Famalicão — Vulnerabilidade Pós-Perda")
     st.caption("Liga Portugal 25/26 | Análise de Transições Defensivas — O que acontece quando perdemos a bola")
     
-    # ── Carregar CSVs ───────────────────────────────────────────────────────
-    
-    @st.cache_data
+    # ── Carregar CSVs do GitHub ─────────────────────────────────────────────
+
+    GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main"
+    OPPONENT_CSV_URL   = f"{GITHUB_RAW_BASE}/opponent_metrics.csv"
+    POSSESSION_CSV_URL = f"{GITHUB_RAW_BASE}/possession_metrics.csv"
+
+    @st.cache_data(ttl=300, show_spinner="A carregar métricas pós-perda...")
     def carregar_opponent_metrics():
-        """Carrega o CSV opponent_metrics."""
-        possible_names = [
-            "opponent_metrics.csv",
-            "opponent_metrics (4).csv",
-            "opponent_metrics__4_.csv",
-            "opponent_metrics__7_.csv"
-        ]
-        for filename in possible_names:
-            if os.path.exists(filename):
-                return pd.read_csv(filename)
-        return None
-    
-    @st.cache_data
+        """Carrega o CSV opponent_metrics do GitHub."""
+        try:
+            return pd.read_csv(OPPONENT_CSV_URL)
+        except Exception:
+            for filename in ["opponent_metrics.csv", "opponent_metrics__9_.csv"]:
+                if os.path.exists(filename):
+                    return pd.read_csv(filename)
+            return None
+
+    @st.cache_data(ttl=300, show_spinner="A carregar sequências...")
     def carregar_possession_metrics():
-        """Carrega o CSV possession_metrics (dados granulares)."""
-        possible_names = [
-            "possession_metrics.csv",
-            "possession_metrics (3).csv",
-            "possession_metrics__3_.csv"
-        ]
-        for filename in possible_names:
-            if os.path.exists(filename):
-                return pd.read_csv(filename)
-        return None
-    
+        """Carrega o CSV possession_metrics do GitHub."""
+        try:
+            return pd.read_csv(POSSESSION_CSV_URL)
+        except Exception:
+            for filename in ["possession_metrics.csv", "possession_metrics__5_.csv"]:
+                if os.path.exists(filename):
+                    return pd.read_csv(filename)
+            return None
+
     # Carregar dados
     df = carregar_opponent_metrics()
     possession_df = carregar_possession_metrics()
-    
+
     if df is None or df.empty:
-        st.error("❌ Ficheiro 'opponent_metrics.csv' não encontrado.")
+        st.error(
+            f"❌ Não foi possível carregar 'opponent_metrics.csv'.\n\n"
+            f"**URL tentado:** `{OPPONENT_CSV_URL}`\n\n"
+            "Confirma que o ficheiro foi feito commit para o repositório."
+        )
         st.stop()
     
     has_possession_data = possession_df is not None and not possession_df.empty
