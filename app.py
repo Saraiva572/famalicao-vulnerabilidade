@@ -731,8 +731,8 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     # ── Carregar CSVs do GitHub ─────────────────────────────────────────────
 
     GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main"
-    OPPONENT_CSV_URL   = f"{GITHUB_RAW_BASE}/opponent_metrics.csv"
-    POSSESSION_CSV_URL = f"{GITHUB_RAW_BASE}/possession_metrics.csv"
+    OPPONENT_CSV_URL   = f"{GITHUB_RAW_BASE}/opponent_metrics%20(9).csv"
+    POSSESSION_CSV_URL = f"{GITHUB_RAW_BASE}/possession_metrics%20(5).csv"
 
     @st.cache_data(ttl=300, show_spinner="A carregar métricas pós-perda...")
     def carregar_opponent_metrics():
@@ -2156,4 +2156,3 @@ O ponto analisado é a posição de saída (x_end, y_end) de cada posse.
 **Pass Network** — Cada aresta representa um passe entre duas posições.
 A espessura é proporcional à frequência. Os nós são dimensionados pelo total de passes enviados a partir de cada posição.
         """)
-
