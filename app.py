@@ -1438,6 +1438,8 @@ elif pagina == "🏗️ Padrões de Construção":
     # URLs dos CSVs de padrões (atualizar com o caminho correto no GitHub)
     PATTERNS_TO_40_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/viz_patterns_to_40.csv"
     PATTERNS_TO_60_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/viz_patterns_to_60.csv"
+    AVG_POSITIONS_URL  = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/viz_avg_positions.csv"
+    PASS_LINKS_URL     = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/viz_pass_links.csv"
 
     @st.cache_data(ttl=0, show_spinner="A carregar dados de construção...")
     def carregar_poss_github():
@@ -1466,6 +1468,20 @@ elif pagina == "🏗️ Padrões de Construção":
             return pd.read_csv(PATTERNS_TO_60_URL, encoding="utf-8")
         except Exception:
             return pd.read_csv(PATTERNS_TO_60_URL, encoding="cp1252")
+
+    @st.cache_data(ttl=0, show_spinner="A carregar posições médias...")
+    def carregar_avg_positions():
+        try:
+            return pd.read_csv(AVG_POSITIONS_URL, encoding="utf-8-sig")
+        except Exception:
+            return pd.read_csv(AVG_POSITIONS_URL, encoding="cp1252")
+
+    @st.cache_data(ttl=0, show_spinner="A carregar ligações de passe...")
+    def carregar_pass_links_csv():
+        try:
+            return pd.read_csv(PASS_LINKS_URL, encoding="utf-8-sig")
+        except Exception:
+            return pd.read_csv(PASS_LINKS_URL, encoding="cp1252")
 
     try:
         df_poss = carregar_poss_github()
@@ -2134,6 +2150,228 @@ elif pagina == "🏗️ Padrões de Construção":
                 top15 = lc_filt.head(15).copy()
                 top15.columns = ["Origem", "Destino", "N.º Passes"]
                 st.dataframe(top15, use_container_width=True, hide_index=True)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # 5) POSICIONAMENTO POR PADRÃO DE CONSTRUÇÃO
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.subheader("5️⃣ Posicionamento por Padrão de Construção")
+    st.caption("Posições médias dos jogadores e primeiros passes em cada padrão de construção (dados pré-calculados).")
+
+    # Carregar CSVs pré-calculados
+    try:
+        df_avg_pos   = carregar_avg_positions()
+        df_pass_lnks = carregar_pass_links_csv()
+    except Exception as e_pos:
+        st.warning(f"Não foi possível carregar os CSVs de posicionamento: {e_pos}")
+        df_avg_pos   = pd.DataFrame()
+        df_pass_lnks = pd.DataFrame()
+
+    if df_avg_pos.empty or df_pass_lnks.empty:
+        st.info("Certifica-te que `viz_avg_positions.csv` e `viz_pass_links.csv` estão no repositório.")
+    else:
+        # ── Mapeamento de abreviatura → nome longo para eixo 11
+        POS11_LABELS = {
+            "GK":  "Guarda-Redes",
+            "LCB": "Central Esq.",
+            "RCB": "Central Dir.",
+            "LB":  "Lateral Esq.",
+            "RB":  "Lateral Dir.",
+            "DM":  "Med. Defensivo",
+            "CM":  "Med. Centro",
+            "AM":  "Med. Ofensivo",
+            "LW":  "Ext. Esq.",
+            "RW":  "Ext. Dir.",
+            "CF":  "Avançado",
+        }
+
+        # ── Controlos de filtro
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            window_opts = sorted(df_avg_pos["window"].unique())
+            window_labels = {"to_40": "Até x > 40", "to_60": "Até x > 60"}
+            window_sel = st.selectbox(
+                "Janela espacial:",
+                window_opts,
+                format_func=lambda w: window_labels.get(w, w),
+                key="pos5_window"
+            )
+        with col_f2:
+            pattern_opts = sorted(df_avg_pos[df_avg_pos["window"] == window_sel]["pattern_name"].unique())
+            pattern_label_map = {
+                "all":                             "Todos os Padrões",
+                "center_exit_pattern":             "Saída pelo Centro",
+                "interior_exterior_same_side":     "Interior → Exterior (mesmo lado)",
+                "interior_exterior_opposite_side": "Interior → Exterior (lado oposto)",
+                "switch_of_play":                  "Mudança de Corredor",
+                "outer_inner_exit":                "Exterior → Interior",
+                "other_pattern":                   "Outro",
+            }
+            pattern_sel = st.selectbox(
+                "Padrão de construção:",
+                pattern_opts,
+                format_func=lambda p: pattern_label_map.get(p, p),
+                key="pos5_pattern"
+            )
+
+        # ── Filtrar dados
+        mask_pos = (df_avg_pos["window"] == window_sel) & (df_avg_pos["pattern_name"] == pattern_sel)
+        df_pos_filt = df_avg_pos[mask_pos].copy()
+
+        mask_lnk = (df_pass_lnks["window"] == window_sel) & (df_pass_lnks["pattern_name"] == pattern_sel)
+        df_lnk_filt = df_pass_lnks[mask_lnk].copy()
+
+        if df_pos_filt.empty:
+            st.info("Sem dados de posicionamento para esta combinação.")
+        else:
+            # ── Slider para threshold de passes
+            max_passes = int(df_lnk_filt["n_passes"].max()) if not df_lnk_filt.empty else 1
+            min_passes_pos = st.slider(
+                "Mostrar ligações com pelo menos N passes:",
+                1, max(max_passes, 1), max(1, max_passes // 6),
+                key="pos5_thresh"
+            )
+            df_lnk_show = df_lnk_filt[df_lnk_filt["n_passes"] >= min_passes_pos]
+
+            # ── Construir figura: campo StatsBomb (120×80)
+            # O CSV usa avg_x / avg_y no espaço StatsBomb (0-120 × 0-80)
+            fig_pos = go.Figure()
+
+            # Campo — linhas e áreas
+            field_shapes_pos = [
+                # Contorno
+                dict(type="rect", x0=0, y0=0, x1=120, y1=80,
+                     line=dict(color="white", width=2), fillcolor="rgba(0,100,0,0.85)"),
+                # Linha de meio-campo
+                dict(type="line", x0=60, y0=0, x1=60, y1=80,
+                     line=dict(color="white", width=1.5, dash="dot")),
+                # Grande área esquerda
+                dict(type="rect", x0=0, y0=18, x1=18, y1=62,
+                     line=dict(color="white", width=1.5), fillcolor="rgba(0,0,0,0)"),
+                # Grande área direita
+                dict(type="rect", x0=102, y0=18, x1=120, y1=62,
+                     line=dict(color="white", width=1.5), fillcolor="rgba(0,0,0,0)"),
+                # Pequena área esquerda
+                dict(type="rect", x0=0, y0=30, x1=6, y1=50,
+                     line=dict(color="white", width=1), fillcolor="rgba(0,0,0,0)"),
+                # Pequena área direita
+                dict(type="rect", x0=114, y0=30, x1=120, y1=50,
+                     line=dict(color="white", width=1), fillcolor="rgba(0,0,0,0)"),
+                # Linhas x=40 e x=60 (thresholds de progressão)
+                dict(type="line", x0=40, y0=0, x1=40, y1=80,
+                     line=dict(color="rgba(255,255,100,0.5)", width=1.5, dash="dash")),
+                dict(type="line", x0=60, y0=0, x1=60, y1=80,
+                     line=dict(color="rgba(255,100,100,0.4)", width=1.5, dash="dash")),
+            ]
+
+            # Arestas de passe (ligações)
+            if not df_lnk_show.empty:
+                # Coordenadas das posições a partir das posições médias
+                pos_coords_dict = {
+                    row["position_11"]: (row["avg_x"], row["avg_y"])
+                    for _, row in df_pos_filt.iterrows()
+                }
+                max_n_passes = df_lnk_show["n_passes"].max()
+                for _, row_lnk in df_lnk_show.iterrows():
+                    orig = row_lnk["origin_position_11"]
+                    dest = row_lnk["destination_position_11"]
+                    n    = row_lnk["n_passes"]
+                    if orig not in pos_coords_dict or dest not in pos_coords_dict:
+                        continue
+                    x0_l, y0_l = pos_coords_dict[orig]
+                    x1_l, y1_l = pos_coords_dict[dest]
+                    width_l  = 1 + 6 * (n / max_n_passes)
+                    alpha_l  = 0.25 + 0.65 * (n / max_n_passes)
+                    fig_pos.add_trace(go.Scatter(
+                        x=[x0_l, x1_l, None],
+                        y=[y0_l, y1_l, None],
+                        mode="lines",
+                        line=dict(color=f"rgba(255,255,255,{alpha_l:.2f})", width=width_l),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    ))
+                    # Seta no meio da ligação
+                    mid_x = (x0_l + x1_l) / 2
+                    mid_y = (y0_l + y1_l) / 2
+                    label_lnk = POS11_LABELS.get(orig, orig) + " → " + POS11_LABELS.get(dest, dest)
+                    fig_pos.add_trace(go.Scatter(
+                        x=[mid_x], y=[mid_y],
+                        mode="markers",
+                        marker=dict(symbol="arrow", size=10, color=f"rgba(255,255,255,{alpha_l:.2f})",
+                                    angle=0, angleref="previous"),
+                        hovertemplate=f"<b>{label_lnk}</b><br>N.º passes: {n}<extra></extra>",
+                        showlegend=False,
+                    ))
+
+            # Nós (posições médias)
+            n_passes_per_pos = {}
+            if not df_lnk_show.empty:
+                n_passes_per_pos = df_lnk_show.groupby("origin_position_11")["n_passes"].sum().to_dict()
+            max_np = max(n_passes_per_pos.values(), default=1)
+
+            node_x_p, node_y_p, node_size_p, node_text_p, node_hover_p = [], [], [], [], []
+            for _, row_p in df_pos_filt.iterrows():
+                pos11 = row_p["position_11"]
+                ax, ay = row_p["avg_x"], row_p["avg_y"]
+                cnt_p  = n_passes_per_pos.get(pos11, 0)
+                node_x_p.append(ax)
+                node_y_p.append(ay)
+                node_size_p.append(16 + 18 * (cnt_p / max_np))
+                node_text_p.append(pos11)
+                node_hover_p.append(
+                    f"<b>{POS11_LABELS.get(pos11, pos11)}</b><br>"
+                    f"Pos. média: ({ax:.1f}, {ay:.1f})<br>"
+                    f"Passes enviados: {cnt_p}"
+                )
+
+            fig_pos.add_trace(go.Scatter(
+                x=node_x_p, y=node_y_p,
+                mode="markers+text",
+                marker=dict(
+                    size=node_size_p,
+                    color="#e74c3c",
+                    line=dict(color="white", width=2),
+                ),
+                text=node_text_p,
+                textposition="top center",
+                textfont=dict(size=9, color="white"),
+                hovertemplate="%{customdata}<extra></extra>",
+                customdata=node_hover_p,
+                showlegend=False,
+            ))
+
+            fig_pos.update_layout(
+                shapes=field_shapes_pos,
+                xaxis=dict(range=[-3, 123], showgrid=False, zeroline=False, visible=False),
+                yaxis=dict(range=[-3, 83],  showgrid=False, zeroline=False, visible=False,
+                           scaleanchor="x", scaleratio=1),
+                height=520,
+                plot_bgcolor="#276221",
+                paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=10, r=10, t=50, b=10),
+                title=dict(
+                    text=(
+                        f"Posicionamento — {pattern_label_map.get(pattern_sel, pattern_sel)} "
+                        f"| {window_labels.get(window_sel, window_sel)}"
+                    ),
+                    font=dict(size=13, color="white", family="Arial"),
+                ),
+                hovermode="closest",
+            )
+            st.plotly_chart(fig_pos, use_container_width=True)
+
+            # ── Tabela complementar: top ligações
+            if not df_lnk_show.empty:
+                with st.expander("📋 Top ligações de passe neste padrão", expanded=False):
+                    df_lnk_show_display = df_lnk_show[["origin_position_11", "destination_position_11", "n_passes"]].copy()
+                    df_lnk_show_display.columns = ["Origem", "Destino", "N.º Passes"]
+                    df_lnk_show_display["Origem"]  = df_lnk_show_display["Origem"].map(lambda p: POS11_LABELS.get(p, p))
+                    df_lnk_show_display["Destino"] = df_lnk_show_display["Destino"].map(lambda p: POS11_LABELS.get(p, p))
+                    st.dataframe(
+                        df_lnk_show_display.sort_values("N.º Passes", ascending=False),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
 
     # ── Nota metodológica ────────────────────────────────────────────────────
     with st.expander("ℹ️ Nota metodológica", expanded=False):
