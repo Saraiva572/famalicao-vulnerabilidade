@@ -166,9 +166,16 @@ def carregar_matches():
     )
     tm = matches[mask].copy()
     def get_opp(row):
-        if team_key.lower() in row[HOME_COL].lower(): return row[AWAY_COL]
-        return row[HOME_COL]
+        # A API StatsBomb pode devolver listas em vez de strings em alguns campos
+        home = row[HOME_COL]
+        away = row[AWAY_COL]
+        home_str = home[0] if isinstance(home, list) else str(home)
+        away_str = away[0] if isinstance(away, list) else str(away)
+        val = away_str if team_key.lower() in home_str.lower() else home_str
+        return val
     tm["opponent"]   = tm.apply(get_opp, axis=1)
+    # Garantir que match_date nunca é lista
+    tm["match_date"] = tm["match_date"].apply(lambda v: v[0] if isinstance(v, list) else v)
     tm["match_date"] = pd.to_datetime(tm["match_date"])
     tm["mes_ano"]    = tm["match_date"].apply(lambda d: f"{MESES_PT[d.month]} {d.year}")
     tm["jogo_num"]   = tm.groupby("opponent").cumcount() + 1
@@ -554,7 +561,7 @@ Quanto maior o TRI, maior o perigo criado pelo adversário após recuperar a bol
     )
     fig_tri.update_xaxes(showgrid=False)
     fig_tri.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
-    st.plotly_chart(fig_tri, use_container_width=True)
+    st.plotly_chart(fig_tri, width="stretch")
 
     # ── Gráficos das novas métricas ────────────────────────────────────────
     col_a, col_b = st.columns(2)
@@ -563,13 +570,13 @@ Quanto maior o TRI, maior o perigo criado pelo adversário após recuperar a bol
         st.subheader("xG sofrido após perda")
         st.plotly_chart(plotly_stacked_bars(df_f, "team_match_xg_conceded_after_loss",
                         "xG sofrido após perda por adversário", "xG"),
-                        use_container_width=True)
+                        width="stretch")
 
     with col_b:
         st.subheader("Exposição Defensiva (%)")
         st.plotly_chart(plotly_stacked_bars(df_f, "exposicao_defensiva_pct",
                         "% perdas que geraram remate adversário", "%"),
-                        use_container_width=True)
+                        width="stretch")
 
     col_c, col_d = st.columns(2)
 
@@ -577,19 +584,19 @@ Quanto maior o TRI, maior o perigo criado pelo adversário após recuperar a bol
         st.subheader("Counterpress Efficiency (%)")
         st.plotly_chart(plotly_stacked_bars(df_f, "counterpress_efficiency_pct",
                         "% recuperações em <5s após perda", "%"),
-                        use_container_width=True)
+                        width="stretch")
 
     with col_d:
         st.subheader("Transition Risk Index")
         st.plotly_chart(plotly_stacked_bars(df_f, "transition_risk_index",
                         "TRI por adversário", "TRI"),
-                        use_container_width=True)
+                        width="stretch")
 
     # ── VAP (referência histórica) ─────────────────────────────────────────
     with st.expander("📊 VAP — Referência histórica", expanded=False):
         st.caption("Índice original. Mantido apenas para comparação histórica.")
         st.plotly_chart(plotly_stacked_bars(df_f, "VAP", "VAP por adversário", "VAP"),
-                        use_container_width=True)
+                        width="stretch")
 
     # ── Tabela completa ────────────────────────────────────────────────────
     st.subheader("Tabela completa")
@@ -617,7 +624,7 @@ Quanto maior o TRI, maior o perigo criado pelo adversário após recuperar a bol
             "transition_risk_index":          st.column_config.NumberColumn("TRI", format="%.1f"),
             "VAP":                            st.column_config.NumberColumn("VAP (hist.)", format="%.1f"),
         },
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         disabled=True,
     )
@@ -632,7 +639,7 @@ Quanto maior o TRI, maior o perigo criado pelo adversário após recuperar a bol
     ]].reset_index(drop=True)
     ranking.index += 1
     ranking.columns = ["Jogo", "TRI", "xG sofrido", "Exp. Def. %", "Counterpress %"]
-    st.dataframe(ranking, use_container_width=True)
+    st.dataframe(ranking, width="stretch")
 
 # ══════════════════════════════════════════════════════════════════════════
 # PÁGINA 2 — HEATMAPS
@@ -693,19 +700,19 @@ elif pagina == "🗺️ Heatmaps":
     with c1:
         st.markdown("**Passes — horizontal**")
         d = fama_1t[fama_1t[TYPE_COL]=="Pass"]["corredor_h"].value_counts().reset_index()
-        d.columns=["Corredor","Passes"]; st.dataframe(d,use_container_width=True,hide_index=True)
+        d.columns=["Corredor","Passes"]; st.dataframe(d,width="stretch",hide_index=True)
     with c2:
         st.markdown("**Passes — vertical**")
         d = fama_1t[fama_1t[TYPE_COL]=="Pass"]["corredor_v"].value_counts().reset_index()
-        d.columns=["Zona","Passes"]; st.dataframe(d,use_container_width=True,hide_index=True)
+        d.columns=["Zona","Passes"]; st.dataframe(d,width="stretch",hide_index=True)
     with c3:
         st.markdown("**Perdas — horizontal**")
         d = fama_1t[loss_mask]["corredor_h"].value_counts().reset_index()
-        d.columns=["Corredor","Perdas"]; st.dataframe(d,use_container_width=True,hide_index=True)
+        d.columns=["Corredor","Perdas"]; st.dataframe(d,width="stretch",hide_index=True)
     with c4:
         st.markdown("**Perdas — vertical**")
         d = fama_1t[loss_mask]["corredor_v"].value_counts().reset_index()
-        d.columns=["Zona","Perdas"]; st.dataframe(d,use_container_width=True,hide_index=True)
+        d.columns=["Zona","Perdas"]; st.dataframe(d,width="stretch",hide_index=True)
 
 # ══════════════════════════════════════════════════════════════════════════
 # PÁGINA 3 — MÉTRICAS PÓS-PERDA (Análise de Transições Adversárias) - MELHORADA
@@ -918,7 +925,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
             height=max(350, len(heatmap_norm) * 30)
         )
         
-        st.plotly_chart(fig_heatmap, use_container_width=True)
+        st.plotly_chart(fig_heatmap, width="stretch")
     else:
         st.warning("Dados insuficientes para gerar o heatmap.")
     
@@ -994,7 +1001,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
             height=420
         )
         
-        st.plotly_chart(fig_radar, use_container_width=True)
+        st.plotly_chart(fig_radar, width="stretch")
     
     with col_rank:
         # Bar chart horizontal - Ranking
@@ -1028,7 +1035,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
         fig_bar.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
         fig_bar.update_yaxes(showgrid=False)
         
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_bar, width="stretch")
     
     # ══════════════════════════════════════════════════════════════════════════
     # SCATTER PLOT - PROGRESSÃO VS PERIGO
@@ -1101,7 +1108,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
                 height=450
             )
             
-            st.plotly_chart(fig_scatter, use_container_width=True)
+            st.plotly_chart(fig_scatter, width="stretch")
         
         with col_insights:
             st.markdown("""
@@ -1179,7 +1186,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
             fig_hist.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
             fig_hist.update_yaxes(showgrid=True, gridcolor='#EEEEEE')
             
-            st.plotly_chart(fig_hist, use_container_width=True)
+            st.plotly_chart(fig_hist, width="stretch")
         
         with col_box:
             # Boxplot por resultado
@@ -1205,7 +1212,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
             )
             fig_box.update_yaxes(showgrid=True, gridcolor='#EEEEEE')
             
-            st.plotly_chart(fig_box, use_container_width=True)
+            st.plotly_chart(fig_box, width="stretch")
     
     # ══════════════════════════════════════════════════════════════════════════
     # GRÁFICOS DE BARRAS POR MÉTRICA
@@ -1252,14 +1259,14 @@ elif pagina == "⚠️ Métricas Pós-Perda":
             st.plotly_chart(
                 plot_stacked_metrics(df_f, "progression_mean", "progression_max", 
                                     "Progressão Adversária (metros)", "Progressão (m)"),
-                use_container_width=True
+                width="stretch"
             )
     with col2:
         if 'entry_last_third_mean' in df_f.columns and 'entry_last_third_max' in df_f.columns:
             st.plotly_chart(
                 plot_stacked_metrics(df_f, "entry_last_third_mean", "entry_last_third_max",
                                     "Entrada no Último Terço", "Taxa Entry"),
-                use_container_width=True
+                width="stretch"
             )
     
     # ══════════════════════════════════════════════════════════════════════════
@@ -1383,7 +1390,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     if "Prog. Máx" in df_display.columns:
         df_display["Prog. Máx"] = df_display["Prog. Máx"].apply(lambda x: f"{x:.0f}m")
     
-    st.dataframe(df_display, use_container_width=True)
+    st.dataframe(df_display, width="stretch")
     
     # ══════════════════════════════════════════════════════════════════════════
     # NOTAS EXPLICATIVAS
@@ -1408,7 +1415,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     
     # ── Tabela Raw ──────────────────────────────────────────────────────────
     with st.expander("📄 Ver dados originais", expanded=False):
-        st.dataframe(df_f, use_container_width=True, hide_index=True)
+        st.dataframe(df_f, width="stretch", hide_index=True)
 
 # ══════════════════════════════════════════════════════════════════════════
 # PÁGINA 4 — PADRÕES DE CONSTRUÇÃO (Notebooks JR)
@@ -1672,7 +1679,7 @@ elif pagina == "🏗️ Padrões de Construção":
             margin=dict(l=10, r=10, t=60, b=10),
             showlegend=False,
         )
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.plotly_chart(fig_pie, width="stretch")
 
     with col_bar_out:
         # Breakdown por n_actions (≤5 vs >5)
@@ -1708,7 +1715,7 @@ elif pagina == "🏗️ Padrões de Construção":
         )
         fig_bar_out.update_xaxes(showgrid=False)
         fig_bar_out.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
-        st.plotly_chart(fig_bar_out, use_container_width=True)
+        st.plotly_chart(fig_bar_out, width="stretch")
 
     # ══════════════════════════════════════════════════════════════════════
     # 2) PADRÕES DE CONSTRUÇÃO + TAXA DE SUCESSO (lidos do GitHub)
@@ -1732,7 +1739,7 @@ elif pagina == "🏗️ Padrões de Construção":
         
         with tab_40:
             st.write("**Dados dos padrões até X > 40:**")
-            st.dataframe(df_patterns_40, use_container_width=True)
+            st.dataframe(df_patterns_40, width="stretch")
             
             col_pat_freq, col_pat_taxa = st.columns([1, 1])
 
@@ -1758,7 +1765,7 @@ elif pagina == "🏗️ Padrões de Construção":
                 )
                 fig_pat_freq.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
                 fig_pat_freq.update_yaxes(showgrid=False)
-                st.plotly_chart(fig_pat_freq, use_container_width=True)
+                st.plotly_chart(fig_pat_freq, width="stretch")
 
             with col_pat_taxa:
                 # Gráfico de taxa de sucesso
@@ -1787,11 +1794,11 @@ elif pagina == "🏗️ Padrões de Construção":
                 )
                 fig_pat_taxa.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
                 fig_pat_taxa.update_yaxes(showgrid=False)
-                st.plotly_chart(fig_pat_taxa, use_container_width=True)
+                st.plotly_chart(fig_pat_taxa, width="stretch")
         
         with tab_60:
             st.write("**Dados dos padrões até X > 60:**")
-            st.dataframe(df_patterns_60, use_container_width=True)
+            st.dataframe(df_patterns_60, width="stretch")
             
             col_pat_freq, col_pat_taxa = st.columns([1, 1])
 
@@ -1816,7 +1823,7 @@ elif pagina == "🏗️ Padrões de Construção":
                 )
                 fig_pat_freq.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
                 fig_pat_freq.update_yaxes(showgrid=False)
-                st.plotly_chart(fig_pat_freq, use_container_width=True)
+                st.plotly_chart(fig_pat_freq, width="stretch")
 
             with col_pat_taxa:
                 df_taxa = df_patterns_60.sort_values("success_total_pct", ascending=True)
@@ -1844,7 +1851,7 @@ elif pagina == "🏗️ Padrões de Construção":
                 )
                 fig_pat_taxa.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
                 fig_pat_taxa.update_yaxes(showgrid=False)
-                st.plotly_chart(fig_pat_taxa, use_container_width=True)
+                st.plotly_chart(fig_pat_taxa, width="stretch")
     
     except Exception as e:
         st.error(f"❌ Erro ao carregar padrões de construção do GitHub: {e}")
@@ -1915,7 +1922,7 @@ elif pagina == "🏗️ Padrões de Construção":
             xaxis=dict(title="Corredor lateral"),
             yaxis=dict(title="Zona longitudinal"),
         )
-        st.plotly_chart(fig_hm_count, use_container_width=True)
+        st.plotly_chart(fig_hm_count, width="stretch")
 
     with col_hm_r:
         fig_hm_taxa = go.Figure(go.Heatmap(
@@ -1937,7 +1944,7 @@ elif pagina == "🏗️ Padrões de Construção":
             xaxis=dict(title="Corredor lateral"),
             yaxis=dict(title="Zona longitudinal"),
         )
-        st.plotly_chart(fig_hm_taxa, use_container_width=True)
+        st.plotly_chart(fig_hm_taxa, width="stretch")
 
     # Mapa de pontos no campo (matplotlib)
     st.markdown("**Distribuição espacial dos pontos de saída das posses**")
@@ -2143,13 +2150,13 @@ elif pagina == "🏗️ Padrões de Construção":
                            font=dict(size=14, family="Arial")),
                 hovermode="closest",
             )
-            st.plotly_chart(fig_net, use_container_width=True)
+            st.plotly_chart(fig_net, width="stretch")
 
             # Top 15 ligações
             with st.expander("📋 Top 15 ligações mais frequentes", expanded=False):
                 top15 = lc_filt.head(15).copy()
                 top15.columns = ["Origem", "Destino", "N.º Passes"]
-                st.dataframe(top15, use_container_width=True, hide_index=True)
+                st.dataframe(top15, width="stretch", hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════
     # 5) POSICIONAMENTO POR PADRÃO DE CONSTRUÇÃO
@@ -2358,7 +2365,7 @@ elif pagina == "🏗️ Padrões de Construção":
                 ),
                 hovermode="closest",
             )
-            st.plotly_chart(fig_pos, use_container_width=True)
+            st.plotly_chart(fig_pos, width="stretch")
 
             # ── Tabela complementar: top ligações
             if not df_lnk_show.empty:
@@ -2369,7 +2376,7 @@ elif pagina == "🏗️ Padrões de Construção":
                     df_lnk_show_display["Destino"] = df_lnk_show_display["Destino"].map(lambda p: POS11_LABELS.get(p, p))
                     st.dataframe(
                         df_lnk_show_display.sort_values("N.º Passes", ascending=False),
-                        use_container_width=True,
+                        width="stretch",
                         hide_index=True,
                     )
 
@@ -2515,7 +2522,7 @@ elif pagina == "🏗️ Padrões de Construção":
                 yaxis=dict(title=""),
                 title=dict(text="Frequência por Combinação de Posições", font=dict(size=14, family="Arial")),
             )
-            st.plotly_chart(fig6_freq, use_container_width=True)
+            st.plotly_chart(fig6_freq, width="stretch")
 
             # ── Gráfico 2: Taxa de sucesso ────────────────────────────────
             st.markdown("##### Taxa de sucesso por combinação")
@@ -2551,7 +2558,7 @@ elif pagina == "🏗️ Padrões de Construção":
                 showlegend=False,
                 title=dict(text="Taxa de Sucesso por Combinação de Posições", font=dict(size=14, family="Arial")),
             )
-            st.plotly_chart(fig6_taxa, use_container_width=True)
+            st.plotly_chart(fig6_taxa, width="stretch")
 
             # ── Tabela completa ───────────────────────────────────────────
             with st.expander("📋 Tabela completa", expanded=False):
@@ -2562,7 +2569,7 @@ elif pagina == "🏗️ Padrões de Construção":
                 tabela.columns = [
                     "Combinação", "Total", "Sucesso Total", "Sucesso Parcial", "Insucesso", "Taxa Sucesso (%)"
                 ]
-                st.dataframe(tabela, use_container_width=True, hide_index=True)
+                st.dataframe(tabela, width="stretch", hide_index=True)
 
         # ── Legenda abreviaturas ──────────────────────────────────────────
         with st.expander("🔤 Legenda das abreviaturas", expanded=False):
@@ -2584,7 +2591,7 @@ elif pagina == "🏗️ Padrões de Construção":
                     "Segundo Avançado",
                 ],
             }
-            st.dataframe(pd.DataFrame(legenda_data), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(legenda_data), width="stretch", hide_index=True)
 
     # ── Nota metodológica ────────────────────────────────────────────────────
     with st.expander("ℹ️ Nota metodológica", expanded=False):
