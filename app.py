@@ -150,7 +150,7 @@ def corredor_v(x):
 
 # ── Carregar matches ───────────────────────────────────────────────────────
 
-@st.cache_data(ttl=0, show_spinner="A carregar lista de jogos...")
+@st.cache_data(ttl=300, show_spinner="A carregar lista de jogos...")
 def carregar_matches():
     url = (f"https://data.statsbombservices.com/api/v6/competitions/"
            f"{COMPETITION_ID}/seasons/{SEASON_ID}/matches")
@@ -194,7 +194,7 @@ def carregar_eventos(match_id):
 
 CSV_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/vulnerabilidade_perda_real_novasmetricas.csv"
 
-@st.cache_data(ttl=0, show_spinner="A carregar métricas...")
+@st.cache_data(ttl=300, show_spinner="A carregar métricas...")
 def carregar_vap(team_matches):
     # Ler CSV do GitHub
     try:
@@ -1441,42 +1441,42 @@ elif pagina == "🏗️ Padrões de Construção":
     AVG_POSITIONS_URL  = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/viz_avg_positions.csv"
     PASS_LINKS_URL     = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/viz_pass_links.csv"
 
-    @st.cache_data(ttl=0, show_spinner="A carregar dados de construção...")
+    @st.cache_data(ttl=300, show_spinner="A carregar dados de construção...")
     def carregar_poss_github():
         try:
             return pd.read_csv(POSS_CSV_URL, encoding="utf-8")
         except Exception:
             return pd.read_csv(POSS_CSV_URL, encoding="cp1252")
 
-    @st.cache_data(ttl=0, show_spinner="A carregar dados de construção...")
+    @st.cache_data(ttl=300, show_spinner="A carregar dados de construção...")
     def carregar_seq_github():
         try:
             return pd.read_csv(SEQ_CSV_URL, encoding="utf-8")
         except Exception:
             return pd.read_csv(SEQ_CSV_URL, encoding="cp1252")
     
-    @st.cache_data(ttl=0, show_spinner="A carregar padrões de construção...")
+    @st.cache_data(ttl=300, show_spinner="A carregar padrões de construção...")
     def carregar_patterns_to_40():
         try:
             return pd.read_csv(PATTERNS_TO_40_URL, encoding="utf-8")
         except Exception:
             return pd.read_csv(PATTERNS_TO_40_URL, encoding="cp1252")
     
-    @st.cache_data(ttl=0, show_spinner="A carregar padrões de construção...")
+    @st.cache_data(ttl=300, show_spinner="A carregar padrões de construção...")
     def carregar_patterns_to_60():
         try:
             return pd.read_csv(PATTERNS_TO_60_URL, encoding="utf-8")
         except Exception:
             return pd.read_csv(PATTERNS_TO_60_URL, encoding="cp1252")
 
-    @st.cache_data(ttl=0, show_spinner="A carregar posições médias...")
+    @st.cache_data(ttl=300, show_spinner="A carregar posições médias...")
     def carregar_avg_positions():
         try:
             return pd.read_csv(AVG_POSITIONS_URL, encoding="utf-8-sig")
         except Exception:
             return pd.read_csv(AVG_POSITIONS_URL, encoding="cp1252")
 
-    @st.cache_data(ttl=0, show_spinner="A carregar ligações de passe...")
+    @st.cache_data(ttl=300, show_spinner="A carregar ligações de passe...")
     def carregar_pass_links_csv():
         try:
             return pd.read_csv(PASS_LINKS_URL, encoding="utf-8-sig")
