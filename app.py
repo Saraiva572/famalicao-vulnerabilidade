@@ -2379,86 +2379,88 @@ elif pagina == "🏗️ Padrões de Construção":
 
     st.subheader("6️⃣ Saídas de Construção por Combinação de Posições")
     st.caption(
-        "Quais as combinações de posições mais usadas nas saídas de construção e qual a taxa de sucesso de cada uma?"
+        "Quais as combinações de posições envolvidas em cada posse e qual a taxa de sucesso? "
+        "Cobre todas as posses — incluindo as que terminaram antes de x>40."
     )
 
-    # ── Verificar se a coluna existe ─────────────────────────────────────
-    POS_SEQ_COL = "positions_sequence_collapsed_to_40"
+    # ── Mapeamento used_* → abreviatura ──────────────────────────────────
+    USED_TO_ABREV = {
+        "used_goalkeeper":               "GR",
+        "used_left_center_back":         "CBE",
+        "used_right_center_back":        "CBD",
+        "used_left_back":                "LE",
+        "used_right_back":               "LD",
+        "used_left_wing_back":           "WBE",
+        "used_right_wing_back":          "WBD",
+        "used_left_defensive_midfield":  "MDE",
+        "used_right_defensive_midfield": "MDD",
+        "used_center_defensive_midfield":"MDC",
+        "used_left_center_midfield":     "MCE",
+        "used_right_center_midfield":    "MCD",
+        "used_center_attacking_midfield":"MAC",
+        "used_left_attacking_midfield":  "MAE",
+        "used_right_attacking_midfield": "MAD",
+        "used_left_midfield":            "ME",
+        "used_right_midfield":           "MD",
+        "used_left_wing":                "ExtE",
+        "used_right_wing":               "ExtD",
+        "used_left_center_forward":      "ACE",
+        "used_right_center_forward":     "ACD",
+        "used_center_forward":           "AC",
+        "used_center_back":              "CB",
+    }
 
-    if POS_SEQ_COL not in df_poss.columns or "outcome_label" not in df_poss.columns:
-        st.warning(
-            f"Colunas necessárias não encontradas no CSV: `{POS_SEQ_COL}` e/ou `outcome_label`."
-        )
+    used_cols_present = [c for c in USED_TO_ABREV if c in df_poss.columns]
+
+    if not used_cols_present or "outcome_label" not in df_poss.columns:
+        st.warning("Colunas `used_*` ou `outcome_label` não encontradas no CSV.")
     else:
-        # ── Abreviaturas para tornar os rótulos mais legíveis no gráfico ──
-        POS_ABREV = {
-            "Goalkeeper":                "GR",
-            "Right Center Back":         "CDB",   # Central Dir.
-            "Left Center Back":          "CBE",   # Central Esq.
-            "Right Back":                "LD",    # Lateral Dir.
-            "Left Back":                 "LE",    # Lateral Esq.
-            "Right Wing Back":           "WBD",
-            "Left Wing Back":            "WBE",
-            "Right Defensive Midfield":  "MDD",
-            "Left Defensive Midfield":   "MDE",
-            "Center Defensive Midfield": "MDC",
-            "Right Center Midfield":     "MCD",
-            "Left Center Midfield":      "MCE",
-            "Center Attacking Midfield": "MAC",
-            "Right Attacking Midfield":  "MAD",
-            "Left Attacking Midfield":   "MAE",
-            "Right Midfield":            "MD",
-            "Left Midfield":             "ME",
-            "Right Wing":                "ExtD",
-            "Left Wing":                 "ExtE",
-            "Right Center Forward":      "ACD",
-            "Left Center Forward":       "ACE",
-            "Center Forward":            "AC",
-        }
+        # ── Construir combo para cada posse ──────────────────────────────
+        def make_combo(row):
+            abrevs = [USED_TO_ABREV[col] for col in used_cols_present if row[col] == 1]
+            return "+".join(abrevs) if abrevs else None
 
-        def abreviar_sequencia(seq_str):
-            """Converte 'Right Center Back-Left Center Back-Left Back' → 'CDB-CBE-LE'"""
-            if pd.isna(seq_str) or str(seq_str).strip() == "":
-                return None
-            partes = [p.strip() for p in str(seq_str).split("-")]
-            return "-".join(POS_ABREV.get(p, p) for p in partes)
+        df_poss["_combo"] = df_poss.apply(make_combo, axis=1)
+        df_combo_raw = df_poss.dropna(subset=["_combo"]).copy()
 
-        # ── Preparar dados ────────────────────────────────────────────────
-        df_pos_sec = df_poss[[POS_SEQ_COL, "outcome_label"]].copy()
-        df_pos_sec["combo"] = df_pos_sec[POS_SEQ_COL].apply(abreviar_sequencia)
-        df_pos_sec = df_pos_sec.dropna(subset=["combo"])
-        df_pos_sec["sucesso"] = df_pos_sec["outcome_label"].isin(
-            ["success_total", "success_partial"]
+        # Agregar por combinação
+        combo_pivot = (
+            df_combo_raw
+            .groupby(["_combo", "outcome_label"])
+            .size()
+            .unstack(fill_value=0)
+            .reset_index()
         )
+        # Garantir colunas mesmo que não existam
+        for col_out in ["success_total", "success_partial", "unsuccessful"]:
+            if col_out not in combo_pivot.columns:
+                combo_pivot[col_out] = 0
 
-        # Contar por combinação
-        combo_total   = df_pos_sec.groupby("combo").size().reset_index(name="total")
-        combo_sucesso = df_pos_sec[df_pos_sec["sucesso"]].groupby("combo").size().reset_index(name="sucessos")
-        combo_df      = combo_total.merge(combo_sucesso, on="combo", how="left").fillna(0)
-        combo_df["insucesso"]   = combo_df["total"] - combo_df["sucessos"]
-        combo_df["pct_sucesso"] = combo_df["sucessos"] / combo_df["total"] * 100
+        combo_pivot["sucessos"]  = combo_pivot["success_total"] + combo_pivot["success_partial"]
+        combo_pivot["total"]     = combo_pivot["sucessos"] + combo_pivot["unsuccessful"]
+        combo_pivot["insucesso"] = combo_pivot["unsuccessful"]
+        combo_pivot["pct_sucesso"] = combo_pivot["sucessos"] / combo_pivot["total"] * 100
 
         # ── Controlos ────────────────────────────────────────────────────
         col_ctrl1, col_ctrl2 = st.columns([1, 1])
         with col_ctrl1:
-            min_ocorrencias = st.slider(
-                "Mínimo de ocorrências para mostrar:",
-                min_value=1,
-                max_value=max(10, int(combo_df["total"].max())),
-                value=max(1, int(combo_df["total"].quantile(0.25))),
-                step=1,
-                key="pos_combo_min_ocorr",
+            max_slider = max(10, int(combo_pivot["total"].max()))
+            default_min = max(2, int(combo_pivot["total"].quantile(0.4)))
+            min_ocorr = st.slider(
+                "Mínimo de ocorrências:",
+                min_value=1, max_value=max_slider,
+                value=default_min, step=1,
+                key="pos6_min_ocorr",
             )
         with col_ctrl2:
             ordenar_por = st.radio(
                 "Ordenar por:",
                 ["Frequência", "Taxa de Sucesso"],
                 horizontal=True,
-                key="pos_combo_sort",
+                key="pos6_sort",
             )
 
-        # ── Filtrar e ordenar ─────────────────────────────────────────────
-        combo_filt = combo_df[combo_df["total"] >= min_ocorrencias].copy()
+        combo_filt = combo_pivot[combo_pivot["total"] >= min_ocorr].copy()
 
         if combo_filt.empty:
             st.info("Nenhuma combinação com as condições seleccionadas.")
@@ -2468,99 +2470,107 @@ elif pagina == "🏗️ Padrões de Construção":
             else:
                 combo_filt = combo_filt.sort_values("pct_sucesso", ascending=True)
 
-            # ── Gráfico 1: Barras empilhadas sucesso vs insucesso ─────────
-            st.markdown("##### Frequência de cada combinação de posições")
-            fig_combo = go.Figure()
-            fig_combo.add_trace(go.Bar(
-                y=combo_filt["combo"],
-                x=combo_filt["sucessos"],
-                name="✅ Sucesso",
+            # ── Gráfico 1: Barras empilhadas ─────────────────────────────
+            st.markdown("##### Frequência de cada combinação")
+            fig6_freq = go.Figure()
+            fig6_freq.add_trace(go.Bar(
+                y=combo_filt["_combo"],
+                x=combo_filt["success_total"],
+                name="✅ Sucesso Total",
                 orientation="h",
                 marker_color="#2ecc71",
-                hovertemplate="<b>%{y}</b><br>Sucessos: %{x}<extra></extra>",
+                hovertemplate="<b>%{y}</b><br>Sucesso Total: %{x}<extra></extra>",
             ))
-            fig_combo.add_trace(go.Bar(
-                y=combo_filt["combo"],
+            fig6_freq.add_trace(go.Bar(
+                y=combo_filt["_combo"],
+                x=combo_filt["success_partial"],
+                name="🟡 Sucesso Parcial",
+                orientation="h",
+                marker_color="#f39c12",
+                hovertemplate="<b>%{y}</b><br>Sucesso Parcial: %{x}<extra></extra>",
+            ))
+            fig6_freq.add_trace(go.Bar(
+                y=combo_filt["_combo"],
                 x=combo_filt["insucesso"],
                 name="❌ Insucesso",
                 orientation="h",
                 marker_color="#e74c3c",
-                hovertemplate="<b>%{y}</b><br>Insucessos: %{x}<extra></extra>",
+                hovertemplate="<b>%{y}</b><br>Insucesso: %{x}<extra></extra>",
             ))
-            fig_combo.update_layout(
+            fig6_freq.update_layout(
                 barmode="stack",
-                height=max(350, len(combo_filt) * 28),
-                margin=dict(l=10, r=10, t=40, b=30),
+                height=max(380, len(combo_filt) * 30),
+                margin=dict(l=10, r=10, t=45, b=30),
                 legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1),
                 plot_bgcolor="#f5f5f0",
                 paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(family="Arial", size=11),
                 xaxis=dict(title="Ocorrências", gridcolor="#e0e0e0"),
                 yaxis=dict(title=""),
-                title=dict(
-                    text="Saídas de Construção por Combinação de Posições",
-                    font=dict(size=14, family="Arial"),
-                ),
+                title=dict(text="Frequência por Combinação de Posições", font=dict(size=14, family="Arial")),
             )
-            st.plotly_chart(fig_combo, use_container_width=True)
+            st.plotly_chart(fig6_freq, use_container_width=True)
 
             # ── Gráfico 2: Taxa de sucesso ────────────────────────────────
             st.markdown("##### Taxa de sucesso por combinação")
             combo_taxa = combo_filt.sort_values("pct_sucesso", ascending=True)
 
-            # Cor dinâmica por taxa
-            def cor_taxa(pct):
-                if pct >= 60:   return "#2ecc71"
-                elif pct >= 40: return "#f39c12"
-                else:           return "#e74c3c"
-
-            colors_taxa = [cor_taxa(p) for p in combo_taxa["pct_sucesso"]]
-
-            fig_taxa = go.Figure(go.Bar(
-                y=combo_taxa["combo"],
+            bar_colors = [
+                "#2ecc71" if p >= 60 else ("#f39c12" if p >= 35 else "#e74c3c")
+                for p in combo_taxa["pct_sucesso"]
+            ]
+            fig6_taxa = go.Figure(go.Bar(
+                y=combo_taxa["_combo"],
                 x=combo_taxa["pct_sucesso"],
                 orientation="h",
-                marker_color=colors_taxa,
+                marker_color=bar_colors,
                 text=[f"{v:.0f}%" for v in combo_taxa["pct_sucesso"]],
                 textposition="outside",
+                customdata=combo_taxa[["total", "sucessos", "insucesso"]].values,
                 hovertemplate=(
                     "<b>%{y}</b><br>"
-                    "Taxa de sucesso: %{x:.1f}%<br>"
+                    "Taxa sucesso: %{x:.1f}%<br>"
+                    "Total: %{customdata[0]} | Sucessos: %{customdata[1]} | Insucessos: %{customdata[2]}"
                     "<extra></extra>"
                 ),
             ))
-            fig_taxa.update_layout(
-                height=max(350, len(combo_taxa) * 28),
-                margin=dict(l=10, r=80, t=40, b=30),
+            fig6_taxa.update_layout(
+                height=max(380, len(combo_taxa) * 30),
+                margin=dict(l=10, r=80, t=45, b=30),
                 plot_bgcolor="#f5f5f0",
                 paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(family="Arial", size=11),
-                xaxis=dict(title="Taxa de Sucesso (%)", range=[0, 115], gridcolor="#e0e0e0"),
+                xaxis=dict(title="Taxa de Sucesso (%)", range=[0, 118], gridcolor="#e0e0e0"),
                 yaxis=dict(title=""),
                 showlegend=False,
-                title=dict(
-                    text="Taxa de Sucesso por Combinação de Posições",
-                    font=dict(size=14, family="Arial"),
-                ),
+                title=dict(text="Taxa de Sucesso por Combinação de Posições", font=dict(size=14, family="Arial")),
             )
-            st.plotly_chart(fig_taxa, use_container_width=True)
+            st.plotly_chart(fig6_taxa, use_container_width=True)
 
-            # ── Tabela resumo ─────────────────────────────────────────────
+            # ── Tabela completa ───────────────────────────────────────────
             with st.expander("📋 Tabela completa", expanded=False):
-                combo_tabela = combo_filt.sort_values("total", ascending=False).copy()
-                combo_tabela["pct_sucesso"] = combo_tabela["pct_sucesso"].round(1)
-                combo_tabela = combo_tabela.rename(columns={
-                    "combo":       "Combinação de Posições",
-                    "total":       "Total",
-                    "sucessos":    "Sucessos",
-                    "insucesso":   "Insucessos",
-                    "pct_sucesso": "Taxa Sucesso (%)",
-                })
-                st.dataframe(
-                    combo_tabela[["Combinação de Posições", "Total", "Sucessos", "Insucessos", "Taxa Sucesso (%)"]],
-                    use_container_width=True,
-                    hide_index=True,
-                )
+                tabela = combo_filt.sort_values("total", ascending=False)[
+                    ["_combo", "total", "success_total", "success_partial", "insucesso", "pct_sucesso"]
+                ].copy()
+                tabela["pct_sucesso"] = tabela["pct_sucesso"].round(1)
+                tabela.columns = [
+                    "Combinação", "Total", "Sucesso Total", "Sucesso Parcial", "Insucesso", "Taxa Sucesso (%)"
+                ]
+                st.dataframe(tabela, use_container_width=True, hide_index=True)
+
+        # ── Legenda abreviaturas ──────────────────────────────────────────
+        with st.expander("🔤 Legenda das abreviaturas", expanded=False):
+            legenda_data = {
+                "Abreviatura": list(USED_TO_ABREV.values()),
+                "Posição": [
+                    "Guarda-Redes", "Central Esq.", "Central Dir.", "Lateral Esq.", "Lateral Dir.",
+                    "Ala Def. Esq.", "Ala Def. Dir.", "Med. Def. Esq.", "Med. Def. Dir.", "Med. Def. Centro",
+                    "Med. Centro Esq.", "Med. Centro Dir.", "Med. Atac. Centro", "Med. Atac. Esq.", "Med. Atac. Dir.",
+                    "Médio Esq.", "Médio Dir.", "Extremo Esq.", "Extremo Dir.",
+                    "Avançado Centro Esq.", "Avançado Centro Dir.", "Avançado Centro", "Central",
+                ],
+            }
+            st.dataframe(pd.DataFrame(legenda_data), use_container_width=True, hide_index=True)
 
     # ── Nota metodológica ────────────────────────────────────────────────────
     with st.expander("ℹ️ Nota metodológica", expanded=False):
