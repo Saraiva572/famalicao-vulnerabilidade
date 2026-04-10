@@ -2383,31 +2383,35 @@ elif pagina == "🏗️ Padrões de Construção":
         "Cobre todas as posses — incluindo as que terminaram antes de x>40."
     )
 
-    # ── Mapeamento used_* → abreviatura ──────────────────────────────────
+    # ── Mapeamento used_* → abreviatura (siglas PT) ──────────────────────
     USED_TO_ABREV = {
+        # Guarda-redes
         "used_goalkeeper":               "GR",
-        "used_left_center_back":         "CBE",
-        "used_right_center_back":        "CBD",
-        "used_left_back":                "LE",
-        "used_right_back":               "LD",
-        "used_left_wing_back":           "WBE",
-        "used_right_wing_back":          "WBD",
-        "used_left_defensive_midfield":  "MDE",
-        "used_right_defensive_midfield": "MDD",
-        "used_center_defensive_midfield":"MDC",
-        "used_left_center_midfield":     "MCE",
-        "used_right_center_midfield":    "MCD",
-        "used_center_attacking_midfield":"MAC",
-        "used_left_attacking_midfield":  "MAE",
-        "used_right_attacking_midfield": "MAD",
+        # Defesa
+        "used_left_center_back":         "DC",
+        "used_right_center_back":        "DC",
+        "used_center_back":              "DC",
+        "used_left_back":                "DE",
+        "used_right_back":               "DD",
+        "used_left_wing_back":           "DE",
+        "used_right_wing_back":          "DD",
+        # Meio-campo
+        "used_center_defensive_midfield":"MCD",
+        "used_left_defensive_midfield":  "MCD",
+        "used_right_defensive_midfield": "MCD",
+        "used_left_center_midfield":     "MC",
+        "used_right_center_midfield":    "MC",
+        "used_center_attacking_midfield":"MCO",
+        "used_left_attacking_midfield":  "MCO",
+        "used_right_attacking_midfield": "MCO",
         "used_left_midfield":            "ME",
         "used_right_midfield":           "MD",
-        "used_left_wing":                "ExtE",
-        "used_right_wing":               "ExtD",
-        "used_left_center_forward":      "ACE",
-        "used_right_center_forward":     "ACD",
-        "used_center_forward":           "AC",
-        "used_center_back":              "CB",
+        # Ataque
+        "used_left_wing":                "EE",
+        "used_right_wing":               "ED",
+        "used_center_forward":           "PL",
+        "used_left_center_forward":      "SA",
+        "used_right_center_forward":     "SA",
     }
 
     used_cols_present = [c for c in USED_TO_ABREV if c in df_poss.columns]
@@ -2417,7 +2421,9 @@ elif pagina == "🏗️ Padrões de Construção":
     else:
         # ── Construir combo para cada posse ──────────────────────────────
         def make_combo(row):
-            abrevs = [USED_TO_ABREV[col] for col in used_cols_present if row[col] == 1]
+            abrevs = sorted(set(
+                USED_TO_ABREV[col] for col in used_cols_present if row[col] == 1
+            ))
             return "+".join(abrevs) if abrevs else None
 
         df_poss["_combo"] = df_poss.apply(make_combo, axis=1)
@@ -2561,13 +2567,21 @@ elif pagina == "🏗️ Padrões de Construção":
         # ── Legenda abreviaturas ──────────────────────────────────────────
         with st.expander("🔤 Legenda das abreviaturas", expanded=False):
             legenda_data = {
-                "Abreviatura": list(USED_TO_ABREV.values()),
-                "Posição": [
-                    "Guarda-Redes", "Central Esq.", "Central Dir.", "Lateral Esq.", "Lateral Dir.",
-                    "Ala Def. Esq.", "Ala Def. Dir.", "Med. Def. Esq.", "Med. Def. Dir.", "Med. Def. Centro",
-                    "Med. Centro Esq.", "Med. Centro Dir.", "Med. Atac. Centro", "Med. Atac. Esq.", "Med. Atac. Dir.",
-                    "Médio Esq.", "Médio Dir.", "Extremo Esq.", "Extremo Dir.",
-                    "Avançado Centro Esq.", "Avançado Centro Dir.", "Avançado Centro", "Central",
+                "Abreviatura": ["GR", "DC", "DD", "DE", "MCD", "MC", "MCO", "MD", "ME", "ED", "EE", "PL", "SA"],
+                "Posição":     [
+                    "Guarda-Redes",
+                    "Defesa Central",
+                    "Defesa Direito",
+                    "Defesa Esquerdo",
+                    "Médio Defensivo",
+                    "Médio Centro",
+                    "Médio Ofensivo",
+                    "Médio Direito",
+                    "Médio Esquerdo",
+                    "Extremo Direito",
+                    "Extremo Esquerdo",
+                    "Ponta de Lança",
+                    "Segundo Avançado",
                 ],
             }
             st.dataframe(pd.DataFrame(legenda_data), use_container_width=True, hide_index=True)
