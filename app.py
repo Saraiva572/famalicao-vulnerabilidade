@@ -198,54 +198,203 @@ def carregar_eventos(match_id):
     ev["corredor_v"] = ev["loc_x"].apply(corredor_v)
     return ev
 
-# ── Carregar métricas do CSV (GitHub) ──────────────────────────────────────
+# ── Carregar métricas: CSV do GitHub + fallback API para jogos novos ────────
 
 CSV_URL = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main/vulnerabilidade_perda_real_novasmetricas.csv"
 
+@st.cache_data(ttl=300, show_spinner="A calcular métricas para jogos novos...")
+def calcular_metricas_api(match_id, match_date, opponent, jogo_num, mes_ano, label_full):
+    """Calcula métricas base directamente da API StatsBomb para um jogo que
+    ainda não está no CSV do GitHub. Replica a lógica do app_7.py original."""
+    TYPE_COL    = "type.name"
+    POSS_COL    = "possession_team.name"
+    PATTERN_COL = "play_pattern.name"
+    PASS_OUT    = "pass.outcome.name"
+    SHOT_XG     = "shot.statsbomb_xg"
+    CP_COL      = "counterpress"
+
+    try:
+        ev = carregar_eventos(match_id)
+    except Exception:
+        return None
+
+    fama_ev = ev[ev[POSS_COL].apply(lambda x: team_key.lower() in str(x).lower())].copy()
+
+    loss_mask = (
+        (fama_ev[TYPE_COL].isin({"Miscontrol", "Dispossessed"})) |
+        (
+            (fama_ev[TYPE_COL] == "Pass") &
+            (fama_ev.get(PASS_OUT, pd.Series(dtype=str)) == "Incomplete") &
+            (fama_ev["loc_x"].apply(lambda x: x <= 40 if x is not None else False))
+        )
+    )
+    losses = fama_ev[loss_mask].copy()
+
+    hp = ca = cl = dp = 0
+    xg = 0.0
+    n_losses = len(losses)
+    losses_with_shot = 0
+    losses_with_counterpress = 0
+
+    for _, le in losses.iterrows():
+        # Contagem de counterpress
+        if le.get(CP_COL, False):
+            losses_with_counterpress += 1
+
+        opp_after = ev[
+            (ev["possession"] > le["possession"]) &
+            (ev["time_s"] >= le["time_s"]) &
+            (ev["time_s"] <= le["time_s"] + TRANSITION_WINDOW) &
+            (~ev[POSS_COL].apply(lambda x: team_key.lower() in str(x).lower()))
+        ]
+        if opp_after.empty:
+            continue
+
+        shots_after = opp_after[opp_after[TYPE_COL] == "Shot"]
+        if len(shots_after) > 0:
+            losses_with_shot += 1
+
+        for _, shot in shots_after.iterrows():
+            pp = str(shot.get(PATTERN_COL, ""))
+            if "Counter" in pp:
+                ca += 1
+            elif shot["time_s"] - le["time_s"] <= 5:
+                hp += 1
+            xg_val = shot.get(SHOT_XG, 0) or 0
+            if xg_val >= 0.15:
+                cl += 1
+            xg += xg_val
+
+        dp += len(opp_after[opp_after["loc_x"].apply(
+            lambda x: x >= DEEP_ENTRY_X if x is not None else False)])
+
+    vap = 4*hp + 3*ca + 2*cl + 0.1*dp
+    exposicao = round(losses_with_shot / n_losses * 100, 1) if n_losses > 0 else 0.0
+    counterpress_eff = round(losses_with_counterpress / n_losses * 100, 1) if n_losses > 0 else 0.0
+
+    # TRI estimado com a mesma fórmula mas sem avg_opp_progression_m
+    # (não disponível sem dados adicionais) — usamos xG e exposição como proxy
+    xg_norm       = min(xg / 1.0, 1.0) * 40          # peso 40%
+    shot_norm     = min((hp + ca + cl) / 5.0, 1.0) * 25  # peso 25%
+    entry_norm    = min(dp / 20.0, 1.0) * 20          # peso 20%
+    exp_norm      = min(exposicao / 30.0, 1.0) * 15   # peso 15%
+    tri_estimado  = round(xg_norm + shot_norm + entry_norm + exp_norm, 1)
+
+    c1_col, c2_col = get_colors(opponent)
+    color = c1_col if jogo_num == 1 else c2_col
+
+    return {
+        "match_id":                                   match_id,
+        "match_date":                                 match_date,
+        "opponent":                                   opponent,
+        "jogo_num":                                   jogo_num,
+        "mes_ano":                                    mes_ano,
+        "label_full":                                 label_full,
+        "color":                                      color,
+        "n_losses":                                   n_losses,
+        "team_match_high_press_shots_conceded":       hp,
+        "team_match_counter_attacking_shots_conceded": ca,
+        "team_match_shots_in_clear_conceded":         cl,
+        "team_match_deep_progressions_conceded":      dp,
+        "team_match_xg_conceded_after_loss":          round(xg, 3),
+        "exposicao_defensiva_pct":                    exposicao,
+        "counterpress_efficiency_pct":                counterpress_eff,
+        "avg_opp_progression_m":                      None,
+        "transition_risk_index":                      tri_estimado,
+        "VAP":                                        round(vap, 1),
+        "_source":                                    "api",   # marca para aviso na UI
+    }
+
+
 @st.cache_data(ttl=300, show_spinner="A carregar métricas...")
 def carregar_vap(team_matches):
-    # Ler CSV do GitHub
+    # ── 1. Ler CSV do GitHub ────────────────────────────────────────────────
     try:
-        df = pd.read_csv(CSV_URL, sep=";", encoding="utf-8")
-    except:
-        df = pd.read_csv(CSV_URL, sep=";", encoding="cp1252")
+        df_csv = pd.read_csv(CSV_URL, sep=";", encoding="utf-8")
+    except Exception:
+        try:
+            df_csv = pd.read_csv(CSV_URL, sep=";", encoding="cp1252")
+        except Exception:
+            df_csv = pd.DataFrame()
 
-    df["match_date"] = df["match_date"].astype(str)
+    if not df_csv.empty:
+        df_csv["match_id"] = df_csv["match_id"].astype(int)
+    ids_no_csv = set(df_csv["match_id"].tolist()) if not df_csv.empty else set()
 
-    # Juntar com team_matches para obter mes_ano, jogo_num, label_full
-    tm = team_matches[["match_id","mes_ano","jogo_num","label_full"]].copy()
+    # ── 2. Identificar jogos que a API conhece mas o CSV não tem ───────────
+    tm = team_matches.copy()
     tm["match_id"] = tm["match_id"].astype(int)
-    df["match_id"] = df["match_id"].astype(int)
-    df = df.merge(tm, on="match_id", how="left")
+    ids_api = set(tm["match_id"].tolist())
+    ids_novos = ids_api - ids_no_csv
 
-    # Preencher label_full se faltar
-    if "label_full" not in df.columns or df["label_full"].isna().all():
-        df["label_full"] = df["opponent"]
+    # ── 3. Calcular métricas via API para os jogos novos ──────────────────
+    rows_novos = []
+    if ids_novos:
+        for _, row in tm[tm["match_id"].isin(ids_novos)].iterrows():
+            resultado = calcular_metricas_api(
+                match_id   = int(row["match_id"]),
+                match_date = row["match_date"].strftime("%Y-%m-%d"),
+                opponent   = row["opponent"],
+                jogo_num   = int(row["jogo_num"]),
+                mes_ano    = row["mes_ano"],
+                label_full = row["label_full"],
+            )
+            if resultado:
+                rows_novos.append(resultado)
 
-    # Adicionar cores
-    df["jogo_num"] = df["jogo_num"].fillna(1).astype(int)
-    def row_color(row):
-        c1, c2 = get_colors(row["opponent"])
-        return c1 if row["jogo_num"] == 1 else c2
-    df["color"] = df.apply(row_color, axis=1)
+    df_novos = pd.DataFrame(rows_novos) if rows_novos else pd.DataFrame()
 
-    # Garantir VAP e Risco
+    # ── 4. Juntar CSV com jogos novos ──────────────────────────────────────
+    if not df_csv.empty:
+        # Enriquecer CSV com label_full / mes_ano / jogo_num da API
+        tm_meta = tm[["match_id","mes_ano","jogo_num","label_full"]].copy()
+        df_csv = df_csv.merge(tm_meta, on="match_id", how="left")
+        if "label_full" not in df_csv.columns or df_csv["label_full"].isna().all():
+            df_csv["label_full"] = df_csv.get("opponent", "")
+        df_csv["jogo_num"] = df_csv["jogo_num"].fillna(1).astype(int)
+        df_csv["_source"] = "csv"
+
+        def row_color(r):
+            c1, c2 = get_colors(r["opponent"])
+            return c1 if r["jogo_num"] == 1 else c2
+        df_csv["color"] = df_csv.apply(row_color, axis=1)
+
+        df = pd.concat([df_csv, df_novos], ignore_index=True) if not df_novos.empty else df_csv
+    elif not df_novos.empty:
+        df = df_novos
+    else:
+        df = pd.DataFrame()
+
+    if df.empty:
+        return df
+
+    # ── 5. Garantir colunas obrigatórias ──────────────────────────────────
     if "VAP" not in df.columns:
         df["VAP"] = (
-            4   * df.get("team_match_high_press_shots_conceded", 0) +
-            3   * df.get("team_match_counter_attacking_shots_conceded", 0) +
-            2   * df.get("team_match_shots_in_clear_conceded", 0) +
-            0.1 * df.get("team_match_deep_progressions_conceded", 0)
+            4   * df.get("team_match_high_press_shots_conceded", 0).fillna(0) +
+            3   * df.get("team_match_counter_attacking_shots_conceded", 0).fillna(0) +
+            2   * df.get("team_match_shots_in_clear_conceded", 0).fillna(0) +
+            0.1 * df.get("team_match_deep_progressions_conceded", 0).fillna(0)
         )
+
+    for col, default in [
+        ("transition_risk_index", 0.0),
+        ("exposicao_defensiva_pct", 0.0),
+        ("counterpress_efficiency_pct", 0.0),
+        ("team_match_xg_conceded_after_loss", 0.0),
+        ("n_losses", 0),
+        ("_source", "csv"),
+    ]:
+        if col not in df.columns:
+            df[col] = default
+
     df["Risco"]         = df["VAP"].apply(classificar_risco)
     df["Media_Movel_3"] = df["VAP"].rolling(3, min_periods=1).mean()
 
     # mes_ano fallback
     if "mes_ano" not in df.columns or df["mes_ano"].isna().all():
-        MESES = {1:"Janeiro",2:"Fevereiro",3:"Março",4:"Abril",5:"Maio",6:"Junho",
-                 7:"Julho",8:"Agosto",9:"Setembro",10:"Outubro",11:"Novembro",12:"Dezembro"}
         df["mes_ano"] = pd.to_datetime(df["match_date"]).apply(
-            lambda d: f"{MESES[d.month]} {d.year}")
+            lambda d: f"{MESES_PT[d.month]} {d.year}")
 
     return df.sort_values("match_date").reset_index(drop=True)
 
@@ -467,16 +616,16 @@ if pagina == "📊 Vulnerabilidade":
 
     df = carregar_vap(team_matches)
 
-    # Calcular métricas novas a partir do CSV
-    # (o CSV já vem com estas colunas do Colab)
-    for col, default in [
-        ("exposicao_defensiva_pct", 0.0),
-        ("counterpress_efficiency_pct", 0.0),
-        ("transition_risk_index", 0.0),
-        ("n_losses", 0),
-    ]:
-        if col not in df.columns:
-            df[col] = default
+    # Aviso quando há jogos calculados via API (CSV ainda não foi atualizado)
+    if "_source" in df.columns:
+        jogos_api = df[df["_source"] == "api"]["label_full"].tolist()
+        if jogos_api:
+            st.warning(
+                f"⚡ **{len(jogos_api)} jogo(s) calculado(s) em tempo real via API** "
+                f"(CSV ainda não atualizado): **{', '.join(jogos_api)}**  \n"
+                "TRI e métricas avançadas são estimativas até o CSV ser atualizado no GitHub.",
+                icon="⚠️",
+            )
 
     df["TRI_MM3"] = df["transition_risk_index"].rolling(3, min_periods=1).mean()
 
