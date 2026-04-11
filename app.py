@@ -1732,6 +1732,75 @@ elif pagina == "🏗️ Padrões de Construção":
     df_poss["big_pattern"] = df_poss["_corridor_seq_proxy"].apply(classify_big_pattern)
     df_poss["big_pattern_label"] = df_poss["big_pattern"].map(PATTERN_LABELS).fillna("Outro")
 
+    # ══════════════════════════════════════════════════════════════════════
+    # FILTROS GLOBAIS DO TAB
+    # ══════════════════════════════════════════════════════════════════════
+
+    with st.expander("🔍 Filtros", expanded=False):
+        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
+
+        # Filtro 1: Jogo (match_id)
+        with f_col1:
+            match_ids_disponiveis = sorted(df_poss["match_id"].dropna().unique().tolist())
+            match_ids_selecionados = st.multiselect(
+                "🗓️ Jogo (match_id)",
+                options=match_ids_disponiveis,
+                default=match_ids_disponiveis,
+                help="Filtra por jogo específico. Por defeito todos os jogos estão selecionados.",
+            )
+
+        # Filtro 2: Outcome
+        with f_col2:
+            outcome_opcoes = {
+                "✅ Sucesso Total":   "success_total",
+                "🟡 Sucesso Parcial": "success_partial",
+                "❌ Insucesso":       "unsuccessful",
+            }
+            outcome_selecionados = st.multiselect(
+                "🎯 Outcome",
+                options=list(outcome_opcoes.keys()),
+                default=list(outcome_opcoes.keys()),
+                help="Filtra pelo resultado da posse.",
+            )
+            outcome_vals = [outcome_opcoes[k] for k in outcome_selecionados]
+
+        # Filtro 3: Padrão de construção
+        with f_col3:
+            padroes_disponiveis = sorted(df_poss["big_pattern_label"].dropna().unique().tolist())
+            padroes_selecionados = st.multiselect(
+                "🏗️ Padrão de construção",
+                options=padroes_disponiveis,
+                default=padroes_disponiveis,
+                help="Filtra por tipo de padrão de construção.",
+            )
+
+        # Filtro 4: Nº de ações
+        with f_col4:
+            n_acoes_min_global = int(df_poss["n_actions"].min()) if "n_actions" in df_poss.columns else 1
+            n_acoes_max_global = int(df_poss["n_actions"].max()) if "n_actions" in df_poss.columns else 20
+            n_acoes_range = st.slider(
+                "⚡ Nº de ações",
+                min_value=n_acoes_min_global,
+                max_value=n_acoes_max_global,
+                value=(n_acoes_min_global, n_acoes_max_global),
+                help="Filtra posses pelo número de ações realizadas.",
+            )
+
+    # Aplicar filtros a df_poss
+    _mask = (
+        df_poss["match_id"].isin(match_ids_selecionados)
+        & df_poss["outcome_label"].isin(outcome_vals)
+        & df_poss["big_pattern_label"].isin(padroes_selecionados)
+    )
+    if "n_actions" in df_poss.columns:
+        _mask &= df_poss["n_actions"].between(n_acoes_range[0], n_acoes_range[1])
+    df_poss = df_poss[_mask].copy()
+
+    # Aviso se filtros resultarem em df vazio
+    if df_poss.empty:
+        st.warning("⚠️ Nenhuma posse corresponde aos filtros selecionados. Ajusta os filtros para ver dados.")
+        st.stop()
+
     # ── Zona 3×5 ─────────────────────────────────────────────────────────────
 
     def build_zone_3x5(x_val, y_val):
