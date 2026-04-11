@@ -3140,7 +3140,7 @@ elif pagina == "📋 Conclusões":
                 line_dash="dot", line_color="#888", line_width=1,
             )
             fig_scatter.add_hline(
-                x=df_vap["exposicao_defensiva_pct"].mean(),
+                y=df_vap["exposicao_defensiva_pct"].mean(),
                 line_dash="dot", line_color="#888", line_width=1,
             )
             fig_scatter.update_layout(
