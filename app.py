@@ -521,7 +521,7 @@ def heatmap_fig(x_vals, y_vals, title):
 # NAVEGAÇÃO (ATUALIZADA COM NOVA PÁGINA)
 # ══════════════════════════════════════════════════════════════════════════
 
-pagina = st.sidebar.radio("📂 Página", ["📊 Vulnerabilidade", "🗺️ Heatmaps", "⚠️ Métricas Pós-Perda", "🏗️ Padrões de Construção"])
+pagina = st.sidebar.radio("📂 Página", ["📊 Vulnerabilidade", "🗺️ Heatmaps", "⚠️ Métricas Pós-Perda", "🏗️ Padrões de Construção", "📋 Conclusões"])
 
 # ── Atualização automática ─────────────────────────────────────────────────
 st.sidebar.markdown("---")
@@ -2798,4 +2798,691 @@ O ponto analisado é a posição de saída (x_end, y_end) de cada posse.
 
 **Pass Network** — Cada aresta representa um passe entre duas posições.
 A espessura é proporcional à frequência. Os nós são dimensionados pelo total de passes enviados a partir de cada posição.
+        """)
+
+# ══════════════════════════════════════════════════════════════════════════
+# PÁGINA 5 — CONCLUSÕES
+# ══════════════════════════════════════════════════════════════════════════
+
+elif pagina == "📋 Conclusões":
+
+    import numpy as np
+
+    # ── Header ──────────────────────────────────────────────────────────────
+    col_logo, col_title = st.columns([1, 10])
+    with col_logo:
+        if fama_logo:
+            st.image(fama_logo, width=70)
+        else:
+            st.markdown("🔵")
+    with col_title:
+        st.title("Famalicão — Relatório de Conclusões")
+    st.caption("Liga Portugal 25/26 | Síntese automática gerada a partir de todos os dados disponíveis")
+
+    # ── Carregar todos os dados necessários ─────────────────────────────────
+    with st.spinner("A carregar e analisar dados..."):
+        df_vap = carregar_vap(team_matches)
+
+    dados_ok = not df_vap.empty
+
+    # Carregar CSVs de padrões (mesmos do tab Padrões de Construção)
+    GITHUB_BASE = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main"
+
+    @st.cache_data(ttl=300, show_spinner=False)
+    def _load_csv_conclusoes(url):
+        try:
+            return pd.read_csv(url, encoding="utf-8")
+        except Exception:
+            try:
+                return pd.read_csv(url, encoding="cp1252")
+            except Exception:
+                return None
+
+    df_pat40  = _load_csv_conclusoes(f"{GITHUB_BASE}/viz_patterns_to_40.csv")
+    df_pat60  = _load_csv_conclusoes(f"{GITHUB_BASE}/viz_patterns_to_60.csv")
+    df_poss_c = _load_csv_conclusoes(f"{GITHUB_BASE}/possession_features_df.csv")
+    df_opp_c  = _load_csv_conclusoes(f"{GITHUB_BASE}/opponent_metrics%20(9).csv")
+    df_pm_c   = _load_csv_conclusoes(f"{GITHUB_BASE}/possession_metrics%20(5).csv")
+
+    has_pat40  = df_pat40  is not None and not df_pat40.empty
+    has_pat60  = df_pat60  is not None and not df_pat60.empty
+    has_poss   = df_poss_c is not None and not df_poss_c.empty
+    has_opp    = df_opp_c  is not None and not df_opp_c.empty
+    has_pm     = df_pm_c   is not None and not df_pm_c.empty
+
+    # ── Renomear coluna padrão se necessário ────────────────────────────────
+    if has_pat40 and "big_pattern_to_40_name" in df_pat40.columns:
+        df_pat40 = df_pat40.rename(columns={"big_pattern_to_40_name": "padrão"})
+    if has_pat60 and "big_pattern_to_60_name" in df_pat60.columns:
+        df_pat60 = df_pat60.rename(columns={"big_pattern_to_60_name": "padrão"})
+
+    # ══════════════════════════════════════════════════════════════════════
+    # SECÇÃO A — CARTÕES DE SÍNTESE EXECUTIVA
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.markdown("---")
+    st.subheader("📌 Síntese Executiva")
+
+    if dados_ok:
+        tri_medio     = df_vap["transition_risk_index"].mean()
+        tri_max       = df_vap["transition_risk_index"].max()
+        jogo_critico  = df_vap.loc[df_vap["transition_risk_index"].idxmax(), "label_full"]
+        xg_total      = df_vap["team_match_xg_conceded_after_loss"].sum()
+        exp_media     = df_vap["exposicao_defensiva_pct"].mean()
+        cp_media      = df_vap["counterpress_efficiency_pct"].mean()
+        n_jogos       = len(df_vap)
+
+        # Tendência TRI (últimos 3 vs anteriores)
+        if n_jogos >= 4:
+            tri_ultimos3 = df_vap["transition_risk_index"].tail(3).mean()
+            tri_restante = df_vap["transition_risk_index"].head(n_jogos - 3).mean()
+            tendencia_delta = round(tri_ultimos3 - tri_restante, 1)
+            tendencia_label = f"{'+' if tendencia_delta > 0 else ''}{tendencia_delta}"
+            tendencia_color = "inverse" if tendencia_delta > 0 else "normal"
+        else:
+            tendencia_label = "—"
+            tendencia_color = "off"
+
+        # Semáforo global
+        if tri_medio < 10:
+            sem_global = "🟢 Baixo Risco Global"
+        elif tri_medio < 20:
+            sem_global = "🟡 Risco Moderado Global"
+        else:
+            sem_global = "🔴 Alto Risco Global"
+
+        st.markdown(f"### {sem_global}")
+
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("Jogos analisados",    n_jogos)
+        c2.metric("TRI médio",           f"{tri_medio:.1f}",
+                  delta=tendencia_label, delta_color=tendencia_color,
+                  help="Transition Risk Index médio da época. Delta = variação últimos 3 vs restantes.")
+        c3.metric("TRI máximo",          f"{tri_max:.1f}",   help=f"Pior jogo: {jogo_critico}")
+        c4.metric("xG total sofrido",    f"{xg_total:.2f}",  help="Soma do xG concedido após perdas de bola")
+        c5.metric("Exposição Def. média",f"{exp_media:.1f}%",help="% de perdas que geraram remate adversário")
+        c6.metric("Counterpress médio",  f"{cp_media:.1f}%", help="% de recuperações em <5s após perda")
+
+    else:
+        st.warning("⚠️ Não foi possível carregar os dados de vulnerabilidade via API StatsBomb.")
+
+    # ══════════════════════════════════════════════════════════════════════
+    # SECÇÃO B — PADRÕES DE CONSTRUÇÃO: O QUE O FAMALICÃO FAZ
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.markdown("---")
+    st.subheader("🏗️ Padrões de Construção — O que o Famalicão faz")
+
+    if has_pat40:
+        # Padrão mais usado
+        pat_mais_freq  = df_pat40.loc[df_pat40["total"].idxmax(), "padrão"]
+        freq_max       = int(df_pat40["total"].max())
+        total_posses   = int(df_pat40["total"].sum())
+
+        # Padrão mais eficaz (maior success_total_pct)
+        pct_col = "success_total_pct" if "success_total_pct" in df_pat40.columns else None
+        if pct_col:
+            pat_mais_eficaz = df_pat40.loc[df_pat40[pct_col].idxmax(), "padrão"]
+            eficacia_max    = float(df_pat40[pct_col].max())
+            # Padrão menos eficaz
+            pat_menos_eficaz = df_pat40.loc[df_pat40[pct_col].idxmin(), "padrão"]
+            eficacia_min     = float(df_pat40[pct_col].min())
+        else:
+            pat_mais_eficaz  = "—"
+            eficacia_max     = 0
+            pat_menos_eficaz = "—"
+            eficacia_min     = 0
+
+        # Layout: cards + gráfico
+        col_texto, col_grafico = st.columns([1, 1.4])
+
+        with col_texto:
+            st.markdown("#### Principais conclusões")
+
+            # Card 1 — padrão dominante
+            pct_dominante = round(freq_max / total_posses * 100, 1) if total_posses else 0
+            st.info(
+                f"**📊 Padrão mais utilizado**\n\n"
+                f"**{pat_mais_freq}** representa **{freq_max}** posses "
+                f"({pct_dominante}% do total de {total_posses}).\n\n"
+                f"É o padrão dominante na construção do Famalicão."
+            )
+
+            if pct_col:
+                # Card 2 — mais eficaz
+                st.success(
+                    f"**✅ Padrão mais eficaz**\n\n"
+                    f"**{pat_mais_eficaz}** apresenta a maior taxa de sucesso total: "
+                    f"**{eficacia_max:.0f}%**."
+                )
+
+                # Card 3 — menos eficaz
+                st.error(
+                    f"**❌ Padrão menos eficaz**\n\n"
+                    f"**{pat_menos_eficaz}** tem a taxa de sucesso mais baixa: "
+                    f"**{eficacia_min:.0f}%**.\n\n"
+                    f"Merece atenção no processo de construção."
+                )
+
+            # Tabela resumo
+            with st.expander("📋 Tabela completa (to_40)", expanded=False):
+                cols_show = [c for c in ["padrão", "total", "success_total", "success_partial",
+                                          "unsuccessful", "success_total_pct", "freq_pct"] if c in df_pat40.columns]
+                st.dataframe(df_pat40[cols_show], use_container_width=True, hide_index=True)
+
+        with col_grafico:
+            # Gráfico: barras empilhadas por padrão (sucesso/parcial/insucesso)
+            if all(c in df_pat40.columns for c in ["success_total", "success_partial", "unsuccessful"]):
+                df_plot = df_pat40.sort_values("total", ascending=True)
+                fig_conc_pat = go.Figure()
+                fig_conc_pat.add_trace(go.Bar(
+                    y=df_plot["padrão"], x=df_plot["success_total"],
+                    name="✅ Sucesso Total", orientation="h",
+                    marker_color="#2ecc71",
+                    hovertemplate="<b>%{y}</b><br>Sucesso Total: %{x}<extra></extra>",
+                ))
+                fig_conc_pat.add_trace(go.Bar(
+                    y=df_plot["padrão"], x=df_plot["success_partial"],
+                    name="🟡 Sucesso Parcial", orientation="h",
+                    marker_color="#f39c12",
+                    hovertemplate="<b>%{y}</b><br>Sucesso Parcial: %{x}<extra></extra>",
+                ))
+                fig_conc_pat.add_trace(go.Bar(
+                    y=df_plot["padrão"], x=df_plot["unsuccessful"],
+                    name="❌ Insucesso", orientation="h",
+                    marker_color="#e74c3c",
+                    hovertemplate="<b>%{y}</b><br>Insucesso: %{x}<extra></extra>",
+                ))
+                fig_conc_pat.update_layout(
+                    barmode="stack",
+                    title=dict(text="Distribuição de outcomes por padrão (X > 40)",
+                               font=dict(size=13, family="Arial")),
+                    height=360,
+                    plot_bgcolor="white",
+                    margin=dict(l=10, r=20, t=50, b=30),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                )
+                fig_conc_pat.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
+                fig_conc_pat.update_yaxes(showgrid=False)
+                st.plotly_chart(fig_conc_pat, use_container_width=True)
+            else:
+                st.info("Dados de outcomes por padrão não disponíveis.")
+
+    else:
+        st.warning("Dados de padrões de construção (to_40) não disponíveis no GitHub.")
+
+    # Comparação to_40 vs to_60 (se ambos existirem)
+    if has_pat40 and has_pat60 and pct_col and "success_total_pct" in df_pat60.columns:
+        with st.expander("🔍 Comparação X>40 vs X>60 — como evoluem os padrões?", expanded=False):
+            # Juntar os dois dataframes para comparar eficácia
+            try:
+                merged = df_pat40[["padrão", "total", "success_total_pct"]].rename(
+                    columns={"total": "total_40", "success_total_pct": "pct_40"}
+                ).merge(
+                    df_pat60[["padrão", "total", "success_total_pct"]].rename(
+                        columns={"total": "total_60", "success_total_pct": "pct_60"}
+                    ),
+                    on="padrão", how="outer"
+                ).fillna(0)
+                merged["Δ pct"] = (merged["pct_60"] - merged["pct_40"]).round(1)
+                merged = merged.sort_values("total_40", ascending=False)
+
+                fig_comp = go.Figure()
+                fig_comp.add_trace(go.Bar(
+                    x=merged["padrão"], y=merged["pct_40"],
+                    name="Taxa sucesso X>40", marker_color="#3498db",
+                    hovertemplate="<b>%{x}</b><br>X>40: %{y:.1f}%<extra></extra>",
+                ))
+                fig_comp.add_trace(go.Bar(
+                    x=merged["padrão"], y=merged["pct_60"],
+                    name="Taxa sucesso X>60", marker_color="#9b59b6",
+                    hovertemplate="<b>%{x}</b><br>X>60: %{y:.1f}%<extra></extra>",
+                ))
+                fig_comp.update_layout(
+                    barmode="group",
+                    title=dict(text="Taxa de sucesso: X>40 vs X>60 por padrão",
+                               font=dict(size=13, family="Arial")),
+                    height=360, plot_bgcolor="white",
+                    margin=dict(l=20, r=20, t=50, b=80),
+                    xaxis=dict(tickangle=-25),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                )
+                fig_comp.update_yaxes(showgrid=True, gridcolor="#EEEEEE", title="Taxa sucesso (%)")
+                st.plotly_chart(fig_comp, use_container_width=True)
+
+                # Tabela delta
+                st.dataframe(
+                    merged[["padrão", "total_40", "pct_40", "total_60", "pct_60", "Δ pct"]].rename(columns={
+                        "total_40": "Total (X>40)", "pct_40": "% Sucesso (X>40)",
+                        "total_60": "Total (X>60)", "pct_60": "% Sucesso (X>60)",
+                        "Δ pct": "Δ Eficácia (X>60 - X>40)"
+                    }),
+                    use_container_width=True, hide_index=True
+                )
+            except Exception:
+                st.info("Não foi possível fazer a comparação entre os dois períodos.")
+
+    # ══════════════════════════════════════════════════════════════════════
+    # SECÇÃO C — VULNERABILIDADE DEFENSIVA: TENDÊNCIAS E PADRÕES
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.markdown("---")
+    st.subheader("⚠️ Vulnerabilidade Defensiva — Tendências da Época")
+
+    if dados_ok:
+        n_jogos = len(df_vap)
+
+        # ── Gráfico evolução TRI + Counterpress ─────────────────────────────
+        col_tri, col_exp = st.columns([1.6, 1])
+
+        with col_tri:
+            fig_tri_conc = go.Figure()
+            ymax_tri = max(df_vap["transition_risk_index"].max() + 5, 30)
+            fig_tri_conc.add_hrect(y0=0,  y1=10,       fillcolor="#2ecc71", opacity=0.07, line_width=0)
+            fig_tri_conc.add_hrect(y0=10, y1=20,       fillcolor="#f39c12", opacity=0.07, line_width=0)
+            fig_tri_conc.add_hrect(y0=20, y1=ymax_tri, fillcolor="#e74c3c", opacity=0.07, line_width=0)
+            fig_tri_conc.add_hline(y=10, line_dash="dot", line_color="#2ecc71", line_width=1)
+            fig_tri_conc.add_hline(y=20, line_dash="dot", line_color="#e74c3c", line_width=1)
+            fig_tri_conc.add_trace(go.Scatter(
+                x=df_vap["label_full"], y=df_vap["transition_risk_index"],
+                mode="lines+markers",
+                line=dict(color="#e74c3c", width=2.5),
+                marker=dict(color=df_vap["color"].tolist(), size=10,
+                            line=dict(color="white", width=1.5)),
+                name="TRI",
+                hovertemplate="<b>%{x}</b><br>TRI: %{y:.1f}<extra></extra>",
+            ))
+            fig_tri_conc.add_trace(go.Scatter(
+                x=df_vap["label_full"], y=df_vap["TRI_MM3"],
+                mode="lines", line=dict(color="#3498db", width=1.5, dash="dash"),
+                name="Média Móvel 3",
+            ))
+            fig_tri_conc.update_layout(
+                title=dict(text="Transition Risk Index — evolução da época",
+                           font=dict(size=13, family="Arial")),
+                xaxis=dict(tickangle=-35),
+                yaxis=dict(title="TRI", range=[0, ymax_tri]),
+                plot_bgcolor="white", height=380,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                margin=dict(l=40, r=20, t=50, b=100),
+                hovermode="x unified",
+            )
+            fig_tri_conc.update_xaxes(showgrid=False)
+            fig_tri_conc.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
+            st.plotly_chart(fig_tri_conc, use_container_width=True)
+
+        with col_exp:
+            # Scatter: Exposição Def. vs Counterpress
+            fig_scatter = go.Figure()
+            fig_scatter.add_trace(go.Scatter(
+                x=df_vap["counterpress_efficiency_pct"],
+                y=df_vap["exposicao_defensiva_pct"],
+                mode="markers+text",
+                marker=dict(
+                    color=df_vap["transition_risk_index"],
+                    colorscale="RdYlGn_r",
+                    size=14,
+                    colorbar=dict(title="TRI", thickness=12),
+                    line=dict(color="white", width=1),
+                ),
+                text=df_vap["opponent"],
+                textposition="top center",
+                textfont=dict(size=8),
+                hovertemplate=(
+                    "<b>%{text}</b><br>"
+                    "Counterpress: %{x:.1f}%<br>"
+                    "Exposição: %{y:.1f}%<extra></extra>"
+                ),
+            ))
+            # Linhas de referência (médias)
+            fig_scatter.add_vline(
+                x=df_vap["counterpress_efficiency_pct"].mean(),
+                line_dash="dot", line_color="#888", line_width=1,
+            )
+            fig_scatter.add_hline(
+                x=df_vap["exposicao_defensiva_pct"].mean(),
+                line_dash="dot", line_color="#888", line_width=1,
+            )
+            fig_scatter.update_layout(
+                title=dict(text="Exposição Def. vs Counterpress",
+                           font=dict(size=13, family="Arial")),
+                xaxis=dict(title="Counterpress Efficiency (%)", showgrid=True, gridcolor="#EEEEEE"),
+                yaxis=dict(title="Exposição Defensiva (%)", showgrid=True, gridcolor="#EEEEEE"),
+                plot_bgcolor="white", height=380,
+                margin=dict(l=50, r=20, t=50, b=50),
+            )
+            st.plotly_chart(fig_scatter, use_container_width=True)
+
+        # ── Jogos críticos vs seguros ─────────────────────────────────────
+        st.markdown("#### Jogos por nível de risco")
+        col_r1, col_r2, col_r3 = st.columns(3)
+
+        df_baixo   = df_vap[df_vap["transition_risk_index"] < 10]
+        df_medio   = df_vap[(df_vap["transition_risk_index"] >= 10) & (df_vap["transition_risk_index"] < 20)]
+        df_alto    = df_vap[df_vap["transition_risk_index"] >= 20]
+
+        with col_r1:
+            st.success(f"🟢 **Baixo Risco (TRI < 10)**\n\n{len(df_baixo)} jogo(s)")
+            if not df_baixo.empty:
+                for _, r in df_baixo.iterrows():
+                    st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
+
+        with col_r2:
+            st.warning(f"🟡 **Risco Médio (10–20)**\n\n{len(df_medio)} jogo(s)")
+            if not df_medio.empty:
+                for _, r in df_medio.iterrows():
+                    st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
+
+        with col_r3:
+            st.error(f"🔴 **Alto Risco (TRI ≥ 20)**\n\n{len(df_alto)} jogo(s)")
+            if not df_alto.empty:
+                for _, r in df_alto.iterrows():
+                    st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
+
+    else:
+        st.warning("Dados de vulnerabilidade não disponíveis.")
+
+    # ══════════════════════════════════════════════════════════════════════
+    # SECÇÃO D — CRUZAMENTO: CONSTRUÇÃO vs VULNERABILIDADE
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.markdown("---")
+    st.subheader("🔗 Construção vs Vulnerabilidade — Leitura Integrada")
+
+    if dados_ok and has_pat40:
+        col_cross1, col_cross2 = st.columns([1, 1])
+
+        with col_cross1:
+            # Radar de métricas normalizadas da equipa
+            if "success_total_pct" in df_pat40.columns:
+                taxa_media_const = df_pat40["success_total_pct"].mean()
+            else:
+                taxa_media_const = 0
+
+            tri_m  = df_vap["transition_risk_index"].mean()
+            exp_m  = df_vap["exposicao_defensiva_pct"].mean()
+            cp_m   = df_vap["counterpress_efficiency_pct"].mean()
+            xg_m   = df_vap["team_match_xg_conceded_after_loss"].mean()
+
+            # Normalizar para 0-100 (invertendo métricas negativas)
+            radar_vals = [
+                min(taxa_media_const, 100),               # eficácia construção (↑ bom)
+                max(0, 100 - min(tri_m / 40 * 100, 100)), # TRI invertido (↑ bom = baixo TRI)
+                max(0, 100 - min(exp_m, 100)),             # Exposição invertida (↑ bom = baixa expo)
+                min(cp_m, 100),                            # Counterpress (↑ bom)
+                max(0, 100 - min(xg_m / 0.5 * 100, 100)), # xG invertido (↑ bom = baixo xG)
+            ]
+            radar_cats = [
+                "Eficácia<br>Construção",
+                "Solidez<br>Transição",
+                "Contenção<br>Adversária",
+                "Counterpress",
+                "Proteção<br>xG",
+            ]
+
+            fig_radar = go.Figure()
+            fig_radar.add_trace(go.Scatterpolar(
+                r=radar_vals + [radar_vals[0]],
+                theta=radar_cats + [radar_cats[0]],
+                fill="toself",
+                fillcolor="rgba(52,152,219,0.25)",
+                line=dict(color="#3498db", width=2.5),
+                name="Famalicão",
+                hovertemplate="<b>%{theta}</b><br>Score: %{r:.0f}<extra></extra>",
+            ))
+            fig_radar.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, 100], tickfont=dict(size=9)),
+                    angularaxis=dict(tickfont=dict(size=10)),
+                ),
+                showlegend=False,
+                title=dict(text="Perfil da equipa (normalizado 0-100)",
+                           font=dict(size=13, family="Arial")),
+                height=380,
+                margin=dict(l=60, r=60, t=60, b=40),
+            )
+            st.plotly_chart(fig_radar, use_container_width=True)
+
+        with col_cross2:
+            st.markdown("#### Interpretação integrada")
+
+            # Gerar interpretação dinâmica baseada nos valores reais
+            insights = []
+
+            if has_pat40 and "success_total_pct" in df_pat40.columns:
+                taxa_media_const = df_pat40["success_total_pct"].mean()
+                if taxa_media_const >= 55:
+                    insights.append(
+                        f"✅ **Construção eficaz**: taxa de sucesso total média de **{taxa_media_const:.0f}%** "
+                        f"até ao terço médio. A equipa é sólida a progredir."
+                    )
+                elif taxa_media_const >= 40:
+                    insights.append(
+                        f"🟡 **Construção razoável**: taxa de sucesso total de **{taxa_media_const:.0f}%**. "
+                        f"Existem padrões específicos a melhorar."
+                    )
+                else:
+                    insights.append(
+                        f"❌ **Construção frágil**: taxa de sucesso total abaixo de **{taxa_media_const:.0f}%**. "
+                        f"A progressão até ao terço médio é problemática."
+                    )
+
+            if dados_ok:
+                tri_m = df_vap["transition_risk_index"].mean()
+                if tri_m < 10:
+                    insights.append(
+                        f"✅ **Transições defensivas controladas**: TRI médio de **{tri_m:.1f}** "
+                        f"indica que o adversário raramente cria perigo imediato após recuperar a bola."
+                    )
+                elif tri_m < 20:
+                    insights.append(
+                        f"🟡 **Transições defensivas moderadas**: TRI médio de **{tri_m:.1f}**. "
+                        f"Existem situações de risco que merecem atenção."
+                    )
+                else:
+                    insights.append(
+                        f"🔴 **Transições defensivas perigosas**: TRI médio de **{tri_m:.1f}**. "
+                        f"O adversário cria perigo consistente após recuperação."
+                    )
+
+                cp_m = df_vap["counterpress_efficiency_pct"].mean()
+                if cp_m >= 40:
+                    insights.append(
+                        f"✅ **Boa resposta imediata**: counterpress médio de **{cp_m:.1f}%** "
+                        f"mostra que a equipa reage bem à perda de bola."
+                    )
+                else:
+                    insights.append(
+                        f"⚠️ **Reação à perda a melhorar**: counterpress de **{cp_m:.1f}%** "
+                        f"sugere que a equipa demora a recuperar a bola após a perda."
+                    )
+
+                exp_m = df_vap["exposicao_defensiva_pct"].mean()
+                if exp_m >= 15:
+                    insights.append(
+                        f"🔴 **Exposição defensiva elevada**: **{exp_m:.1f}%** das perdas "
+                        f"geram remate adversário — mais de 1 em cada {int(100/exp_m) if exp_m else '?'} perdas."
+                    )
+                elif exp_m >= 8:
+                    insights.append(
+                        f"🟡 **Exposição defensiva moderada**: **{exp_m:.1f}%** das perdas "
+                        f"resultam em remate adversário."
+                    )
+                else:
+                    insights.append(
+                        f"✅ **Boa contenção pós-perda**: apenas **{exp_m:.1f}%** das perdas "
+                        f"resultam em remate adversário."
+                    )
+
+            for insight in insights:
+                st.markdown(insight)
+                st.markdown("")
+
+    # ══════════════════════════════════════════════════════════════════════
+    # SECÇÃO E — RANKING DE ADVERSÁRIOS POR PERIGO GERADO
+    # ══════════════════════════════════════════════════════════════════════
+
+    if dados_ok:
+        st.markdown("---")
+        st.subheader("🏆 Adversários que mais perigo criaram")
+
+        df_rank = df_vap.sort_values("transition_risk_index", ascending=False).reset_index(drop=True)
+        df_rank.index += 1
+
+        # Top 5 mais perigosos
+        col_rank, col_rank_chart = st.columns([1, 1.2])
+
+        with col_rank:
+            cols_rank = ["label_full", "transition_risk_index",
+                         "team_match_xg_conceded_after_loss",
+                         "exposicao_defensiva_pct",
+                         "counterpress_efficiency_pct"]
+            cols_rank = [c for c in cols_rank if c in df_rank.columns]
+            st.dataframe(
+                df_rank[cols_rank].rename(columns={
+                    "label_full":                           "Jogo",
+                    "transition_risk_index":                "TRI",
+                    "team_match_xg_conceded_after_loss":    "xG sofrido",
+                    "exposicao_defensiva_pct":              "Exp. Def. %",
+                    "counterpress_efficiency_pct":          "Counterpress %",
+                }),
+                use_container_width=True,
+            )
+
+        with col_rank_chart:
+            fig_rank = go.Figure()
+            df_rank_plot = df_rank.copy().sort_values("transition_risk_index", ascending=True)
+            bar_cols = [
+                "#2ecc71" if v < 10 else ("#f39c12" if v < 20 else "#e74c3c")
+                for v in df_rank_plot["transition_risk_index"]
+            ]
+            fig_rank.add_trace(go.Bar(
+                y=df_rank_plot["label_full"],
+                x=df_rank_plot["transition_risk_index"],
+                orientation="h",
+                marker_color=bar_cols,
+                text=[f"{v:.1f}" for v in df_rank_plot["transition_risk_index"]],
+                textposition="outside",
+                hovertemplate="<b>%{y}</b><br>TRI: %{x:.1f}<extra></extra>",
+            ))
+            fig_rank.add_vline(x=10, line_dash="dot", line_color="#2ecc71", line_width=1.5)
+            fig_rank.add_vline(x=20, line_dash="dot", line_color="#e74c3c", line_width=1.5)
+            fig_rank.update_layout(
+                title=dict(text="TRI por adversário (ordenado)", font=dict(size=13, family="Arial")),
+                height=max(350, len(df_rank_plot) * 32),
+                plot_bgcolor="white",
+                margin=dict(l=10, r=70, t=50, b=30),
+                xaxis=dict(title="TRI", showgrid=True, gridcolor="#EEEEEE"),
+            )
+            fig_rank.update_yaxes(showgrid=False)
+            st.plotly_chart(fig_rank, use_container_width=True)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # SECÇÃO F — CONCLUSÕES NARRATIVAS
+    # ══════════════════════════════════════════════════════════════════════
+
+    st.markdown("---")
+    st.subheader("📝 Conclusões e Recomendações")
+
+    if dados_ok and has_pat40:
+        tri_m  = df_vap["transition_risk_index"].mean()
+        exp_m  = df_vap["exposicao_defensiva_pct"].mean()
+        cp_m   = df_vap["counterpress_efficiency_pct"].mean()
+        xg_m   = df_vap["team_match_xg_conceded_after_loss"].mean()
+        taxa_c = df_pat40["success_total_pct"].mean() if "success_total_pct" in df_pat40.columns else None
+
+        # Padrão mais frequente e mais eficaz
+        pat_freq_nome  = df_pat40.loc[df_pat40["total"].idxmax(), "padrão"] if has_pat40 else "—"
+        pat_efic_nome  = df_pat40.loc[df_pat40["success_total_pct"].idxmax(), "padrão"] \
+                         if (has_pat40 and "success_total_pct" in df_pat40.columns) else "—"
+        pat_fraco_nome = df_pat40.loc[df_pat40["success_total_pct"].idxmin(), "padrão"] \
+                         if (has_pat40 and "success_total_pct" in df_pat40.columns) else "—"
+
+        jogo_critico_label = df_vap.loc[df_vap["transition_risk_index"].idxmax(), "label_full"]
+        jogo_melhor_label  = df_vap.loc[df_vap["transition_risk_index"].idxmin(), "label_full"]
+
+        col_n1, col_n2 = st.columns(2)
+
+        with col_n1:
+            st.markdown("##### 🏗️ Construção de Jogo")
+            conc_constr = f"""
+O Famalicão apoia-se maioritariamente no padrão **{pat_freq_nome}** como principal forma de progredir
+na 1ª fase de construção (até x>40). O padrão com maior taxa de eficácia é o **{pat_efic_nome}**
+{f"({df_pat40.loc[df_pat40['success_total_pct'].idxmax(), 'success_total_pct']:.0f}% de sucesso total)" if "success_total_pct" in df_pat40.columns else ""}, 
+sendo este o caminho preferencial quando a equipa pretende garantir progressão.
+
+O padrão **{pat_fraco_nome}** apresenta a eficácia mais baixa e representa uma área de trabalho
+para a equipa técnica — quer na redução da sua utilização, quer na melhoria de execução.
+
+{"A taxa de sucesso total média na construção até ao terço médio é de **" + str(round(taxa_c,1)) + "%**." if taxa_c is not None else ""}
+"""
+            st.markdown(conc_constr)
+
+        with col_n2:
+            st.markdown("##### ⚠️ Vulnerabilidade Pós-Perda")
+            conc_vuln = f"""
+A nível defensivo, o TRI médio da época é **{tri_m:.1f}** 
+({'baixo — a equipa controla bem as transições' if tri_m < 10 else ('moderado — existem situações de risco' if tri_m < 20 else 'elevado — as transições são um problema real')}).
+
+**{exp_m:.1f}%** das perdas de bola na construção resultam em remate adversário nos 10 segundos
+seguintes. O jogo de maior risco foi **{jogo_critico_label}** e o mais controlado foi **{jogo_melhor_label}**.
+
+A eficiência de counterpress média é **{cp_m:.1f}%** — percentagem de perdas em que o Famalicão
+recupera a bola em menos de 5 segundos.
+{"**Recomendação:** aumentar a intensidade do counterpress imediato para reduzir a janela de transição adversária." if cp_m < 35 else "O counterpress é um ponto forte que deve ser mantido e potenciado."}
+"""
+            st.markdown(conc_vuln)
+
+        # Recomendações finais
+        st.markdown("##### 🎯 Recomendações Prioritárias")
+        recomendacoes = []
+
+        if taxa_c is not None and taxa_c < 50:
+            recomendacoes.append(
+                f"**1. Melhorar a eficácia do padrão {pat_fraco_nome}** — "
+                f"ou reduzir a sua frequência em favor de padrões mais eficazes."
+            )
+        if cp_m < 35:
+            recomendacoes.append(
+                "**2. Aumentar a intensidade do counterpress** — "
+                f"a taxa de {cp_m:.1f}% de recuperações imediatas é insuficiente."
+            )
+        if exp_m >= 12:
+            recomendacoes.append(
+                f"**3. Reduzir a exposição defensiva** — "
+                f"{exp_m:.1f}% das perdas geram remate. Trabalhar posicionamento defensivo pós-perda."
+            )
+        if tri_m >= 15:
+            recomendacoes.append(
+                f"**4. Rever a gestão do risco na construção** — "
+                f"TRI médio de {tri_m:.1f} indica que as perdas estão a ser demasiado custosas."
+            )
+        if not recomendacoes:
+            recomendacoes.append(
+                "✅ A equipa apresenta bons indicadores globais. "
+                "Manter o padrão de construção dominante e continuar a trabalhar o counterpress."
+            )
+
+        for rec in recomendacoes:
+            st.markdown(f"- {rec}")
+
+    elif dados_ok:
+        st.info("Dados de padrões de construção não disponíveis. Conclusões parciais com base nos dados de vulnerabilidade.")
+    else:
+        st.warning("Não foi possível gerar conclusões — dados insuficientes. Verifica as credenciais StatsBomb e os CSVs no GitHub.")
+
+    # ── Nota metodológica ─────────────────────────────────────────────────
+    with st.expander("ℹ️ Nota metodológica", expanded=False):
+        st.markdown("""
+**Fontes de dados**
+- **StatsBomb API** (credenciais via Streamlit Secrets) — eventos em tempo real para todas as métricas de vulnerabilidade (TRI, xG, Exposição, Counterpress)
+- **GitHub** (`Saraiva572/famalicao-vulnerabilidade`) — CSVs pré-computados de padrões de construção (viz_patterns_to_40.csv, viz_patterns_to_60.csv)
+
+**Métricas**
+- **TRI (Transition Risk Index)** — Índice 0-100: xG sofrido (40%) + remates (25%) + entradas no último terço (20%) + exposição (15%)
+- **Exposição Defensiva** — % de perdas que geram remate adversário em 10 segundos
+- **Counterpress Efficiency** — % de recuperações em <5 segundos após perda
+- **Taxa de Sucesso na Construção** — % de posses com outcome "success_total" até x>40 ou x>60
+
+**Radar normalizado** — todos os eixos são convertidos para 0-100. Métricas negativas (TRI, Exposição, xG) são invertidas para que "mais alto = melhor".
         """)
