@@ -157,8 +157,9 @@ def carregar_matches():
     matches = pd.json_normalize(get_json(url), sep=".")
     HOME_COL = "home_team.home_team_name"
     AWAY_COL = "away_team.away_team_name"
+    # Aceitar "available" e "processing" — jogos recentes podem estar ainda em processamento
     mask = (
-        (matches["match_status"] == "available") &
+        (matches["match_status"].isin(["available", "processing"])) &
         (
             matches[HOME_COL].str.contains(team_key, case=False, na=False) |
             matches[AWAY_COL].str.contains(team_key, case=False, na=False)
@@ -187,7 +188,7 @@ def carregar_matches():
 
 # ── Carregar eventos ───────────────────────────────────────────────────────
 
-@st.cache_data(ttl=3600, show_spinner="A carregar eventos...")
+@st.cache_data(ttl=300, show_spinner="A carregar eventos...")
 def carregar_eventos(match_id):
     ev = pd.json_normalize(get_json(
         f"https://data.statsbombservices.com/api/v8/events/{match_id}"), sep=".")
@@ -419,7 +420,30 @@ def heatmap_fig(x_vals, y_vals, title):
 # ══════════════════════════════════════════════════════════════════════════
 
 pagina = st.sidebar.radio("📂 Página", ["📊 Vulnerabilidade", "🗺️ Heatmaps", "⚠️ Métricas Pós-Perda", "🏗️ Padrões de Construção"])
+
+# ── Atualização de dados ────────────────────────────────────────────────────
+st.sidebar.markdown("---")
+if st.sidebar.button("🔄 Forçar atualização de dados"):
+    st.cache_data.clear()
+    st.rerun()
+
 team_matches = carregar_matches()
+
+# Diagnóstico — visível em todas as páginas
+with st.sidebar.expander("🔍 Jogos carregados", expanded=False):
+    diag_cols = ["match_id", "match_date", "opponent"]
+    if "match_status" in team_matches.columns:
+        diag_cols.append("match_status")
+    st.dataframe(
+        team_matches[diag_cols].rename(columns={
+            "match_id": "ID", "match_date": "Data",
+            "opponent": "Adversário", "match_status": "Status"
+        }),
+        hide_index=True,
+        use_container_width=True,
+    )
+    st.caption(f"Total: {len(team_matches)} jogo(s) | Atualiza a cada 5 min")
+st.sidebar.markdown("---")
 
 # Carregar logos (cached 24h) — tem de ser depois de team_matches
 all_opponents = list(team_matches["opponent"].unique())
