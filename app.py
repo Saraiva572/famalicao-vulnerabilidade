@@ -1827,14 +1827,24 @@ elif pagina == "🏗️ Padrões de Construção":
     n_success_t = (df_poss["outcome_label"] == "success_total").sum()
     n_success_p = (df_poss["outcome_label"] == "success_partial").sum()
     n_fail      = (df_poss["outcome_label"] == "unsuccessful").sum()
-    pct_ok      = round((n_success_t + n_success_p) / n_total * 100, 1) if n_total else 0
+    pct_success_t = round(n_success_t / n_total * 100) if n_total else 0
+    pct_success_p = round(n_success_p / n_total * 100) if n_total else 0
+    pct_fail      = round(n_fail      / n_total * 100) if n_total else 0
+    pct_ok        = pct_success_t + pct_success_p
 
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Total de posses", n_total)
-    c2.metric("✅ Sucesso Total",   n_success_t)
-    c3.metric("🟡 Sucesso Parcial", n_success_p)
-    c4.metric("❌ Insucesso",       n_fail)
-    c5.metric("Taxa de sucesso",  f"{pct_ok}%")
+    c1.metric("Total de posses",    n_total)
+    c2.metric("✅ Sucesso Total",   f"{pct_success_t}%")
+    c3.metric("🟡 Sucesso Parcial", f"{pct_success_p}%")
+    c4.metric("❌ Insucesso",       f"{pct_fail}%")
+    c5.metric("% Sucesso",          f"{pct_ok}%")
+
+    with st.expander("ℹ️ O que significa cada outcome?", expanded=False):
+        st.markdown("""
+- **Sucesso Parcial** — a equipa consegue eliminar a 1ª pressão adversária, mas não consegue progredir até ao meio campo.
+- **Sucesso Total** — a equipa consegue eliminar a 1ª pressão adversária **e** progredir até ao meio campo.
+- **Insucesso** — a equipa não consegue eliminar a 1ª pressão adversária.
+        """)
 
     # ══════════════════════════════════════════════════════════════════════
     # 1) DISTRIBUIÇÃO DE OUTCOMES
@@ -1908,228 +1918,226 @@ elif pagina == "🏗️ Padrões de Construção":
 
     st.subheader("2️⃣ Padrões de Construção — Frequência e Taxa de Sucesso")
 
+    # ── Mapeamento: nome interno → nome PT + cor fixa por padrão ─────────
+    PATTERN_PT = {
+        "interior_exterior_same_side":     "Dentro-Fora mesmo lado",
+        "interior_exterior_opposite_side": "Dentro-Fora lado oposto",
+        "switch_of_play":                  "Mudança de corredor",
+        "center_exit_pattern":             "Saída pelo centro",
+        "outer_inner_exit":                "Fora-Dentro",
+        "other_pattern":                   "Outro",
+    }
+    # Cores fixas por padrão — usadas em AMBOS os gráficos
+    PATTERN_COLOR_MAP = {
+        "Dentro-Fora mesmo lado":     "#3498db",
+        "Dentro-Fora lado oposto":    "#f39c12",
+        "Mudança de corredor":        "#e74c3c",
+        "Saída pelo centro":          "#9b59b6",
+        "Fora-Dentro":                "#2ecc71",
+        "Outro":                      "#95a5a6",
+    }
+
+    # ── Texto explicativo de cada padrão (antes dos gráficos) ────────────
+    st.markdown("#### Descrição dos padrões identificados pelo algoritmo")
+    st.markdown("""
+| Padrão | Descrição |
+|--------|-----------|
+| **Dentro-Fora mesmo lado** | Atrair dentro para sair por fora do mesmo lado do 1º passe |
+| **Dentro-Fora lado oposto** | Atrair dentro para sair por fora, mas do lado oposto do 1º passe |
+| **Mudança de corredor** | A bola consegue entrar em largura nos 2 corredores exteriores |
+| **Saída pelo centro** | A saída é pelo corredor central ou pelos corredores centrais adjacentes, sem nunca ter ido a corredores laterais |
+| **Fora-Dentro** | Atrair por fora para tentar sair por zonas centrais (corredores centrais e corredores centrais adjacentes) |
+    """)
+
     # ── Carregar CSVs de padrões do GitHub ───────────────────────────────
     try:
         df_patterns_40 = carregar_patterns_to_40()
         df_patterns_60 = carregar_patterns_to_60()
-        
-        # Renomear colunas para compatibilidade
+
+        # Renomear coluna interna para "padrão"
         if "big_pattern_to_40_name" in df_patterns_40.columns:
             df_patterns_40 = df_patterns_40.rename(columns={"big_pattern_to_40_name": "padrão"})
         if "big_pattern_to_60_name" in df_patterns_60.columns:
             df_patterns_60 = df_patterns_60.rename(columns={"big_pattern_to_60_name": "padrão"})
-        
+
+        # Traduzir nomes para PT em ambos os DataFrames
+        df_patterns_40["padrão_pt"] = df_patterns_40["padrão"].map(PATTERN_PT).fillna(df_patterns_40["padrão"])
+        df_patterns_60["padrão_pt"] = df_patterns_60["padrão"].map(PATTERN_PT).fillna(df_patterns_60["padrão"])
+
+        def _make_pattern_charts(df_pat, label_suffix):
+            """Gera os dois gráficos (frequência + taxa sucesso) com cores fixas por padrão."""
+
+            # ── Frequência ────────────────────────────────────────────────
+            df_freq = df_pat.sort_values("total", ascending=True)
+            colors_freq = [PATTERN_COLOR_MAP.get(p, "#888") for p in df_freq["padrão_pt"]]
+
+            fig_freq = go.Figure()
+            fig_freq.add_trace(go.Bar(
+                y=df_freq["padrão_pt"],
+                x=df_freq["total"],
+                orientation="h",
+                marker_color=colors_freq,
+                text=df_freq["total"],
+                textposition="outside",
+                hovertemplate="<b>%{y}</b><br>Total: %{x} posses<extra></extra>",
+            ))
+            fig_freq.update_layout(
+                title=dict(text=f"Frequência dos Padrões ({label_suffix})",
+                           font=dict(size=14, family="Arial")),
+                height=380, plot_bgcolor="white",
+                margin=dict(l=10, r=50, t=60, b=40),
+            )
+            fig_freq.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
+            fig_freq.update_yaxes(showgrid=False, automargin=True)
+
+            # ── Taxa de sucesso total ─────────────────────────────────────
+            if "success_total_pct" not in df_pat.columns:
+                return fig_freq, None
+
+            df_taxa = df_pat.sort_values("success_total_pct", ascending=True)
+            colors_taxa = [PATTERN_COLOR_MAP.get(p, "#888") for p in df_taxa["padrão_pt"]]
+
+            fig_taxa = go.Figure()
+            fig_taxa.add_trace(go.Bar(
+                y=df_taxa["padrão_pt"],
+                x=df_taxa["success_total_pct"],
+                orientation="h",
+                marker_color=colors_taxa,
+                text=[f"{v:.0f}%" for v in df_taxa["success_total_pct"]],
+                textposition="outside",
+                hovertemplate="<b>%{y}</b><br>Taxa sucesso: %{x:.1f}%<extra></extra>",
+            ))
+            fig_taxa.add_vline(x=50, line_dash="dot", line_color="#888", line_width=1)
+            fig_taxa.update_layout(
+                title=dict(text=f"Taxa de Sucesso Total por Padrão ({label_suffix})",
+                           font=dict(size=14, family="Arial")),
+                height=380, plot_bgcolor="white",
+                margin=dict(l=10, r=60, t=60, b=40),
+                xaxis=dict(range=[0, 108]),
+            )
+            fig_taxa.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
+            fig_taxa.update_yaxes(showgrid=False, automargin=True)
+
+            return fig_freq, fig_taxa
+
         # Tabs para to_40 e to_60
         tab_40, tab_60 = st.tabs(["📊 até X > 40", "📊 até X > 60"])
-        
+
         with tab_40:
-            st.write("**Dados dos padrões até X > 40:**")
-            st.dataframe(df_patterns_40, width="stretch")
-            
+            fig_f40, fig_t40 = _make_pattern_charts(df_patterns_40, "X>40")
             col_pat_freq, col_pat_taxa = st.columns([1, 1])
-
             with col_pat_freq:
-                # Gráfico de frequência
-                df_freq = df_patterns_40.sort_values("total", ascending=True)
-                fig_pat_freq = go.Figure()
-                pat_colors = PATTERN_COLORS[:len(df_freq)]
-                fig_pat_freq.add_trace(go.Bar(
-                    y=df_freq["padrão"],
-                    x=df_freq["total"],
-                    orientation="h",
-                    marker_color=pat_colors,
-                    text=df_freq["total"],
-                    textposition="outside",
-                    hovertemplate="<b>%{y}</b><br>Total: %{x} posses<extra></extra>",
-                ))
-                fig_pat_freq.update_layout(
-                    title=dict(text="Frequência dos Padrões (to_40)", font=dict(size=14, family="Arial")),
-                    height=380,
-                    plot_bgcolor="white",
-                    margin=dict(l=200, r=40, t=60, b=40),
-                )
-                fig_pat_freq.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
-                fig_pat_freq.update_yaxes(showgrid=False)
-                st.plotly_chart(fig_pat_freq, width="stretch")
-
+                st.plotly_chart(fig_f40, use_container_width=True)
             with col_pat_taxa:
-                # Gráfico de taxa de sucesso
-                df_taxa = df_patterns_40.sort_values("success_total_pct", ascending=True)
-                fig_pat_taxa = go.Figure()
-                fig_pat_taxa.add_trace(go.Bar(
-                    y=df_taxa["padrão"],
-                    x=df_taxa["success_total_pct"],
-                    orientation="h",
-                    marker_color=[
-                        "#2ecc71" if v >= 60 else "#f39c12" if v >= 40 else "#e74c3c"
-                        for v in df_taxa["success_total_pct"]
-                    ],
-                    text=[f"{v:.0f}%" for v in df_taxa["success_total_pct"]],
-                    textposition="outside",
-                    name="Sucesso Total",
-                    hovertemplate="<b>%{y}</b><br>Taxa sucesso: %{x:.1f}%<extra></extra>",
-                ))
-                fig_pat_taxa.add_vline(x=50, line_dash="dot", line_color="#888", line_width=1)
-                fig_pat_taxa.update_layout(
-                    title=dict(text="Taxa de Sucesso Total por Padrão (to_40)", font=dict(size=14, family="Arial")),
-                    height=380,
-                    plot_bgcolor="white",
-                    margin=dict(l=200, r=60, t=60, b=40),
-                    xaxis=dict(range=[0, 105]),
-                )
-                fig_pat_taxa.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
-                fig_pat_taxa.update_yaxes(showgrid=False)
-                st.plotly_chart(fig_pat_taxa, width="stretch")
-        
+                if fig_t40:
+                    st.plotly_chart(fig_t40, use_container_width=True)
+
+            # Tabelas resumo pedidas pelo colega
+            st.markdown("#### Tabelas resumo")
+            cols_show_40 = [c for c in ["padrão_pt", "total", "success_total", "success_partial",
+                                         "unsuccessful", "success_total_pct", "freq_pct"] if c in df_patterns_40.columns]
+            rename_40 = {"padrão_pt": "Padrão", "total": "Total", "success_total": "Sucesso Total",
+                         "success_partial": "Sucesso Parcial", "unsuccessful": "Insucesso",
+                         "success_total_pct": "% Sucesso Total", "freq_pct": "% Frequência"}
+            st.dataframe(df_patterns_40[cols_show_40].rename(columns=rename_40),
+                         use_container_width=True, hide_index=True)
+
         with tab_60:
-            st.write("**Dados dos padrões até X > 60:**")
-            st.dataframe(df_patterns_60, width="stretch")
-            
+            fig_f60, fig_t60 = _make_pattern_charts(df_patterns_60, "X>60")
             col_pat_freq, col_pat_taxa = st.columns([1, 1])
-
             with col_pat_freq:
-                df_freq = df_patterns_60.sort_values("total", ascending=True)
-                fig_pat_freq = go.Figure()
-                pat_colors = PATTERN_COLORS[:len(df_freq)]
-                fig_pat_freq.add_trace(go.Bar(
-                    y=df_freq["padrão"],
-                    x=df_freq["total"],
-                    orientation="h",
-                    marker_color=pat_colors,
-                    text=df_freq["total"],
-                    textposition="outside",
-                    hovertemplate="<b>%{y}</b><br>Total: %{x} posses<extra></extra>",
-                ))
-                fig_pat_freq.update_layout(
-                    title=dict(text="Frequência dos Padrões (to_60)", font=dict(size=14, family="Arial")),
-                    height=380,
-                    plot_bgcolor="white",
-                    margin=dict(l=200, r=40, t=60, b=40),
-                )
-                fig_pat_freq.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
-                fig_pat_freq.update_yaxes(showgrid=False)
-                st.plotly_chart(fig_pat_freq, width="stretch")
-
+                st.plotly_chart(fig_f60, use_container_width=True)
             with col_pat_taxa:
-                df_taxa = df_patterns_60.sort_values("success_total_pct", ascending=True)
-                fig_pat_taxa = go.Figure()
-                fig_pat_taxa.add_trace(go.Bar(
-                    y=df_taxa["padrão"],
-                    x=df_taxa["success_total_pct"],
-                    orientation="h",
-                    marker_color=[
-                        "#2ecc71" if v >= 60 else "#f39c12" if v >= 40 else "#e74c3c"
-                        for v in df_taxa["success_total_pct"]
-                    ],
-                    text=[f"{v:.0f}%" for v in df_taxa["success_total_pct"]],
-                    textposition="outside",
-                    name="Sucesso Total",
-                    hovertemplate="<b>%{y}</b><br>Taxa sucesso: %{x:.1f}%<extra></extra>",
-                ))
-                fig_pat_taxa.add_vline(x=50, line_dash="dot", line_color="#888", line_width=1)
-                fig_pat_taxa.update_layout(
-                    title=dict(text="Taxa de Sucesso Total por Padrão (to_60)", font=dict(size=14, family="Arial")),
-                    height=380,
-                    plot_bgcolor="white",
-                    margin=dict(l=200, r=60, t=60, b=40),
-                    xaxis=dict(range=[0, 105]),
-                )
-                fig_pat_taxa.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
-                fig_pat_taxa.update_yaxes(showgrid=False)
-                st.plotly_chart(fig_pat_taxa, width="stretch")
-    
+                if fig_t60:
+                    st.plotly_chart(fig_t60, use_container_width=True)
+
+            cols_show_60 = [c for c in ["padrão_pt", "total", "success_total", "success_partial",
+                                         "unsuccessful", "success_total_pct", "freq_pct"] if c in df_patterns_60.columns]
+            st.dataframe(df_patterns_60[cols_show_60].rename(columns=rename_40),
+                         use_container_width=True, hide_index=True)
+
     except Exception as e:
         st.error(f"❌ Erro ao carregar padrões de construção do GitHub: {e}")
         st.info("Certifica-te que os CSVs de padrões estão no repositório:\n- `viz_patterns_to_40.csv`\n- `viz_patterns_to_60.csv`")
 
     # ══════════════════════════════════════════════════════════════════════
-    # 3) HEATMAP DE ZONAS 3×5 NO CAMPO
+    # 3) HEATMAP DE ZONAS 3×5 — TAXA DE SUCESSO
     # ══════════════════════════════════════════════════════════════════════
 
-    st.subheader("3️⃣ Heatmap de Zonas no Campo (3×5)")
-    st.caption("Zona do ponto de saída de cada posse. Campo StatsBomb 120×80 dividido em 15 zonas.")
-
-    col_hm_l, col_hm_r = st.columns([1, 1])
+    st.subheader("3️⃣ Heatmap de Zonas no Campo (3×5) — Taxa de Sucesso")
+    st.caption("Taxa de sucesso por zona de saída da posse. Campo StatsBomb 120×80 dividido em 15 zonas.")
 
     X_BANDS  = ["Zona 1\n(0-40)", "Zona 2\n(40-80)", "Zona 3\n(80-120)"]
     Y_CORRS  = ["Ext Esq", "Int Esq", "Centro", "Int Dir", "Ext Dir"]
 
-    def build_heatmap_matrix(df_sub, value_col):
+    def make_zone_matrix(zone_df_input, value_col):
         mat = pd.DataFrame(0.0, index=X_BANDS, columns=Y_CORRS)
-        for _, row in df_sub.iterrows():
-            z = row.get("zone_end")
-            if not z: continue
-            parts = str(z).split("|")
-            if len(parts) != 2: continue
-            xb, yc = parts
-            if xb in mat.index and yc in mat.columns:
-                mat.loc[xb, yc] += row[value_col]
-        return mat
-
-    # Totais por zona
-    zone_total = df_poss.groupby("zone_end").size().reset_index(name="count")
-    zone_succ  = df_poss[df_poss["outcome_label"].isin(["success_total","success_partial"])].groupby("zone_end").size().reset_index(name="count_succ")
-    zone_df    = zone_total.merge(zone_succ, on="zone_end", how="left").fillna(0)
-    zone_df["taxa_succ"] = (zone_df["count_succ"] / zone_df["count"] * 100).round(1)
-    zone_df["zone_end_str"] = zone_df["zone_end"]
-
-    def make_zone_matrix(zone_df, value_col):
-        mat = pd.DataFrame(0.0, index=X_BANDS, columns=Y_CORRS)
-        for _, row in zone_df.iterrows():
-            z = row["zone_end_str"]
-            if not z: continue
-            parts = str(z).split("|")
+        for _, row in zone_df_input.iterrows():
+            z = str(row.get("zone_end", "") or "")
+            parts = z.split("|")
             if len(parts) != 2: continue
             xb, yc = parts
             if xb in mat.index and yc in mat.columns:
                 mat.loc[xb, yc] = row[value_col]
         return mat
 
-    mat_count = make_zone_matrix(zone_df, "count")
-    mat_taxa  = make_zone_matrix(zone_df, "taxa_succ")
-
-    with col_hm_l:
-        fig_hm_count = go.Figure(go.Heatmap(
-            z=mat_count.values,
-            x=Y_CORRS,
-            y=X_BANDS,
-            colorscale="YlOrRd",
-            text=mat_count.values.astype(int),
-            texttemplate="%{text}",
-            hovertemplate="Zona X: %{y}<br>Corredor: %{x}<br>Posses: %{z}<extra></extra>",
-            showscale=True,
-            colorbar=dict(title="Posses"),
-        ))
-        fig_hm_count.update_layout(
-            title=dict(text="Frequência de Posses por Zona", font=dict(size=14, family="Arial")),
-            height=340,
-            margin=dict(l=80, r=40, t=60, b=60),
-            xaxis=dict(title="Corredor lateral"),
-            yaxis=dict(title="Zona longitudinal"),
-        )
-        st.plotly_chart(fig_hm_count, width="stretch")
-
-    with col_hm_r:
-        fig_hm_taxa = go.Figure(go.Heatmap(
-            z=mat_taxa.values,
-            x=Y_CORRS,
-            y=X_BANDS,
-            colorscale="RdYlGn",
-            zmin=0, zmax=100,
-            text=[[f"{v:.0f}%" if v > 0 else "" for v in row] for row in mat_taxa.values],
+    def _build_heatmap_taxa(df_sub, title):
+        zone_total = df_sub.groupby("zone_end").size().reset_index(name="count")
+        zone_succ  = df_sub[df_sub["outcome_label"].isin(["success_total", "success_partial"])].groupby("zone_end").size().reset_index(name="count_succ")
+        zone_df_h  = zone_total.merge(zone_succ, on="zone_end", how="left").fillna(0)
+        zone_df_h["taxa_succ"] = (zone_df_h["count_succ"] / zone_df_h["count"] * 100).round(1)
+        mat = make_zone_matrix(zone_df_h, "taxa_succ")
+        fig = go.Figure(go.Heatmap(
+            z=mat.values, x=Y_CORRS, y=X_BANDS,
+            colorscale="RdYlGn", zmin=0, zmax=100,
+            text=[[f"{v:.0f}%" if v > 0 else "" for v in row] for row in mat.values],
             texttemplate="%{text}",
             hovertemplate="Zona X: %{y}<br>Corredor: %{x}<br>Taxa sucesso: %{z:.1f}%<extra></extra>",
             showscale=True,
             colorbar=dict(title="Taxa %"),
         ))
-        fig_hm_taxa.update_layout(
-            title=dict(text="Taxa de Sucesso por Zona (%)", font=dict(size=14, family="Arial")),
-            height=340,
+        fig.update_layout(
+            title=dict(text=title, font=dict(size=14, family="Arial")),
+            height=360,
             margin=dict(l=80, r=40, t=60, b=60),
             xaxis=dict(title="Corredor lateral"),
             yaxis=dict(title="Zona longitudinal"),
         )
-        st.plotly_chart(fig_hm_taxa, width="stretch")
+        return fig
+
+    # Calcular zonas para X>40 (df_poss já filtrado) e X>60
+    df_poss_to40 = df_poss.copy()  # já está filtrado
+
+    # Para X>60: usar só as posses cujo x_end > 60
+    df_poss_to60 = df_poss[df_poss["x_end"].apply(lambda x: x > 60 if pd.notna(x) else False)].copy() \
+        if "x_end" in df_poss.columns else df_poss.copy()
+
+    # Recalcular zone_end para to60 (usa a mesma lógica)
+    def build_zone_3x5_local(x_val, y_val):
+        if pd.isna(x_val) or pd.isna(y_val): return None
+        x_band = "Zona 1\n(0-40)" if x_val < 40 else ("Zona 2\n(40-80)" if x_val < 80 else "Zona 3\n(80-120)")
+        if y_val < 16:   y_corr = "Ext Esq"
+        elif y_val < 32: y_corr = "Int Esq"
+        elif y_val < 48: y_corr = "Centro"
+        elif y_val < 64: y_corr = "Int Dir"
+        else:            y_corr = "Ext Dir"
+        return f"{x_band}|{y_corr}"
+
+    if "zone_end" not in df_poss_to60.columns:
+        df_poss_to60["zone_end"] = df_poss_to60.apply(
+            lambda r: build_zone_3x5_local(r.get("x_end"), r.get("y_end")), axis=1
+        )
+
+    col_hm_40, col_hm_60 = st.columns([1, 1])
+    with col_hm_40:
+        st.plotly_chart(_build_heatmap_taxa(df_poss_to40, "Taxa de Sucesso por Zona — X>40 (%)"),
+                        use_container_width=True)
+    with col_hm_60:
+        if not df_poss_to60.empty:
+            st.plotly_chart(_build_heatmap_taxa(df_poss_to60, "Taxa de Sucesso por Zona — X>60 (%)"),
+                            use_container_width=True)
+        else:
+            st.info("Sem dados suficientes para X>60.")
 
     # Mapa de pontos no campo (matplotlib)
     st.markdown("**Distribuição espacial dos pontos de saída das posses**")
@@ -2138,7 +2146,6 @@ elif pagina == "🏗️ Padrões de Construção":
     ax_field.set_facecolor("#f5f5f0")
     ax_field.set_xlim(0, 120); ax_field.set_ylim(0, 80)
     ax_field.set_aspect("equal"); ax_field.axis("off")
-    # Campo básico
     for patch_args in [
         dict(xy=(0,0), width=120, height=80, fill=False, edgecolor="#333", linewidth=2),
         dict(xy=(0,18), width=18, height=44, fill=False, edgecolor="#333", linewidth=1.5),
@@ -2148,7 +2155,6 @@ elif pagina == "🏗️ Padrões de Construção":
     ]:
         ax_field.add_patch(patches.Rectangle(**patch_args))
     ax_field.axvline(60, color="#333", linewidth=1.5, linestyle="--", alpha=0.5)
-    # Pontos por outcome
     for outcome, label, color, marker in [
         ("success_total",   "✅ Sucesso Total",   "#2ecc71", "o"),
         ("success_partial", "🟡 Sucesso Parcial", "#f39c12", "s"),
@@ -2337,11 +2343,11 @@ elif pagina == "🏗️ Padrões de Construção":
             )
             st.plotly_chart(fig_net, width="stretch")
 
-            # Top 15 ligações
-            with st.expander("📋 Top 15 ligações mais frequentes", expanded=False):
-                top15 = lc_filt.head(15).copy()
-                top15.columns = ["Origem", "Destino", "N.º Passes"]
-                st.dataframe(top15, width="stretch", hide_index=True)
+            # Top 10 ligações
+            with st.expander("📋 Top 10 ligações mais frequentes", expanded=True):
+                top10 = link_counts.head(10).copy()
+                top10.columns = ["Origem", "Destino", "N.º Passes"]
+                st.dataframe(top10, use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════
     # 5) POSICIONAMENTO POR PADRÃO DE CONSTRUÇÃO
@@ -2349,6 +2355,10 @@ elif pagina == "🏗️ Padrões de Construção":
 
     st.subheader("5️⃣ Posicionamento por Padrão de Construção")
     st.caption("Posições médias dos jogadores e primeiros passes em cada padrão de construção (dados pré-calculados).")
+    st.markdown(
+        "O posicionamento médio por posição é calculado com base em todos os pontos captados nas ações "
+        "de todas as posses incluídas para a análise da 1ª fase de construção do FC Famalicão."
+    )
 
     # Carregar CSVs pré-calculados
     try:
