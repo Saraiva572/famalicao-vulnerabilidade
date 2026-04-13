@@ -2175,179 +2175,187 @@ elif pagina == "🏗️ Padrões de Construção":
     # ══════════════════════════════════════════════════════════════════════
 
     st.subheader("4️⃣ Pass Network por Posição")
-    st.caption("Ligações mais frequentes entre posições na 1ª fase de construção (janela até x>40).")
+    st.caption("Ligações mais frequentes entre posições na 1ª fase de construção (dados pré-calculados a partir do notebook).")
 
-    # Extrair pares de posição a partir de pass_links_sequence_to_40
-    @st.cache_data(show_spinner=False)
-    def extrair_pass_links(df_input: pd.DataFrame) -> pd.DataFrame:
-        records = []
-        for _, row in df_input.iterrows():
-            outcome = row["outcome_label"]
-            raw = row.get("pass_links_sequence_to_40")
-            if pd.isna(raw): continue
-            for link in str(raw).split("|"):
-                link = link.strip()
-                if "->" not in link: continue
-                parts = link.split("->")
-                if len(parts) == 2:
-                    records.append({
-                        "origin":  parts[0].strip(),
-                        "dest":    parts[1].strip(),
-                        "outcome": outcome,
-                    })
-        return pd.DataFrame(records)
+    # ── Carregar viz_pass_links.csv (mesma fonte que o notebook) ─────────
+    try:
+        df_pass_links_net = carregar_pass_links_csv()
+    except Exception as e_net:
+        df_pass_links_net = pd.DataFrame()
+        st.warning(f"Não foi possível carregar viz_pass_links.csv: {e_net}")
 
-    links_df = extrair_pass_links(df_poss)
-
-    if links_df.empty:
-        st.warning("Não foi possível extrair pares de passe do CSV.")
+    if df_pass_links_net.empty:
+        st.info("Certifica-te que `viz_pass_links.csv` está no repositório GitHub.")
     else:
-        # Agregar
-        link_counts = (
-            links_df.groupby(["origin", "dest"])
-            .size()
-            .reset_index(name="n_passes")
-            .sort_values("n_passes", ascending=False)
-        )
-
-        # Filtro de threshold
-        min_passes = st.slider(
-            "Mostrar apenas ligações com pelo menos N passes:", 1,
-            int(link_counts["n_passes"].max()), 3, key="pass_net_thresh"
-        )
-        lc_filt = link_counts[link_counts["n_passes"] >= min_passes]
-
-        # Filtro por outcome
-        outcome_filter = st.selectbox(
-            "Filtrar por outcome:",
-            ["Todos", "✅ Sucesso Total", "🟡 Sucesso Parcial", "❌ Insucesso"],
-            key="pass_net_outcome"
-        )
-        outcome_map_rev = {v: k for k, v in OUTCOME_LABELS.items()}
-        if outcome_filter != "Todos":
-            outcome_key = outcome_map_rev.get(outcome_filter)
-            sub_links = links_df[links_df["outcome"] == outcome_key]
-            lc_filt = (
-                sub_links.groupby(["origin","dest"])
-                .size()
-                .reset_index(name="n_passes")
-                .query(f"n_passes >= {min_passes}")
-                .sort_values("n_passes", ascending=False)
+        # Filtrar para janela to_40, padrão "all" (visão global)
+        # e permitir ao utilizador escolher janela/padrão
+        col_net_f1, col_net_f2 = st.columns(2)
+        with col_net_f1:
+            net_window_opts = sorted(df_pass_links_net["window"].unique()) \
+                if "window" in df_pass_links_net.columns else ["to_40"]
+            net_window_labels = {"to_40": "Até x > 40", "to_60": "Até x > 60"}
+            net_window_sel = st.selectbox(
+                "Janela espacial:",
+                net_window_opts,
+                format_func=lambda w: net_window_labels.get(w, w),
+                key="pass_net_window"
             )
-
-        if lc_filt.empty:
-            st.info("Nenhuma ligação com os filtros seleccionados.")
-        else:
-            # Posições únicas + posicionamento médio
-            all_positions = sorted(
-                set(lc_filt["origin"].tolist()) | set(lc_filt["dest"].tolist())
-            )
-            avg_x = df_poss["x_start"].mean() if "x_start" in df_poss.columns else 30
-
-            # Coordenadas fixas aproximadas por posição (campo 0-120 × 0-80)
-            POS_COORDS = {
-                "Goalkeeper":                  (5,  40),
-                "Right Center Back":           (20, 60),
-                "Left Center Back":            (20, 20),
-                "Right Back":                  (18, 72),
-                "Left Back":                   (18, 8),
-                "Right Wing Back":             (25, 75),
-                "Left Wing Back":              (25, 5),
-                "Right Defensive Midfield":    (35, 58),
-                "Left Defensive Midfield":     (35, 22),
-                "Center Defensive Midfield":   (35, 40),
-                "Right Center Midfield":       (50, 58),
-                "Left Center Midfield":        (50, 22),
-                "Center Attacking Midfield":   (65, 40),
-                "Right Attacking Midfield":    (65, 60),
-                "Left Attacking Midfield":     (65, 20),
-                "Right Midfield":              (50, 70),
-                "Left Midfield":               (50, 10),
-                "Right Wing":                  (75, 72),
-                "Left Wing":                   (75, 8),
-                "Right Center Forward":        (85, 55),
-                "Left Center Forward":         (85, 25),
-                "Center Forward":              (90, 40),
+        with col_net_f2:
+            net_pattern_opts = sorted(
+                df_pass_links_net[df_pass_links_net["window"] == net_window_sel]["pattern_name"].unique()
+            ) if "pattern_name" in df_pass_links_net.columns else ["all"]
+            net_pattern_label_map = {
+                "all":                             "Todos os Padrões",
+                "center_exit_pattern":             "Saída pelo Centro",
+                "interior_exterior_same_side":     "Dentro-Fora mesmo lado",
+                "interior_exterior_opposite_side": "Dentro-Fora lado oposto",
+                "switch_of_play":                  "Mudança de Corredor",
+                "outer_inner_exit":                "Fora-Dentro",
+                "other_pattern":                   "Outro",
             }
+            net_pattern_sel = st.selectbox(
+                "Padrão de construção:",
+                net_pattern_opts,
+                format_func=lambda p: net_pattern_label_map.get(p, p),
+                key="pass_net_pattern"
+            )
 
-            # Contagem de passes enviados por posição (tamanho do nó)
-            pos_count = lc_filt.groupby("origin")["n_passes"].sum().to_dict()
+        # Filtrar dados
+        net_mask = pd.Series([True] * len(df_pass_links_net))
+        if "window" in df_pass_links_net.columns:
+            net_mask &= df_pass_links_net["window"] == net_window_sel
+        if "pattern_name" in df_pass_links_net.columns:
+            net_mask &= df_pass_links_net["pattern_name"] == net_pattern_sel
+        lc_net = df_pass_links_net[net_mask].copy()
 
-            # Plotly scatter (campo 0-120 × 0-80)
-            fig_net = go.Figure()
+        # Normalizar nomes das colunas origin/dest
+        for col_alias in [("from", "origin"), ("from_position", "origin"),
+                          ("to", "dest"), ("to_position", "dest")]:
+            if col_alias[0] in lc_net.columns and col_alias[1] not in lc_net.columns:
+                lc_net = lc_net.rename(columns={col_alias[0]: col_alias[1]})
 
-            # Campo (rectângulos e linhas)
-            field_shapes = [
-                dict(type="rect", x0=0, y0=0, x1=120, y1=80,
-                     line=dict(color="#333", width=2), fillcolor="rgba(0,0,0,0)"),
-                dict(type="rect", x0=0, y0=18, x1=18, y1=62,
-                     line=dict(color="#555", width=1), fillcolor="rgba(0,0,0,0)"),
-                dict(type="rect", x0=102, y0=18, x1=120, y1=62,
-                     line=dict(color="#555", width=1), fillcolor="rgba(0,0,0,0)"),
-                dict(type="line", x0=60, y0=0, x1=60, y1=80,
-                     line=dict(color="#555", width=1, dash="dot")),
-            ]
+        if lc_net.empty or "origin" not in lc_net.columns:
+            st.info("Sem dados de ligações para esta combinação.")
+        else:
+            lc_net = lc_net.sort_values("n_passes", ascending=False)
 
-            # Arestas (passes)
-            max_n = lc_filt["n_passes"].max()
-            for _, row_lnk in lc_filt.iterrows():
-                x0, y0 = POS_COORDS.get(row_lnk["origin"], (30, 40))
-                x1, y1 = POS_COORDS.get(row_lnk["dest"],   (30, 40))
-                width  = 1 + 5 * (row_lnk["n_passes"] / max_n)
-                alpha  = 0.3 + 0.5 * (row_lnk["n_passes"] / max_n)
+            # Threshold de passes
+            max_n_net = int(lc_net["n_passes"].max()) if not lc_net.empty else 1
+            min_passes_net = st.slider(
+                "Mostrar apenas ligações com pelo menos N passes:", 1,
+                max(max_n_net, 1), max(1, max_n_net // 8),
+                key="pass_net_thresh"
+            )
+            lc_filt = lc_net[lc_net["n_passes"] >= min_passes_net]
+
+            if lc_filt.empty:
+                st.info("Nenhuma ligação com os filtros selecionados.")
+            else:
+                all_positions = sorted(
+                    set(lc_filt["origin"].tolist()) | set(lc_filt["dest"].tolist())
+                )
+
+                # Coordenadas fixas por posição (campo 0-120 × 0-80)
+                POS_COORDS = {
+                    "Goalkeeper":                  (5,  40),
+                    "Right Center Back":           (20, 60),
+                    "Left Center Back":            (20, 20),
+                    "Right Back":                  (18, 72),
+                    "Left Back":                   (18, 8),
+                    "Right Wing Back":             (25, 75),
+                    "Left Wing Back":              (25, 5),
+                    "Right Defensive Midfield":    (35, 58),
+                    "Left Defensive Midfield":     (35, 22),
+                    "Center Defensive Midfield":   (35, 40),
+                    "Right Center Midfield":       (50, 58),
+                    "Left Center Midfield":        (50, 22),
+                    "Center Attacking Midfield":   (65, 40),
+                    "Right Attacking Midfield":    (65, 60),
+                    "Left Attacking Midfield":     (65, 20),
+                    "Right Midfield":              (50, 70),
+                    "Left Midfield":               (50, 10),
+                    "Right Wing":                  (75, 72),
+                    "Left Wing":                   (75, 8),
+                    "Right Center Forward":        (85, 55),
+                    "Left Center Forward":         (85, 25),
+                    "Center Forward":              (90, 40),
+                }
+
+                pos_count = lc_filt.groupby("origin")["n_passes"].sum().to_dict()
+
+                fig_net = go.Figure()
+
+                field_shapes = [
+                    dict(type="rect", x0=0, y0=0, x1=120, y1=80,
+                         line=dict(color="#333", width=2), fillcolor="rgba(0,0,0,0)"),
+                    dict(type="rect", x0=0, y0=18, x1=18, y1=62,
+                         line=dict(color="#555", width=1), fillcolor="rgba(0,0,0,0)"),
+                    dict(type="rect", x0=102, y0=18, x1=120, y1=62,
+                         line=dict(color="#555", width=1), fillcolor="rgba(0,0,0,0)"),
+                    dict(type="line", x0=60, y0=0, x1=60, y1=80,
+                         line=dict(color="#555", width=1, dash="dot")),
+                ]
+
+                max_n = lc_filt["n_passes"].max()
+                for _, row_lnk in lc_filt.iterrows():
+                    x0, y0 = POS_COORDS.get(row_lnk["origin"], (30, 40))
+                    x1, y1 = POS_COORDS.get(row_lnk["dest"],   (30, 40))
+                    width  = 1 + 5 * (row_lnk["n_passes"] / max_n)
+                    alpha  = 0.3 + 0.5 * (row_lnk["n_passes"] / max_n)
+                    fig_net.add_trace(go.Scatter(
+                        x=[x0, x1, None], y=[y0, y1, None],
+                        mode="lines",
+                        line=dict(color=f"rgba(52,152,219,{alpha:.2f})", width=width),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    ))
+
+                node_x, node_y, node_size, node_text, node_hover = [], [], [], [], []
+                for pos in all_positions:
+                    cx, cy = POS_COORDS.get(pos, (30, 40))
+                    cnt = pos_count.get(pos, 1)
+                    node_x.append(cx); node_y.append(cy)
+                    node_size.append(12 + 20 * cnt / max(pos_count.values(), default=1))
+                    node_text.append(pos.replace(" ", "\n"))
+                    node_hover.append(f"<b>{pos}</b><br>Passes enviados: {cnt}")
+
                 fig_net.add_trace(go.Scatter(
-                    x=[x0, x1, None], y=[y0, y1, None],
-                    mode="lines",
-                    line=dict(color=f"rgba(52,152,219,{alpha:.2f})", width=width),
-                    hoverinfo="skip",
+                    x=node_x, y=node_y,
+                    mode="markers+text",
+                    marker=dict(
+                        size=node_size,
+                        color="#e74c3c",
+                        line=dict(color="white", width=2),
+                    ),
+                    text=node_text,
+                    textposition="top center",
+                    textfont=dict(size=8),
+                    hovertemplate="%{customdata}<extra></extra>",
+                    customdata=node_hover,
                     showlegend=False,
                 ))
 
-            # Nós (posições)
-            node_x, node_y, node_size, node_text, node_hover = [], [], [], [], []
-            for pos in all_positions:
-                cx, cy = POS_COORDS.get(pos, (30, 40))
-                cnt = pos_count.get(pos, 1)
-                node_x.append(cx); node_y.append(cy)
-                node_size.append(12 + 20 * cnt / max(pos_count.values(), default=1))
-                node_text.append(pos.replace(" ", "\n"))
-                node_hover.append(f"<b>{pos}</b><br>Passes enviados: {cnt}")
+                fig_net.update_layout(
+                    shapes=field_shapes,
+                    xaxis=dict(range=[-5, 125], showgrid=False, zeroline=False, visible=False),
+                    yaxis=dict(range=[-5, 85],  showgrid=False, zeroline=False, visible=False,
+                               scaleanchor="x", scaleratio=1),
+                    height=540,
+                    plot_bgcolor="#f5f5f0",
+                    margin=dict(l=10, r=10, t=50, b=10),
+                    title=dict(
+                        text=f"Pass Network — {net_pattern_label_map.get(net_pattern_sel, net_pattern_sel)} | {net_window_labels.get(net_window_sel, net_window_sel)}",
+                        font=dict(size=14, family="Arial")
+                    ),
+                    hovermode="closest",
+                )
+                st.plotly_chart(fig_net, use_container_width=True)
 
-            fig_net.add_trace(go.Scatter(
-                x=node_x, y=node_y,
-                mode="markers+text",
-                marker=dict(
-                    size=node_size,
-                    color="#e74c3c",
-                    line=dict(color="white", width=2),
-                ),
-                text=node_text,
-                textposition="top center",
-                textfont=dict(size=8),
-                hovertemplate="%{customdata}<extra></extra>",
-                customdata=node_hover,
-                showlegend=False,
-            ))
-
-            fig_net.update_layout(
-                shapes=field_shapes,
-                xaxis=dict(range=[-5,125], showgrid=False, zeroline=False, visible=False),
-                yaxis=dict(range=[-5,85],  showgrid=False, zeroline=False, visible=False,
-                           scaleanchor="x", scaleratio=1),
-                height=540,
-                plot_bgcolor="#f5f5f0",
-                margin=dict(l=10, r=10, t=50, b=10),
-                title=dict(text=f"Pass Network — {outcome_filter} | min. {min_passes} passes",
-                           font=dict(size=14, family="Arial")),
-                hovermode="closest",
-            )
-            st.plotly_chart(fig_net, width="stretch")
-
-            # Top 10 ligações
-            with st.expander("📋 Top 10 ligações mais frequentes", expanded=True):
-                top10 = link_counts.head(10).copy()
-                top10.columns = ["Origem", "Destino", "N.º Passes"]
-                st.dataframe(top10, use_container_width=True, hide_index=True)
+                # Top 10 ligações — valores directamente do CSV do notebook
+                with st.expander("📋 Top 10 ligações mais frequentes", expanded=True):
+                    top10 = lc_net.head(10)[["origin", "dest", "n_passes"]].copy()
+                    top10.columns = ["Origem", "Destino", "N.º Passes"]
+                    st.dataframe(top10, use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════
     # 5) POSICIONAMENTO POR PADRÃO DE CONSTRUÇÃO
