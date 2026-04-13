@@ -1879,82 +1879,118 @@ elif pagina == "🏗️ Padrões de Construção":
                          use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 4 — HEATMAP TAXA DE SUCESSO POR ZONA (viz_zones_to_40 / to_60)
+    # 4 — HEATMAP TAXA DE SUCESSO POR ZONA (calculado de possession_features_analysis.csv)
     # ══════════════════════════════════════════════════════════════════════════
     st.subheader("4️⃣ Heatmap — Taxa de Sucesso por Zona de Saída")
-    st.caption("Taxa de alcance (reached_pct) por zona — campo StatsBomb dividido em zonas longitudinais × corredores laterais.")
+    st.caption("Taxa de sucesso por zona do ponto de saída de cada posse. Campo StatsBomb 120×80 dividido em 3 bandas × 5 corredores.")
 
-    def _zone_matrix(df_zones, pattern_filter="all"):
-        if df_zones.empty: return None
-        df_z = df_zones[df_zones["pattern_name"] == pattern_filter].copy() if "pattern_name" in df_zones.columns else df_zones.copy()
-        if df_z.empty: return None
+    X_BANDS_HM = ["Zona 1 (0-40)", "Zona 2 (40-60)", "Zona 3 (60-120)"]
+    Y_CORRS_HM = ["Ext Esq", "Int Esq", "Centro", "Int Dir", "Ext Dir"]
 
-        ZONE_LABEL_X = {
-            "x_band_2": "Zona 2 (40-80)",
-            "x_band_3": "Zona 3 (80-120)",
-        }
-        ZONE_LABEL_Y = {
-            "center":      "Centro",
-            "left_inner":  "Int Esq",
-            "left_outer":  "Ext Esq",
-            "right_inner": "Int Dir",
-            "right_outer": "Ext Dir",
-        }
-        Y_ORDER = ["Ext Esq", "Int Esq", "Centro", "Int Dir", "Ext Dir"]
-        X_ORDER = ["Zona 2 (40-80)", "Zona 3 (80-120)"]
+    def _get_zone(x, y):
+        if pd.isna(x) or pd.isna(y): return None
+        xb = "Zona 1 (0-40)" if x < 40 else ("Zona 2 (40-60)" if x < 60 else "Zona 3 (60-120)")
+        if   y < 16: yc = "Ext Esq"
+        elif y < 32: yc = "Int Esq"
+        elif y < 48: yc = "Centro"
+        elif y < 64: yc = "Int Dir"
+        else:        yc = "Ext Dir"
+        return f"{xb}|{yc}"
 
-        mat = pd.DataFrame(None, index=X_ORDER, columns=Y_ORDER, dtype=float)
-        for _, row in df_z.iterrows():
-            parts = str(row["zone"]).split("__")
+    def _build_heatmap_from_poss(df_input, x_col, y_col, pattern_col=None, pattern_filter=None):
+        """Calcula taxa de sucesso por zona usando as colunas de saída correctas."""
+        df_h = df_input.copy()
+        if pattern_filter and pattern_filter != "all" and pattern_col and pattern_col in df_h.columns:
+            df_h = df_h[df_h[pattern_col] == pattern_filter]
+        if df_h.empty: return None
+
+        df_h["_zone"] = df_h.apply(lambda r: _get_zone(r.get(x_col), r.get(y_col)), axis=1)
+        df_h = df_h[df_h["_zone"].notna()]
+        if df_h.empty: return None
+
+        zone_total = df_h.groupby("_zone").size().reset_index(name="total")
+        zone_succ  = df_h[df_h["outcome_label"].isin(["success_total", "success_partial"])]\
+                        .groupby("_zone").size().reset_index(name="sucessos")
+        zdf = zone_total.merge(zone_succ, on="_zone", how="left").fillna(0)
+        zdf["taxa_pct"] = (zdf["sucessos"] / zdf["total"] * 100).round(1)
+
+        mat = pd.DataFrame(None, index=X_BANDS_HM, columns=Y_CORRS_HM, dtype=float)
+        for _, row in zdf.iterrows():
+            parts = str(row["_zone"]).split("|")
             if len(parts) != 2: continue
-            xb = ZONE_LABEL_X.get(parts[0])
-            yc = ZONE_LABEL_Y.get(parts[1])
-            if xb and yc:
-                mat.loc[xb, yc] = float(row["reached_pct"])
+            xb, yc = parts
+            if xb in mat.index and yc in mat.columns:
+                mat.loc[xb, yc] = row["taxa_pct"]
         return mat
 
-    if not df_zones40.empty or not df_zones60.empty:
+    if df_poss_feat.empty:
+        st.warning("Não foi possível carregar possession_features_analysis.csv do GitHub.")
+    else:
         # Filtro por padrão
-        zone_pat_opts = ["all"] + [p for p in sorted(df_zones40["pattern_name"].unique()) if p != "all"] \
-            if "pattern_name" in df_zones40.columns else ["all"]
+        zone_pat_opts = ["all"]
+        if "big_pattern_to_40_name" in df_poss_feat.columns:
+            zone_pat_opts += [p for p in sorted(df_poss_feat["big_pattern_to_40_name"].dropna().unique())
+                              if p != "all"]
         zone_pat_labels = {
-            "all": "Todos os Padrões",
-            "center_exit_pattern": "Saída pelo centro",
-            "interior_exterior_same_side": "Dentro-Fora mesmo lado",
+            "all":                             "Todos os Padrões",
+            "center_exit_pattern":             "Saída pelo centro",
+            "interior_exterior_same_side":     "Dentro-Fora mesmo lado",
             "interior_exterior_opposite_side": "Dentro-Fora lado oposto",
-            "switch_of_play": "Mudança de corredor",
-            "outer_inner_exit": "Fora-Dentro",
+            "switch_of_play":                  "Mudança de corredor",
+            "outer_inner_exit":                "Fora-Dentro",
+            "other_pattern":                   "Outro",
         }
-        zone_pat_sel = st.selectbox("Padrão:", zone_pat_opts,
-                                     format_func=lambda p: zone_pat_labels.get(p, p),
-                                     key="zone_pat")
+        zone_pat_sel = st.selectbox(
+            "Padrão:", zone_pat_opts,
+            format_func=lambda p: zone_pat_labels.get(p, p),
+            key="zone_pat"
+        )
 
         col_z40, col_z60 = st.columns(2)
 
-        for col_z, df_z, title in [(col_z40, df_zones40, "Taxa de Alcance X>40 (%)"),
-                                    (col_z60, df_zones60, "Taxa de Alcance X>60 (%)")]:
-            mat = _zone_matrix(df_z, zone_pat_sel)
+        # X>40 — ponto exacto de saída da janela até x=40
+        mat40 = _build_heatmap_from_poss(
+            df_poss_feat,
+            x_col="exit_x_to_40", y_col="exit_y_to_40",
+            pattern_col="big_pattern_to_40_name", pattern_filter=zone_pat_sel
+        )
+
+        # X>60 — apenas posses que chegaram além de x=60, ponto de saída da janela
+        df_poss60 = df_poss_feat[df_poss_feat["reached_60_flag"] == 1].copy() \
+            if "reached_60_flag" in df_poss_feat.columns else pd.DataFrame()
+        mat60 = _build_heatmap_from_poss(
+            df_poss60,
+            x_col="exit_x_to_60", y_col="exit_y_to_60",
+            pattern_col="big_pattern_to_60_name", pattern_filter=zone_pat_sel
+        ) if not df_poss60.empty else None
+
+        for col_z, mat, title in [
+            (col_z40, mat40, "Taxa de Sucesso por Zona — X>40 (%)"),
+            (col_z60, mat60, "Taxa de Sucesso por Zona — X>60 (%)"),
+        ]:
             with col_z:
                 if mat is not None:
-                    text_vals = [[f"{v:.0f}%" if pd.notna(v) else "" for v in row] for row in mat.values]
+                    text_vals = [[f"{v:.0f}%" if pd.notna(v) and v > 0 else ""
+                                  for v in row] for row in mat.values]
                     fig_hm = go.Figure(go.Heatmap(
-                        z=mat.values, x=mat.columns.tolist(), y=mat.index.tolist(),
+                        z=mat.values,
+                        x=Y_CORRS_HM,
+                        y=X_BANDS_HM,
                         colorscale="RdYlGn", zmin=0, zmax=100,
                         text=text_vals, texttemplate="%{text}",
-                        hovertemplate="Zona: %{y}<br>Corredor: %{x}<br>Taxa alcance: %{z:.1f}%<extra></extra>",
+                        hovertemplate="Zona: %{y}<br>Corredor: %{x}<br>Taxa sucesso: %{z:.1f}%<extra></extra>",
                         showscale=True, colorbar=dict(title="Taxa %"),
                     ))
                     fig_hm.update_layout(
                         title=dict(text=title, font=dict(size=13, family="Arial")),
-                        height=320, margin=dict(l=100, r=40, t=50, b=60),
+                        height=360,
+                        margin=dict(l=100, r=40, t=50, b=60),
                         xaxis=dict(title="Corredor lateral"),
                         yaxis=dict(title="Zona longitudinal"),
                     )
                     st.plotly_chart(fig_hm, use_container_width=True)
                 else:
-                    st.info(f"Sem dados para '{zone_pat_labels.get(zone_pat_sel, zone_pat_sel)}'.")
-    else:
-        st.warning("Não foi possível carregar os CSVs de zonas do GitHub.")
+                    st.info("Sem dados suficientes para esta combinação.")
 
     # ══════════════════════════════════════════════════════════════════════════
     # 5 — POSICIONAMENTO MÉDIO POR PADRÃO (viz_avg_positions.csv)
