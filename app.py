@@ -1851,37 +1851,32 @@ elif pagina == "🏗️ Padrões de Construção":
                                    "unsuccessful","success_total_pct","freq_pct"] if c in df60.columns]
             st.dataframe(df60[cols60].rename(columns=rn), use_container_width=True, hide_index=True)
 
-        # Comparação X>40 vs X>60
+        # Comparação X>40 vs X>60 — tabelas directas (sem expander)
         if not df_pat_comp.empty:
-            with st.expander("🔍 Comparação X>40 vs X>60", expanded=False):
-                df_comp = df_pat_comp.copy()
-                df_comp["padrão_pt"] = df_comp["pattern_name"].map(PATTERN_PT).fillna(df_comp["pattern_name"])
-                df_comp = df_comp.sort_values("n_possessions_to_40", ascending=False)
+            df_comp = df_pat_comp.copy()
+            df_comp["Padrão"] = df_comp["pattern_name"].map(PATTERN_PT).fillna(df_comp["pattern_name"])
 
-                fig_comp = go.Figure()
-                fig_comp.add_trace(go.Bar(x=df_comp["padrão_pt"], y=df_comp["success_total_pct_to_40"],
-                    name="% Sucesso X>40", marker_color="#3498db",
-                    hovertemplate="<b>%{x}</b><br>X>40: %{y:.1f}%<extra></extra>"))
-                fig_comp.add_trace(go.Bar(x=df_comp["padrão_pt"], y=df_comp["success_total_pct_to_60"],
-                    name="% Sucesso X>60", marker_color="#9b59b6",
-                    hovertemplate="<b>%{x}</b><br>X>60: %{y:.1f}%<extra></extra>"))
-                fig_comp.update_layout(barmode="group", height=360, plot_bgcolor="white",
-                    margin=dict(l=20, r=20, t=50, b=80),
-                    xaxis=dict(tickangle=-20),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                    title=dict(text="Taxa de sucesso X>40 vs X>60 por padrão", font=dict(size=13, family="Arial")))
-                fig_comp.update_yaxes(showgrid=True, gridcolor="#EEEEEE", title="% Sucesso Total")
-                st.plotly_chart(fig_comp, use_container_width=True)
+            st.markdown("#### Comparação da Frequência dos Padrões: X>40 vs X>60")
+            df_freq_show = df_comp.sort_values("n_possessions_to_40", ascending=False)
+            cols_freq = [c for c in ["Padrão","n_possessions_to_40","freq_pct_to_40",
+                                      "n_possessions_to_60","freq_pct_to_60",
+                                      "freq_pct_diff_60_minus_40"] if c in df_freq_show.columns]
+            rn_freq = {"n_possessions_to_40": "N X>40", "freq_pct_to_40": "% Freq X>40",
+                       "n_possessions_to_60": "N X>60", "freq_pct_to_60": "% Freq X>60",
+                       "freq_pct_diff_60_minus_40": "Δ Freq (X>60 - X>40)"}
+            st.dataframe(df_freq_show[cols_freq].rename(columns=rn_freq),
+                         use_container_width=True, hide_index=True)
 
-                cols_comp = [c for c in ["padrão_pt","n_possessions_to_40","freq_pct_to_40",
-                                          "success_total_pct_to_40","n_possessions_to_60","freq_pct_to_60",
-                                          "success_total_pct_to_60","freq_pct_diff_60_minus_40",
-                                          "success_total_pct_diff_60_minus_40"] if c in df_comp.columns]
-                rn_comp = {"padrão_pt":"Padrão","n_possessions_to_40":"N X>40","freq_pct_to_40":"% Freq X>40",
-                           "success_total_pct_to_40":"% Suc X>40","n_possessions_to_60":"N X>60",
-                           "freq_pct_to_60":"% Freq X>60","success_total_pct_to_60":"% Suc X>60",
-                           "freq_pct_diff_60_minus_40":"Δ Freq","success_total_pct_diff_60_minus_40":"Δ % Suc"}
-                st.dataframe(df_comp[cols_comp].rename(columns=rn_comp), use_container_width=True, hide_index=True)
+            st.markdown("#### Comparação do Sucesso Total (%): X>40 vs X>60")
+            df_suc_show = df_comp.sort_values("success_total_pct_to_40", ascending=False)
+            cols_suc = [c for c in ["Padrão","success_total_pct_to_40",
+                                     "success_total_pct_to_60",
+                                     "success_total_pct_diff_60_minus_40"] if c in df_suc_show.columns]
+            rn_suc = {"success_total_pct_to_40": "% Sucesso X>40",
+                      "success_total_pct_to_60": "% Sucesso X>60",
+                      "success_total_pct_diff_60_minus_40": "Δ % Sucesso (X>60 - X>40)"}
+            st.dataframe(df_suc_show[cols_suc].rename(columns=rn_suc),
+                         use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════════
     # 4 — HEATMAP TAXA DE SUCESSO POR ZONA (viz_zones_to_40 / to_60)
