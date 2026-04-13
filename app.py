@@ -1879,17 +1879,17 @@ elif pagina == "🏗️ Padrões de Construção":
                          use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 4 — HEATMAP TAXA DE SUCESSO POR ZONA (calculado de possession_features_analysis.csv)
+    # 4 — HEATMAP TAXA DE SUCESSO POR ZONA
     # ══════════════════════════════════════════════════════════════════════════
     st.subheader("4️⃣ Heatmap — Taxa de Sucesso por Zona de Saída")
     st.caption("Taxa de sucesso por zona do ponto de saída de cada posse. Campo StatsBomb 120×80 dividido em 3 bandas × 5 corredores.")
 
-    X_BANDS_HM = ["Zona 1 (0-40)", "Zona 2 (40-60)", "Zona 3 (60-120)"]
+    X_BANDS_HM = ["Zona 1 (0-40)", "Zona 2 (40-80)", "Zona 3 (80-120)"]
     Y_CORRS_HM = ["Ext Esq", "Int Esq", "Centro", "Int Dir", "Ext Dir"]
 
-    def _get_zone(x, y):
+    def _get_zone_hm(x, y):
         if pd.isna(x) or pd.isna(y): return None
-        xb = "Zona 1 (0-40)" if x < 40 else ("Zona 2 (40-60)" if x < 60 else "Zona 3 (60-120)")
+        xb = "Zona 1 (0-40)" if x < 40 else ("Zona 2 (40-80)" if x < 80 else "Zona 3 (80-120)")
         if   y < 16: yc = "Ext Esq"
         elif y < 32: yc = "Int Esq"
         elif y < 48: yc = "Centro"
@@ -1897,23 +1897,16 @@ elif pagina == "🏗️ Padrões de Construção":
         else:        yc = "Ext Dir"
         return f"{xb}|{yc}"
 
-    def _build_heatmap_from_poss(df_input, x_col, y_col, pattern_col=None, pattern_filter=None):
-        """Calcula taxa de sucesso por zona usando as colunas de saída correctas."""
+    def _build_heatmap_mat(df_input):
         df_h = df_input.copy()
-        if pattern_filter and pattern_filter != "all" and pattern_col and pattern_col in df_h.columns:
-            df_h = df_h[df_h[pattern_col] == pattern_filter]
-        if df_h.empty: return None
-
-        df_h["_zone"] = df_h.apply(lambda r: _get_zone(r.get(x_col), r.get(y_col)), axis=1)
+        df_h["_zone"] = df_h.apply(lambda r: _get_zone_hm(r.get("x_end"), r.get("y_end")), axis=1)
         df_h = df_h[df_h["_zone"].notna()]
         if df_h.empty: return None
-
         zone_total = df_h.groupby("_zone").size().reset_index(name="total")
-        zone_succ  = df_h[df_h["outcome_label"].isin(["success_total", "success_partial"])]\
+        zone_succ  = df_h[df_h["outcome_label"].isin(["success_total","success_partial"])]\
                         .groupby("_zone").size().reset_index(name="sucessos")
         zdf = zone_total.merge(zone_succ, on="_zone", how="left").fillna(0)
         zdf["taxa_pct"] = (zdf["sucessos"] / zdf["total"] * 100).round(1)
-
         mat = pd.DataFrame(None, index=X_BANDS_HM, columns=Y_CORRS_HM, dtype=float)
         for _, row in zdf.iterrows():
             parts = str(row["_zone"]).split("|")
@@ -1926,11 +1919,9 @@ elif pagina == "🏗️ Padrões de Construção":
     if df_poss_feat.empty:
         st.warning("Não foi possível carregar possession_features_analysis.csv do GitHub.")
     else:
-        # Filtro por padrão
         zone_pat_opts = ["all"]
         if "big_pattern_to_40_name" in df_poss_feat.columns:
-            zone_pat_opts += [p for p in sorted(df_poss_feat["big_pattern_to_40_name"].dropna().unique())
-                              if p != "all"]
+            zone_pat_opts += [p for p in sorted(df_poss_feat["big_pattern_to_40_name"].dropna().unique()) if p != "all"]
         zone_pat_labels = {
             "all":                             "Todos os Padrões",
             "center_exit_pattern":             "Saída pelo centro",
@@ -1946,23 +1937,15 @@ elif pagina == "🏗️ Padrões de Construção":
             key="zone_pat"
         )
 
+        df_hm = df_poss_feat.copy()
+        if zone_pat_sel != "all" and "big_pattern_to_40_name" in df_hm.columns:
+            df_hm = df_hm[df_hm["big_pattern_to_40_name"] == zone_pat_sel]
+
         col_z40, col_z60 = st.columns(2)
-
-        # X>40 — ponto exacto de saída da janela até x=40
-        mat40 = _build_heatmap_from_poss(
-            df_poss_feat,
-            x_col="exit_x_to_40", y_col="exit_y_to_40",
-            pattern_col="big_pattern_to_40_name", pattern_filter=zone_pat_sel
-        )
-
-        # X>60 — apenas posses que chegaram além de x=60, ponto de saída da janela
-        df_poss60 = df_poss_feat[df_poss_feat["reached_60_flag"] == 1].copy() \
-            if "reached_60_flag" in df_poss_feat.columns else pd.DataFrame()
-        mat60 = _build_heatmap_from_poss(
-            df_poss60,
-            x_col="exit_x_to_60", y_col="exit_y_to_60",
-            pattern_col="big_pattern_to_60_name", pattern_filter=zone_pat_sel
-        ) if not df_poss60.empty else None
+        mat40 = _build_heatmap_mat(df_hm)
+        df_hm60 = df_hm[df_hm["reached_60_flag"] == 1].copy() \
+            if "reached_60_flag" in df_hm.columns else pd.DataFrame()
+        mat60 = _build_heatmap_mat(df_hm60) if not df_hm60.empty else None
 
         for col_z, mat, title in [
             (col_z40, mat40, "Taxa de Sucesso por Zona — X>40 (%)"),
@@ -1970,12 +1953,9 @@ elif pagina == "🏗️ Padrões de Construção":
         ]:
             with col_z:
                 if mat is not None:
-                    text_vals = [[f"{v:.0f}%" if pd.notna(v) and v > 0 else ""
-                                  for v in row] for row in mat.values]
+                    text_vals = [[f"{v:.0f}%" if pd.notna(v) and v > 0 else "" for v in row] for row in mat.values]
                     fig_hm = go.Figure(go.Heatmap(
-                        z=mat.values,
-                        x=Y_CORRS_HM,
-                        y=X_BANDS_HM,
+                        z=mat.values, x=Y_CORRS_HM, y=X_BANDS_HM,
                         colorscale="RdYlGn", zmin=0, zmax=100,
                         text=text_vals, texttemplate="%{text}",
                         hovertemplate="Zona: %{y}<br>Corredor: %{x}<br>Taxa sucesso: %{z:.1f}%<extra></extra>",
@@ -1983,8 +1963,7 @@ elif pagina == "🏗️ Padrões de Construção":
                     ))
                     fig_hm.update_layout(
                         title=dict(text=title, font=dict(size=13, family="Arial")),
-                        height=360,
-                        margin=dict(l=100, r=40, t=50, b=60),
+                        height=360, margin=dict(l=110, r=40, t=50, b=60),
                         xaxis=dict(title="Corredor lateral"),
                         yaxis=dict(title="Zona longitudinal"),
                     )
@@ -1992,7 +1971,6 @@ elif pagina == "🏗️ Padrões de Construção":
                 else:
                     st.info("Sem dados suficientes para esta combinação.")
 
-    # ══════════════════════════════════════════════════════════════════════════
     # 5 — POSICIONAMENTO MÉDIO POR PADRÃO (viz_avg_positions.csv)
     # ══════════════════════════════════════════════════════════════════════════
     st.subheader("5️⃣ Posicionamento Médio por Padrão de Construção")
