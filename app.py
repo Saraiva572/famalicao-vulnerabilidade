@@ -521,7 +521,7 @@ def heatmap_fig(x_vals, y_vals, title):
 # NAVEGAÇÃO (ATUALIZADA COM NOVA PÁGINA)
 # ══════════════════════════════════════════════════════════════════════════
 
-pagina = st.sidebar.radio("📂 Página", ["📊 Vulnerabilidade", "🗺️ Heatmaps", "⚠️ Métricas Pós-Perda", "🏗️ Padrões de Construção", "📋 Conclusões"])
+pagina = st.sidebar.radio("📂 Página", ["📊 Vulnerabilidade", "⚠️ Métricas Pós-Perda", "🏗️ Padrões de Construção", "📋 Conclusões"])
 
 # ── Atualização automática ─────────────────────────────────────────────────
 st.sidebar.markdown("---")
@@ -760,75 +760,6 @@ Quanto maior o TRI, maior o perigo criado pelo adversário após recuperar a bol
 # ══════════════════════════════════════════════════════════════════════════
 # PÁGINA 2 — HEATMAPS
 # ══════════════════════════════════════════════════════════════════════════
-
-elif pagina == "🗺️ Heatmaps":
-    st.title("🗺️ Heatmaps — Construção e Perdas")
-    st.caption(f"Liga Portugal 25/26 | Dados StatsBomb | ⚡ Dados atualizados em tempo real")
-
-    st.sidebar.header("Filtros")
-    meses = ["Todos"] + list(dict.fromkeys(team_matches["mes_ano"].tolist()))
-    sel_mes = st.sidebar.selectbox("Mês", meses)
-    adversarios = ["Todos"] + sorted(team_matches["opponent"].unique().tolist())
-    sel_adv = st.sidebar.selectbox("Adversário", adversarios)
-
-    tm_f = team_matches.copy()
-    if sel_mes != "Todos": tm_f = tm_f[tm_f["mes_ano"] == sel_mes]
-    if sel_adv != "Todos": tm_f = tm_f[tm_f["opponent"] == sel_adv]
-
-    jogos = tm_f["match_id"].tolist()
-    if not jogos:
-        st.warning("Nenhum jogo encontrado."); st.stop()
-
-    all_events = []
-    with st.spinner(f"A carregar {len(jogos)} jogo(s)..."):
-        for mid in jogos:
-            all_events.append(carregar_eventos(int(mid)))
-
-    ev_all = pd.concat(all_events, ignore_index=True)
-    TYPE_COL = "type.name"; POSS_COL = "possession_team.name"; PASS_OUT = "pass.outcome.name"
-
-    fama    = ev_all[ev_all[POSS_COL].apply(lambda x: team_key.lower() in str(x).lower())].copy()
-    fama_1t = fama[fama["loc_x"].apply(lambda x: x <= 60 if x is not None else False)].copy()
-    loss_mask = (
-        (fama_1t[TYPE_COL].isin({"Miscontrol","Dispossessed"})) |
-        ((fama_1t[TYPE_COL]=="Pass") & (fama_1t.get(PASS_OUT,pd.Series(dtype=str))=="Incomplete"))
-    )
-
-    st.markdown(f"**{len(jogos)} jogo(s)** | Adversário: {sel_adv} | Mês: {sel_mes}")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        passes = fama_1t[fama_1t[TYPE_COL]=="Pass"]
-        fig1 = heatmap_fig(passes["loc_x"].dropna().tolist(),
-                           passes["loc_y"].dropna().tolist(),
-                           f"Passes na Construção (n={len(passes)})")
-        st.pyplot(fig1); plt.close(fig1)
-
-    with col2:
-        perdas = fama_1t[loss_mask]
-        fig2 = heatmap_fig(perdas["loc_x"].dropna().tolist(),
-                           perdas["loc_y"].dropna().tolist(),
-                           f"Perdas de Bola na Construção (n={len(perdas)})")
-        st.pyplot(fig2); plt.close(fig2)
-
-    st.subheader("Distribuição por corredor")
-    c1,c2,c3,c4 = st.columns(4)
-    with c1:
-        st.markdown("**Passes — horizontal**")
-        d = fama_1t[fama_1t[TYPE_COL]=="Pass"]["corredor_h"].value_counts().reset_index()
-        d.columns=["Corredor","Passes"]; st.dataframe(d,width="stretch",hide_index=True)
-    with c2:
-        st.markdown("**Passes — vertical**")
-        d = fama_1t[fama_1t[TYPE_COL]=="Pass"]["corredor_v"].value_counts().reset_index()
-        d.columns=["Zona","Passes"]; st.dataframe(d,width="stretch",hide_index=True)
-    with c3:
-        st.markdown("**Perdas — horizontal**")
-        d = fama_1t[loss_mask]["corredor_h"].value_counts().reset_index()
-        d.columns=["Corredor","Perdas"]; st.dataframe(d,width="stretch",hide_index=True)
-    with c4:
-        st.markdown("**Perdas — vertical**")
-        d = fama_1t[loss_mask]["corredor_v"].value_counts().reset_index()
-        d.columns=["Zona","Perdas"]; st.dataframe(d,width="stretch",hide_index=True)
 
 # ══════════════════════════════════════════════════════════════════════════
 # PÁGINA 3 — MÉTRICAS PÓS-PERDA (Análise de Transições Adversárias) - MELHORADA
