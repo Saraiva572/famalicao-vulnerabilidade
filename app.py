@@ -132,8 +132,8 @@ def safe_xy(loc):
     return None, None
 
 def classificar_risco(vap):
-    if vap < 10:    return "🟢 Baixo"
-    elif vap <= 20: return "🟡 Médio"
+    if vap < 20:    return "🟢 Baixo"
+    elif vap < 40:  return "🟡 Médio"
     return "🔴 Alto"
 
 def corredor_h(y):
@@ -604,8 +604,8 @@ if pagina == "📊 Vulnerabilidade":
     # ── Semáforo último jogo ───────────────────────────────────────────────
     ultimo = df_f.iloc[-1]
     tri_ult = ultimo["transition_risk_index"]
-    if tri_ult < 10:   semaforo = "🟢 Baixo Risco"
-    elif tri_ult < 20: semaforo = "🟡 Risco Médio"
+    if tri_ult < 20:   semaforo = "🟢 Baixo Risco"
+    elif tri_ult < 40: semaforo = "🟡 Risco Médio"
     else:              semaforo = "🔴 Alto Risco"
     st.subheader("Semáforo de risco do último jogo")
     st.markdown(f"### {semaforo}  |  {ultimo['label_full']}  |  TRI = {tri_ult:.1f}")
@@ -2187,9 +2187,9 @@ elif pagina == "📋 Conclusões":
             tendencia_color = "off"
 
         # Semáforo global
-        if tri_medio < 10:
+        if tri_medio < 20:
             sem_global = "🟢 Baixo Risco Global"
-        elif tri_medio < 20:
+        elif tri_medio < 40:
             sem_global = "🟡 Risco Moderado Global"
         else:
             sem_global = "🔴 Alto Risco Global"
@@ -2460,24 +2460,24 @@ elif pagina == "📋 Conclusões":
         st.markdown("#### Jogos por nível de risco")
         col_r1, col_r2, col_r3 = st.columns(3)
 
-        df_baixo   = df_vap[df_vap["transition_risk_index"] < 10]
-        df_medio   = df_vap[(df_vap["transition_risk_index"] >= 10) & (df_vap["transition_risk_index"] < 20)]
-        df_alto    = df_vap[df_vap["transition_risk_index"] >= 20]
+        df_baixo   = df_vap[df_vap["transition_risk_index"] < 20]
+        df_medio   = df_vap[(df_vap["transition_risk_index"] >= 20) & (df_vap["transition_risk_index"] < 40)]
+        df_alto    = df_vap[df_vap["transition_risk_index"] >= 40]
 
         with col_r1:
-            st.success(f"🟢 **Baixo Risco (TRI < 10)**\n\n{len(df_baixo)} jogo(s)")
+            st.success(f"🟢 **Baixo Risco (TRI < 20)**\n\n{len(df_baixo)} jogo(s)")
             if not df_baixo.empty:
                 for _, r in df_baixo.iterrows():
                     st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
 
         with col_r2:
-            st.warning(f"🟡 **Risco Médio (10–20)**\n\n{len(df_medio)} jogo(s)")
+            st.warning(f"🟡 **Risco Médio (20–40)**\n\n{len(df_medio)} jogo(s)")
             if not df_medio.empty:
                 for _, r in df_medio.iterrows():
                     st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
 
         with col_r3:
-            st.error(f"🔴 **Alto Risco (TRI ≥ 20)**\n\n{len(df_alto)} jogo(s)")
+            st.error(f"🔴 **Alto Risco (TRI ≥ 40)**\n\n{len(df_alto)} jogo(s)")
             if not df_alto.empty:
                 for _, r in df_alto.iterrows():
                     st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
