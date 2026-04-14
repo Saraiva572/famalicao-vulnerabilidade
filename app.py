@@ -132,8 +132,8 @@ def safe_xy(loc):
     return None, None
 
 def classificar_risco(vap):
-    if vap < 20:    return "🟢 Baixo"
-    elif vap < 40:  return "🟡 Médio"
+    if vap <= 20:   return "🟢 Baixo"
+    elif vap <= 40: return "🟡 Médio"
     return "🔴 Alto"
 
 def corredor_h(y):
@@ -613,8 +613,8 @@ if pagina == "📊 Vulnerabilidade":
     # ── Semáforo último jogo ───────────────────────────────────────────────
     ultimo = df_f.iloc[-1]
     tri_ult = ultimo["transition_risk_index"]
-    if tri_ult < 20:   semaforo = "🟢 Baixo Risco"
-    elif tri_ult < 40: semaforo = "🟡 Risco Médio"
+    if tri_ult <= 20:   semaforo = "🟢 Baixo Risco"
+    elif tri_ult <= 40: semaforo = "🟡 Risco Médio"
     else:              semaforo = "🔴 Alto Risco"
     st.subheader("Semáforo de risco do último jogo")
     st.markdown(f"### {semaforo}  |  {ultimo['label_full']}  |  TRI = {tri_ult:.1f}")
