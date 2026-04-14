@@ -237,8 +237,17 @@ def calcular_metricas_jogo(match_id, match_date, opponent, jogo_num, mes_ano, la
     prog_list = []
 
     for _, le in losses.iterrows():
-        if le.get(CP_COL, False):
-            losses_with_counterpress += 1
+        # Counterpress: evento do Famalicão com counterpress=True nos 5s após a perda
+        if CP_COL in ev.columns:
+            cp_events = ev[
+                (ev["possession"] >= le["possession"]) &
+                (ev["time_s"] >= le["time_s"]) &
+                (ev["time_s"] <= le["time_s"] + 5) &
+                (ev[POSS_COL].apply(lambda x: team_key.lower() in str(x).lower())) &
+                (ev[CP_COL] == True)
+            ]
+            if len(cp_events) > 0:
+                losses_with_counterpress += 1
 
         opp_after = ev[
             (ev["possession"] > le["possession"]) &
