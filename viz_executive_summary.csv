@@ -1,8 +1,8 @@
 ﻿metric,value
-total_possessions,334.0
-success_total,127.0
-success_partial,83.0
-unsuccessful,124.0
-success_rate_total_plus_partial_pct,62.9
-reached_40_count,210.0
-reached_60_count,127.0
+total_possessions,346.0
+success_total,132.0
+success_partial,88.0
+unsuccessful,126.0
+success_rate_total_plus_partial_pct,63.6
+reached_40_count,220.0
+reached_60_count,132.0

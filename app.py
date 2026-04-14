@@ -604,8 +604,8 @@ if pagina == "📊 Vulnerabilidade":
     # ── Semáforo último jogo ───────────────────────────────────────────────
     ultimo = df_f.iloc[-1]
     tri_ult = ultimo["transition_risk_index"]
-    if tri_ult < 10:   semaforo = "🟢 Baixo Risco"
-    elif tri_ult < 20: semaforo = "🟡 Risco Médio"
+    if tri_ult < 20:   semaforo = "🟢 Baixo Risco"
+    elif tri_ult < 40: semaforo = "🟡 Risco Médio"
     else:              semaforo = "🔴 Alto Risco"
     st.subheader("Semáforo de risco do último jogo")
     st.markdown(f"### {semaforo}  |  {ultimo['label_full']}  |  TRI = {tri_ult:.1f}")
@@ -785,8 +785,8 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     # ── Carregar CSVs do GitHub ─────────────────────────────────────────────
 
     GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main"
-    OPPONENT_CSV_URL   = f"{GITHUB_RAW_BASE}/opponent_metrics%20(9).csv"
-    POSSESSION_CSV_URL = f"{GITHUB_RAW_BASE}/possession_metrics%20(5).csv"
+    OPPONENT_CSV_URL   = f"{GITHUB_RAW_BASE}/opponent_metrics.csv"
+    POSSESSION_CSV_URL = f"{GITHUB_RAW_BASE}/possession_metrics.csv"
 
     @st.cache_data(ttl=300, show_spinner="A carregar métricas pós-perda...")
     def carregar_opponent_metrics():
