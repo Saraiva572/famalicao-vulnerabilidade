@@ -1,0 +1,7 @@
+﻿pattern_name,success_partial,success_total,unsuccessful,total,freq_pct,success_partial_pct,success_total_pct,unsuccessful_pct,did_not_reach,reached,reached_pct
+center_exit_pattern,13,26,16,55,15.9,23.6,47.3,29.1,16,39,70.9
+interior_exterior_opposite_side,19,17,15,51,14.7,37.3,33.3,29.4,15,36,70.6
+interior_exterior_same_side,29,53,54,136,39.3,21.3,39.0,39.7,54,82,60.3
+other_pattern,5,7,15,27,7.8,18.5,25.9,55.6,15,12,44.4
+outer_inner_exit,15,14,19,48,13.9,31.2,29.2,39.6,19,29,60.4
+switch_of_play,7,15,7,29,8.4,24.1,51.7,24.1,7,22,75.9
