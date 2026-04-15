@@ -1203,11 +1203,11 @@ elif pagina == "🏗️ Padrões de Construção":
 
         c1, c2, c3, c4, c5 = st.columns(5)
 
-        c1.metric("Total de posses", n_total)
-        c2.metric("1️⃣ % Sucesso", f"{pct_ok}%")
-        c3.metric("2️⃣ % Sucesso Parcial", f"{pct_sp}%")
-        c4.metric("3️⃣ % Sucesso Total", f"{pct_st}%")
-        c5.metric("4️⃣ % Insucesso", f"{pct_fail}%")
+        c1.metric("Posses Analisadas", n_total)
+        c2.metric("% Sucesso", f"{pct_ok}%")
+        c3.metric("% Sucesso Parcial", f"{pct_sp}%")
+        c4.metric("% Sucesso Total", f"{pct_st}%")
+        c5.metric("% Insucesso", f"{pct_fail}%")
     else:
         st.warning("Não foi possível carregar viz_executive_summary%20%281%29.csv do GitHub.")
 
