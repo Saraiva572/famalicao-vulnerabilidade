@@ -2313,65 +2313,6 @@ elif pagina == "📋 Conclusões":
                 st.markdown("")
 
     # ══════════════════════════════════════════════════════════════════════
-    # SECÇÃO E — RANKING DE ADVERSÁRIOS POR PERIGO GERADO
-    # ══════════════════════════════════════════════════════════════════════
-
-    if dados_ok:
-        st.markdown("---")
-        st.subheader("🏆 Adversários que mais perigo criaram")
-
-        df_rank = df_vap.sort_values("transition_risk_index", ascending=False).reset_index(drop=True)
-        df_rank.index += 1
-
-        # Top 5 mais perigosos
-        col_rank, col_rank_chart = st.columns([1, 1.2])
-
-        with col_rank:
-            cols_rank = ["label_full", "transition_risk_index",
-                         "team_match_xg_conceded_after_loss",
-                         "exposicao_defensiva_pct",
-                         "counterpress_efficiency_pct"]
-            cols_rank = [c for c in cols_rank if c in df_rank.columns]
-            st.dataframe(
-                df_rank[cols_rank].rename(columns={
-                    "label_full":                           "Jogo",
-                    "transition_risk_index":                "TRI",
-                    "team_match_xg_conceded_after_loss":    "xG sofrido",
-                    "exposicao_defensiva_pct":              "Exp. Def. %",
-                    "counterpress_efficiency_pct":          "Counterpress %",
-                }),
-                use_container_width=True,
-            )
-
-        with col_rank_chart:
-            fig_rank = go.Figure()
-            df_rank_plot = df_rank.copy().sort_values("transition_risk_index", ascending=True)
-            bar_cols = [
-                "#2ecc71" if v < 10 else ("#f39c12" if v < 20 else "#e74c3c")
-                for v in df_rank_plot["transition_risk_index"]
-            ]
-            fig_rank.add_trace(go.Bar(
-                y=df_rank_plot["label_full"],
-                x=df_rank_plot["transition_risk_index"],
-                orientation="h",
-                marker_color=bar_cols,
-                text=[f"{v:.1f}" for v in df_rank_plot["transition_risk_index"]],
-                textposition="outside",
-                hovertemplate="<b>%{y}</b><br>TRI: %{x:.1f}<extra></extra>",
-            ))
-            fig_rank.add_vline(x=10, line_dash="dot", line_color="#2ecc71", line_width=1.5)
-            fig_rank.add_vline(x=20, line_dash="dot", line_color="#e74c3c", line_width=1.5)
-            fig_rank.update_layout(
-                title=dict(text="TRI por adversário (ordenado)", font=dict(size=13, family="Arial")),
-                height=max(350, len(df_rank_plot) * 32),
-                plot_bgcolor="white",
-                margin=dict(l=10, r=70, t=50, b=30),
-                xaxis=dict(title="TRI", showgrid=True, gridcolor="#EEEEEE"),
-            )
-            fig_rank.update_yaxes(showgrid=False)
-            st.plotly_chart(fig_rank, use_container_width=True)
-
-    # ══════════════════════════════════════════════════════════════════════
     # SECÇÃO F — CONCLUSÕES NARRATIVAS
     # ══════════════════════════════════════════════════════════════════════
 
