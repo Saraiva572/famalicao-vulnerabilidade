@@ -1605,53 +1605,81 @@ elif pagina == "🏗️ Padrões de Construção":
                     
         def _charts(df, suffix):
             df_freq = df.sort_values("total", ascending=True)
-            colors  = [PATTERN_COLOR.get(p, "#888") for p in df_freq["padrão_pt"]]
+            colors = [PATTERN_COLOR.get(p, "#888") for p in df_freq["padrão_pt"]]
 
             fig_f = go.Figure(go.Bar(
-                y=df_freq["padrão_pt"], x=df_freq["total"], orientation="h",
-                marker_color=colors, text=df_freq["total"], textposition="outside",
-                hovertemplate="<b>%{y}</b><br>Total: %{x} posses<extra></extra>",
+                y=df_freq["padrão_pt"],
+                x=df_freq["freq_pct"],
+                orientation="h",
+                marker_color=colors,
+                text=[f"{v:.0f}%" for v in df_freq["freq_pct"]],
+                textposition="outside",
+                hovertemplate="<b>%{y}</b><br>Frequência: %{x:.1f}%<extra></extra>",
             ))
+
             fig_f.update_layout(
-                title=dict(text=f"Frequência dos Padrões ({suffix})", font=dict(size=13, family="Arial")),
-                height=360, plot_bgcolor="white",
+                title=dict(
+                    text=f"Frequência dos Padrões ({suffix})",
+                    font=dict(size=13, family="Arial")
+                ),
+                height=360,
+                plot_bgcolor="white",
                 margin=dict(l=10, r=50, t=50, b=30),
             )
-            fig_f.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
-            fig_f.update_yaxes(showgrid=False, automargin=True)
+
+            fig_f.update_xaxes(
+                showgrid=True,
+                gridcolor="#EEEEEE",
+                ticksuffix="%",
+                rangemode="tozero"
+            )
+
+            fig_f.update_yaxes(
+                showgrid=False,
+                automargin=True
+            )
 
             fig_t = None
+
             if "success_total_pct" in df.columns:
                 df_taxa = df.sort_values("success_total_pct", ascending=True)
                 colors_t = [PATTERN_COLOR.get(p, "#888") for p in df_taxa["padrão_pt"]]
+
                 fig_t = go.Figure(go.Bar(
-                    y=df_taxa["padrão_pt"], x=df_taxa["success_total_pct"], orientation="h",
+                    y=df_taxa["padrão_pt"],
+                    x=df_taxa["success_total_pct"],
+                    orientation="h",
                     marker_color=colors_t,
                     text=[f"{v:.0f}%" for v in df_taxa["success_total_pct"]],
                     textposition="outside",
                     hovertemplate="<b>%{y}</b><br>Taxa sucesso total: %{x:.1f}%<extra></extra>",
                 ))
+
                 fig_t.add_vline(x=50, line_dash="dot", line_color="#888", line_width=1)
+
                 fig_t.update_layout(
-                    title=dict(text=f"Taxa de Sucesso Total ({suffix})", font=dict(size=13, family="Arial")),
-                    height=360, plot_bgcolor="white",
+                    title=dict(
+                        text=f"Taxa de Sucesso Total ({suffix})",
+                        font=dict(size=13, family="Arial")
+                    ),
+                    height=360,
+                    plot_bgcolor="white",
                     margin=dict(l=10, r=65, t=50, b=30),
                     xaxis=dict(range=[0, 108]),
                 )
-                fig_t.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
-                fig_t.update_yaxes(showgrid=False, automargin=True)
-            return fig_f, fig_t
 
-        tab_40, tab_60 = st.tabs(["📊 até X > 40", "📊 até X > 60"])
+                fig_t.update_xaxes(
+                    showgrid=True,
+                    gridcolor="#EEEEEE",
+                    ticksuffix="%"
+                )
 
-        with tab_40:
-            fig_f40, fig_t40 = _charts(df40, "X>40")
-            c1, c2 = st.columns(2)
-            with c1: st.plotly_chart(fig_f40, use_container_width=True)
-            with c2:
-                if fig_t40: st.plotly_chart(fig_t40, use_container_width=True)
+                fig_t.update_yaxes(
+                    showgrid=False,
+                    automargin=True
+                )
 
-            # Tabelas de comparação X>40 vs X>60
+            return fig_f, fig_t            # Tabelas de comparação X>40 vs X>60
             if not df_pat_comp.empty:
                 df_comp = df_pat_comp.copy()
                 df_comp["Padrão"] = df_comp["pattern_name"].map(PATTERN_PT).fillna(df_comp["pattern_name"])
