@@ -1136,15 +1136,15 @@ elif pagina == "🏗️ Padrões de Construção":
             except Exception:
                 return pd.DataFrame()
 
-    df_exec      = _load(f"{BASE_URL}/viz_executive_summary (1).csv")
-    df_pat40     = _load(f"{BASE_URL}/viz_patterns_to_40 (1).csv")
-    df_pat60     = _load(f"{BASE_URL}/viz_patterns_to_60 (1).csv")
-    df_pat_comp  = _load(f"{BASE_URL}/viz_pattern_comparison (1).csv")
-    df_pass_lnks = _load(f"{BASE_URL}/viz_pass_links (1).csv")
-    df_avg_pos   = _load(f"{BASE_URL}/viz_avg_positions (1).csv")
-    df_zones40   = _load(f"{BASE_URL}/viz_zones_to_40 (1).csv")
-    df_zones60   = _load(f"{BASE_URL}/viz_zones_to_60 (1).csv")
-    df_micro     = _load(f"{BASE_URL}/viz_microrelations (1).csv")
+    df_exec      = _load(f"{BASE_URL}/viz_executive_summary%20%281%29.csv")
+    df_pat40     = _load(f"{BASE_URL}/viz_patterns_to_40%20%281%29.csv")
+    df_pat60     = _load(f"{BASE_URL}/viz_patterns_to_60%20%281%29.csv")
+    df_pat_comp  = _load(f"{BASE_URL}/viz_pattern_comparison%20%281%29.csv")
+    df_pass_lnks = _load(f"{BASE_URL}/viz_pass_links%20%281%29.csv")
+    df_avg_pos   = _load(f"{BASE_URL}/viz_avg_positions%20%281%29.csv")
+    df_zones40   = _load(f"{BASE_URL}/viz_zones_to_40%20%281%29.csv")
+    df_zones60   = _load(f"{BASE_URL}/viz_zones_to_60%20%281%29.csv")
+    df_micro     = _load(f"{BASE_URL}/viz_microrelations%20%281%29.csv")
     df_poss_feat = _load(f"{BASE_URL}/possession_features_analysis.csv")
 
     # ── Mapeamentos ──────────────────────────────────────────────────────────
@@ -1179,7 +1179,7 @@ elif pagina == "🏗️ Padrões de Construção":
     }
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 1 — RESUMO EXECUTIVO (viz_executive_summary (1).csv)
+    # 1 — RESUMO EXECUTIVO (viz_executive_summary%20%281%29.csv)
     # ══════════════════════════════════════════════════════════════════════════
     st.subheader("📊 Resumo Executivo")
 
@@ -1201,7 +1201,7 @@ elif pagina == "🏗️ Padrões de Construção":
         c4.metric("❌ Insucesso",       f"{pct_fail}%")
         c5.metric("% Sucesso",          f"{pct_ok}%")
     else:
-        st.warning("Não foi possível carregar viz_executive_summary (1).csv do GitHub.")
+        st.warning("Não foi possível carregar viz_executive_summary%20%281%29.csv do GitHub.")
 
     with st.expander("ℹ️ O que significa cada outcome?", expanded=False):
         st.markdown("""
@@ -1211,13 +1211,13 @@ elif pagina == "🏗️ Padrões de Construção":
         """)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 2 — PASS NETWORK + TOP 10 (viz_pass_links (1).csv)
+    # 2 — PASS NETWORK + TOP 10 (viz_pass_links%20%281%29.csv)
     # ══════════════════════════════════════════════════════════════════════════
     st.subheader("4️⃣ Pass Network por Posição")
     st.caption("Ligações mais frequentes entre posições na 1ª fase de construção (dados pré-calculados a partir do notebook).")
 
     if df_pass_lnks.empty:
-        st.warning("Não foi possível carregar viz_pass_links (1).csv do GitHub.")
+        st.warning("Não foi possível carregar viz_pass_links%20%281%29.csv do GitHub.")
     else:
         col_pn1, col_pn2 = st.columns(2)
         with col_pn1:
@@ -1529,7 +1529,7 @@ elif pagina == "🏗️ Padrões de Construção":
         st.warning("Não foi possível carregar os CSVs de zonas do GitHub.")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 5 — POSICIONAMENTO MÉDIO POR PADRÃO (viz_avg_positions (1).csv)
+    # 5 — POSICIONAMENTO MÉDIO POR PADRÃO (viz_avg_positions%20%281%29.csv)
     # ══════════════════════════════════════════════════════════════════════════
     st.subheader("5️⃣ Posicionamento Médio por Padrão de Construção")
     st.caption("Posições médias dos jogadores em cada padrão de construção (dados pré-calculados a partir do notebook).")
@@ -1539,7 +1539,7 @@ elif pagina == "🏗️ Padrões de Construção":
     )
 
     if df_avg_pos.empty:
-        st.warning("Não foi possível carregar viz_avg_positions (1).csv do GitHub.")
+        st.warning("Não foi possível carregar viz_avg_positions%20%281%29.csv do GitHub.")
     else:
         col_ap1, col_ap2 = st.columns(2)
         with col_ap1:
@@ -1649,13 +1649,13 @@ elif pagina == "🏗️ Padrões de Construção":
                              use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 6 — MICRO-RELAÇÕES (viz_microrelations (1).csv)
+    # 6 — MICRO-RELAÇÕES (viz_microrelations%20%281%29.csv)
     # ══════════════════════════════════════════════════════════════════════════
     st.subheader("6️⃣ Micro-Relações de Início de Posse")
     st.caption("Primeiras 3 posições envolvidas em cada sequência de construção e respectivas taxas de sucesso.")
 
     if df_micro.empty:
-        st.warning("Não foi possível carregar viz_microrelations (1).csv do GitHub.")
+        st.warning("Não foi possível carregar viz_microrelations%20%281%29.csv do GitHub.")
     else:
         df_m = df_micro.copy().sort_values("total", ascending=False)
 
@@ -1742,7 +1742,7 @@ elif pagina == "🏗️ Padrões de Construção":
 
 **Zonas** — O campo StatsBomb (120×80) é dividido em zonas longitudinais (x_band) × corredores laterais (5 corredores). A taxa de alcance (reached_pct) indica a percentagem de posses que chegaram além da fronteira de cada zona.
 
-**Pass Network** — Dados pré-calculados pelo notebook (`viz_pass_links (1).csv`). Cada aresta representa um passe entre duas posições. A espessura é proporcional à frequência.
+**Pass Network** — Dados pré-calculados pelo notebook (`viz_pass_links%20%281%29.csv`). Cada aresta representa um passe entre duas posições. A espessura é proporcional à frequência.
 
 **Micro-Relações** — Primeiras 3 posições envolvidas em cada sequência de construção, classificadas pelo notebook.
         """)
@@ -1781,8 +1781,8 @@ elif pagina == "📋 Conclusões":
             except Exception:
                 return None
 
-    df_pat40  = _load_csv_conclusoes(f"{GITHUB_BASE}/viz_patterns_to_40 (1).csv")
-    df_pat60  = _load_csv_conclusoes(f"{GITHUB_BASE}/viz_patterns_to_60 (1).csv")
+    df_pat40  = _load_csv_conclusoes(f"{GITHUB_BASE}/viz_patterns_to_40%20%281%29.csv")
+    df_pat60  = _load_csv_conclusoes(f"{GITHUB_BASE}/viz_patterns_to_60%20%281%29.csv")
     df_poss_c = _load_csv_conclusoes(f"{GITHUB_BASE}/possession_features_df.csv")
     df_opp_c  = _load_csv_conclusoes(f"{GITHUB_BASE}/opponent_metrics.csv")
     df_pm_c   = _load_csv_conclusoes(f"{GITHUB_BASE}/possession_metrics.csv")
@@ -2419,7 +2419,7 @@ recupera a bola em menos de 5 segundos.
         st.markdown("""
 **Fontes de dados**
 - **StatsBomb API** (credenciais via Streamlit Secrets) — eventos em tempo real para todas as métricas de vulnerabilidade (TRI, xG, Exposição, Counterpress)
-- **GitHub** (`Saraiva572/famalicao-vulnerabilidade`) — CSVs pré-computados de padrões de construção (viz_patterns_to_40 (1).csv, viz_patterns_to_60 (1).csv)
+- **GitHub** (`Saraiva572/famalicao-vulnerabilidade`) — CSVs pré-computados de padrões de construção (viz_patterns_to_40%20%281%29.csv, viz_patterns_to_60%20%281%29.csv)
 
 **Métricas**
 - **TRI (Transition Risk Index)** — Índice 0-100: xG sofrido (40%) + remates (25%) + entradas no último terço (20%) + exposição (15%)
