@@ -2033,11 +2033,15 @@ e não ao ponto exato onde a equipa ultrapassa a primeira pressão ou o limiar d
             key="zone_pat"
         )
 
+        max_zone_total_40 = int(df_zones40["total"].max()) if not df_zones40.empty and "total" in df_zones40.columns else 5
+        max_zone_total_60 = int(df_zones60["total"].max()) if not df_zones60.empty and "total" in df_zones60.columns else 5
+        max_zone_total = max(max_zone_total_40, max_zone_total_60, 5)
+
         min_zone_total = st.slider(
-            "Mostrar apenas zonas com pelo menos N posses:",
-            min_value=1,
-            max_value=20,
-            value=3,
+            "Ajuste do nº mínimo de posses utilizadas. Mínimo: 5",
+            min_value=5,
+            max_value=max_zone_total,
+            value=5,
             step=1,
             key="zone_min_total"
         )
