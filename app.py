@@ -1954,43 +1954,6 @@ elif pagina == "🏗️ Padrões de Construção":
 
                 st.markdown(html_table_suc, unsafe_allow_html=True)
 
-        with tab_60:
-            fig_f60, fig_t60 = _charts(df60, "X>60")
-            c1, c2 = st.columns(2)
-            with c1: st.plotly_chart(fig_f60, use_container_width=True)
-            with c2:
-                if fig_t60: st.plotly_chart(fig_t60, use_container_width=True)
-            st.markdown("#### Tabela resumo")
-
-            df60_table = _build_pattern_summary_table(df60)
-
-            html_table_60 = df60_table.to_html(index=False, justify="center")
-
-            st.markdown(
-                f"""
-                <div style="overflow-x: auto;">
-                    <style>
-                        table {{
-                            width: 100%;
-                            border-collapse: collapse;
-                            font-size: 16px;
-                        }}
-                        th, td {{
-                            text-align: center !important;
-                            padding: 10px 12px;
-                            border: 1px solid #d9d9d9;
-                        }}
-                        th {{
-                            background-color: #f2f2f2;
-                            font-weight: 600;
-                        }}
-                    </style>
-                    {html_table_60}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
 
     # ══════════════════════════════════════════════════════════════════════════
     # 4 — HEATMAP TAXA DE SUCESSO POR ZONA (viz_zones_to_40 / to_60)
