@@ -1376,7 +1376,7 @@ elif pagina == "🏗️ Padrões de Construção":
 
         df40 = _prep_pat(df_pat40)
         df60 = _prep_pat(df_pat60)
-
+ 
         def _build_pattern_summary_table(df):
             df_show = df.copy()
 
@@ -1499,6 +1499,109 @@ elif pagina == "🏗️ Padrões de Construção":
                 df_show[col] = df_show[col].astype(str) + "%"
 
             return df_show
+
+        def _build_frequency_comparison_table(df):
+            df_show = df.copy()
+
+            # Garantir nomes consistentes
+            rename_map = {
+                "pattern_name": "Padrão",
+                "padrão_pt": "Padrão",
+                "freq_pct_to_40": "% Frequência X>40",
+                "freq_pct_to_60": "% Frequência X>60",
+                "freq_pct_diff_60_minus_40": "Δ % Frequência (X>60 - X>40)"
+            }
+
+            cols_keep = []
+            for old_col in rename_map.keys():
+                if old_col in df_show.columns:
+                    cols_keep.append(old_col)
+
+            df_show = df_show[cols_keep].copy()
+            df_show = df_show.rename(columns=rename_map)
+
+            # Arredondar às unidades
+            numeric_cols = [
+                "% Frequência X>40",
+                "% Frequência X>60",
+                "Δ % Frequência (X>60 - X>40)"
+            ]
+
+            for col in numeric_cols:
+                if col in df_show.columns:
+                    df_show[col] = df_show[col].round(0).astype(int)
+
+            # Adicionar símbolo % nas colunas percentuais
+            pct_cols = [
+                "% Frequência X>40",
+                "% Frequência X>60"
+            ]
+
+            for col in pct_cols:
+                if col in df_show.columns:
+                    df_show[col] = df_show[col].astype(str) + "%"
+
+            # A coluna delta mantém o símbolo delta no título
+            # mas o valor fica numérico simples, sem % no fim
+            if "Δ % Frequência (X>60 - X>40)" in df_show.columns:
+                df_show["Δ % Frequência (X>60 - X>40)"] = df_show["Δ % Frequência (X>60 - X>40)"].astype(str)
+
+            # Ordenar por frequência X>40 decrescente
+            if "% Frequência X>40" in df_show.columns:
+                sort_temp = []
+
+                for value in df_show["% Frequência X>40"]:
+                    value_num = str(value).replace("%", "")
+                    sort_temp.append(int(value_num))
+
+                df_show["sort_temp"] = sort_temp
+                df_show = df_show.sort_values("sort_temp", ascending=False).drop(columns="sort_temp").reset_index(drop=True)
+
+            return df_show
+
+
+        def _build_success_comparison_table(df):
+            df_show = df.copy()
+
+            rename_map = {
+                "pattern_name": "Padrão",
+                "padrão_pt": "Padrão",
+                "success_total_pct_to_40": "% Sucesso X>40",
+                "success_total_pct_to_60": "% Sucesso X>60",
+                "success_total_pct_diff_60_minus_40": "Δ % Sucesso (X>60 - X>40)"
+            }
+
+            cols_keep = []
+            for old_col in rename_map.keys():
+                if old_col in df_show.columns:
+                    cols_keep.append(old_col)
+
+            df_show = df_show[cols_keep].copy()
+            df_show = df_show.rename(columns=rename_map)
+
+            numeric_cols = [
+                "% Sucesso X>40",
+                "% Sucesso X>60",
+                "Δ % Sucesso (X>60 - X>40)"
+            ]
+
+            for col in numeric_cols:
+                if col in df_show.columns:
+                    df_show[col] = df_show[col].round(0).astype(int)
+
+            pct_cols = [
+                "% Sucesso X>40",
+                "% Sucesso X>60"
+            ]
+
+            for col in pct_cols:
+                if col in df_show.columns:
+                    df_show[col] = df_show[col].astype(str) + "%"
+
+            if "Δ % Sucesso (X>60 - X>40)" in df_show.columns:
+                df_show["Δ % Sucesso (X>60 - X>40)"] = df_show["Δ % Sucesso (X>60 - X>40)"].astype(str)
+
+            return df_show
                     
         def _charts(df, suffix):
             df_freq = df.sort_values("total", ascending=True)
@@ -1585,27 +1688,164 @@ elif pagina == "🏗️ Padrões de Construção":
                 df_comp = df_pat_comp.copy()
                 df_comp["Padrão"] = df_comp["pattern_name"].map(PATTERN_PT).fillna(df_comp["pattern_name"])
 
+                # ============================================================
+                # TABELA 1 - COMPARAÇÃO DA FREQUÊNCIA DOS PADRÕES
+                # ============================================================
                 st.markdown("#### Comparação da Frequência dos Padrões: X>40 vs X>60")
-                df_freq_show = df_comp.sort_values("n_possessions_to_40", ascending=False)
-                cols_freq = [c for c in ["Padrão","n_possessions_to_40","freq_pct_to_40",
-                                          "n_possessions_to_60","freq_pct_to_60",
-                                          "freq_pct_diff_60_minus_40"] if c in df_freq_show.columns]
-                rn_freq = {"n_possessions_to_40": "N X>40", "freq_pct_to_40": "% Freq X>40",
-                           "n_possessions_to_60": "N X>60", "freq_pct_to_60": "% Freq X>60",
-                           "freq_pct_diff_60_minus_40": "Δ Freq (X>60 - X>40)"}
-                st.dataframe(df_freq_show[cols_freq].rename(columns=rn_freq),
-                             use_container_width=True, hide_index=True)
 
+                df_freq_show = df_comp.copy()
+
+                # Selecionar apenas as colunas necessárias
+                cols_freq = [
+                    "Padrão",
+                    "freq_pct_to_40",
+                    "freq_pct_to_60",
+                    "freq_pct_diff_60_minus_40"
+                ]
+
+                cols_freq = [c for c in cols_freq if c in df_freq_show.columns]
+                df_freq_show = df_freq_show[cols_freq].copy()
+
+                # Renomear colunas
+                df_freq_show = df_freq_show.rename(columns={
+                    "freq_pct_to_40": "% Frequência X>40",
+                    "freq_pct_to_60": "% Frequência X>60",
+                    "freq_pct_diff_60_minus_40": "Δ % Frequência (X>60 - X>40)"
+                })
+
+                # Arredondar às unidades
+                numeric_cols_freq = [
+                    "% Frequência X>40",
+                    "% Frequência X>60",
+                    "Δ % Frequência (X>60 - X>40)"
+                ]
+
+                for col in numeric_cols_freq:
+                    if col in df_freq_show.columns:
+                        df_freq_show[col] = df_freq_show[col].round(0).astype(int)
+
+                # Ordenar por % Frequência X>40
+                if "% Frequência X>40" in df_freq_show.columns:
+                    df_freq_show = df_freq_show.sort_values("% Frequência X>40", ascending=False).reset_index(drop=True)
+
+                # Adicionar símbolo % às colunas de frequência
+                pct_cols_freq = [
+                    "% Frequência X>40",
+                    "% Frequência X>60"
+                ]
+
+                for col in pct_cols_freq:
+                    if col in df_freq_show.columns:
+                        df_freq_show[col] = df_freq_show[col].astype(str) + "%"
+
+                # Coluna delta sem símbolo % no valor
+                if "Δ % Frequência (X>60 - X>40)" in df_freq_show.columns:
+                    df_freq_show["Δ % Frequência (X>60 - X>40)"] = df_freq_show["Δ % Frequência (X>60 - X>40)"].astype(str)
+
+                html_table_freq = df_freq_show.to_html(index=False, justify="center")
+
+                st.markdown(
+                    f"""
+                    <div style="overflow-x: auto;">
+                        <style>
+                            table {{
+                                width: 100%;
+                                border-collapse: collapse;
+                                font-size: 16px;
+                            }}
+                            th, td {{
+                                text-align: center !important;
+                                padding: 10px 12px;
+                                border: 1px solid #d9d9d9;
+                            }}
+                            th {{
+                                background-color: #f2f2f2;
+                                font-weight: 600;
+                            }}
+                        </style>
+                        {html_table_freq}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                # ============================================================
+                # TABELA 2 - COMPARAÇÃO DO SUCESSO TOTAL
+                # ============================================================
                 st.markdown("#### Comparação do Sucesso Total (%): X>40 vs X>60")
-                df_suc_show = df_comp.sort_values("success_total_pct_to_40", ascending=False)
-                cols_suc = [c for c in ["Padrão","success_total_pct_to_40",
-                                         "success_total_pct_to_60",
-                                         "success_total_pct_diff_60_minus_40"] if c in df_suc_show.columns]
-                rn_suc = {"success_total_pct_to_40": "% Sucesso X>40",
-                          "success_total_pct_to_60": "% Sucesso X>60",
-                          "success_total_pct_diff_60_minus_40": "Δ % Sucesso (X>60 - X>40)"}
-                st.dataframe(df_suc_show[cols_suc].rename(columns=rn_suc),
-                             use_container_width=True, hide_index=True)
+
+                df_suc_show = df_comp.copy()
+
+                cols_suc = [
+                    "Padrão",
+                    "success_total_pct_to_40",
+                    "success_total_pct_to_60",
+                    "success_total_pct_diff_60_minus_40"
+                ]
+
+                cols_suc = [c for c in cols_suc if c in df_suc_show.columns]
+                df_suc_show = df_suc_show[cols_suc].copy()
+
+                df_suc_show = df_suc_show.rename(columns={
+                    "success_total_pct_to_40": "% Sucesso X>40",
+                    "success_total_pct_to_60": "% Sucesso X>60",
+                    "success_total_pct_diff_60_minus_40": "Δ % Sucesso (X>60 - X>40)"
+                })
+
+                numeric_cols_suc = [
+                    "% Sucesso X>40",
+                    "% Sucesso X>60",
+                    "Δ % Sucesso (X>60 - X>40)"
+                ]
+
+                for col in numeric_cols_suc:
+                    if col in df_suc_show.columns:
+                        df_suc_show[col] = df_suc_show[col].round(0).astype(int)
+
+                # Ordenar por % Sucesso X>40
+                if "% Sucesso X>40" in df_suc_show.columns:
+                    df_suc_show = df_suc_show.sort_values("% Sucesso X>40", ascending=False).reset_index(drop=True)
+
+                # Adicionar símbolo % nas colunas de sucesso
+                pct_cols_suc = [
+                    "% Sucesso X>40",
+                    "% Sucesso X>60"
+                ]
+
+                for col in pct_cols_suc:
+                    if col in df_suc_show.columns:
+                        df_suc_show[col] = df_suc_show[col].astype(str) + "%"
+
+                # Coluna delta sem símbolo % no valor
+                if "Δ % Sucesso (X>60 - X>40)" in df_suc_show.columns:
+                    df_suc_show["Δ % Sucesso (X>60 - X>40)"] = df_suc_show["Δ % Sucesso (X>60 - X>40)"].astype(str)
+
+                html_table_suc = df_suc_show.to_html(index=False, justify="center")
+
+                st.markdown(
+                    f"""
+                    <div style="overflow-x: auto;">
+                        <style>
+                            table {{
+                                width: 100%;
+                                border-collapse: collapse;
+                                font-size: 16px;
+                            }}
+                            th, td {{
+                                text-align: center !important;
+                                padding: 10px 12px;
+                                border: 1px solid #d9d9d9;
+                            }}
+                            th {{
+                                background-color: #f2f2f2;
+                                font-weight: 600;
+                            }}
+                        </style>
+                        {html_table_suc}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
         with tab_60:
             fig_f60, fig_t60 = _charts(df60, "X>60")
