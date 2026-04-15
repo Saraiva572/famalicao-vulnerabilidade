@@ -1172,11 +1172,20 @@ elif pagina == "🏗️ Padrões de Construção":
     }
     # Coordenadas no campo StatsBomb (120×80) por posição abreviada
     POS11_COORDS = {
-        "GK":  (6,  40), "LCB": (22, 22), "RCB": (22, 58),
-        "LB":  (20,  7), "RB":  (20, 73), "DM":  (38, 40),
-        "CM":  (52, 40), "AM":  (65, 40), "LW":  (78,  8),
-        "RW":  (78, 72), "CF":  (90, 40),
+        "GK":  (6,  40), "LCB": (22, 58), "RCB": (22, 22),
+        "LB":  (20,  73), "RB":  (20, 7), "DM":  (38, 40),
+        "CM":  (52, 40), "AM":  (65, 40), "LW":  (78,  72),
+        "RW":  (78, 8), "CF":  (90, 40),
     }
+
+    def flip_y_for_pitch(y_value):
+    """
+    Inverte o eixo y para desenhar o campo com origem no canto inferior esquerdo.
+    """
+    if pd.isna(y_value):
+        return y_value
+    return 80 - y_value
+    
 
     # ══════════════════════════════════════════════════════════════════════════
     # 1 — RESUMO EXECUTIVO (viz_executive_summary%20%281%29.csv)
@@ -1538,18 +1547,48 @@ elif pagina == "🏗️ Padrões de Construção":
         "de todas as posses incluídas para a análise da 1ª fase de construção do FC Famalicão."
     )
 
+    def flip_y_for_pitch(y_value):
+        """
+        Inverte a coordenada y para desenhar o campo com origem
+        no canto inferior esquerdo.
+        """
+        if pd.isna(y_value):
+            return y_value
+        return 80 - y_value
+
+    # Coordenadas corrigidas para o campo desenhado com origem em baixo à esquerda
+    POS11_COORDS_AP = {
+        "GK":  (6, 40),
+        "LCB": (22, 58),
+        "RCB": (22, 22),
+        "LB":  (20, 73),
+        "RB":  (20, 7),
+        "DM":  (38, 40),
+        "CM":  (52, 40),
+        "AM":  (65, 40),
+        "LW":  (78, 72),
+        "RW":  (78, 8),
+        "CF":  (90, 40),
+    }
+
     if df_avg_pos.empty:
         st.warning("Não foi possível carregar viz_avg_positions%20%281%29.csv do GitHub.")
     else:
         col_ap1, col_ap2 = st.columns(2)
         with col_ap1:
             ap_window_opts = sorted(df_avg_pos["window"].unique()) if "window" in df_avg_pos.columns else ["to_40"]
-            ap_window = st.selectbox("Janela:", ap_window_opts,
-                                     format_func=lambda w: {"to_40":"Até x > 40","to_60":"Até x > 60"}.get(w, w),
-                                     key="ap_window")
+            ap_window = st.selectbox(
+                "Janela:",
+                ap_window_opts,
+                format_func=lambda w: {"to_40": "Até x > 40", "to_60": "Até x > 60"}.get(w, w),
+                key="ap_window"
+            )
+
         with col_ap2:
-            ap_pat_opts = sorted(df_avg_pos[df_avg_pos["window"] == ap_window]["pattern_name"].unique()) \
+            ap_pat_opts = (
+                sorted(df_avg_pos[df_avg_pos["window"] == ap_window]["pattern_name"].unique())
                 if "pattern_name" in df_avg_pos.columns else ["all"]
+            )
             ap_pat_labels = {
                 "all": "Todos os Padrões",
                 "center_exit_pattern": "Saída pelo centro",
@@ -1559,174 +1598,177 @@ elif pagina == "🏗️ Padrões de Construção":
                 "outer_inner_exit": "Fora-Dentro",
                 "other_pattern": "Outro",
             }
-            ap_pat = st.selectbox("Padrão:", ap_pat_opts,
-                                   format_func=lambda p: ap_pat_labels.get(p, p),
-                                   key="ap_pattern")
+            ap_pat = st.selectbox(
+                "Padrão:",
+                ap_pat_opts,
+                format_func=lambda p: ap_pat_labels.get(p, p),
+                key="ap_pattern"
+            )
 
-        mask_ap = (df_avg_pos["window"] == ap_window) & (df_avg_pos["pattern_name"] == ap_pat) \
-            if "pattern_name" in df_avg_pos.columns else (df_avg_pos["window"] == ap_window)
+        if "pattern_name" in df_avg_pos.columns:
+            mask_ap = (df_avg_pos["window"] == ap_window) & (df_avg_pos["pattern_name"] == ap_pat)
+        else:
+            mask_ap = df_avg_pos["window"] == ap_window
+
         df_ap = df_avg_pos[mask_ap].copy()
 
         # Também filtrar pass links para overlay
-        mask_pl = (df_pass_lnks["window"] == ap_window)
-        if "pattern_name" in df_pass_lnks.columns:
-            mask_pl &= df_pass_lnks["pattern_name"] == ap_pat
-        df_pl = df_pass_lnks[mask_pl].copy().rename(
-            columns={"origin_position_11": "origin", "destination_position_11": "dest"}
-        ) if not df_pass_lnks.empty else pd.DataFrame()
+        if not df_pass_lnks.empty:
+            mask_pl = df_pass_lnks["window"] == ap_window
+            if "pattern_name" in df_pass_lnks.columns:
+                mask_pl = mask_pl & (df_pass_lnks["pattern_name"] == ap_pat)
+
+            df_pl = df_pass_lnks[mask_pl].copy().rename(
+                columns={
+                    "origin_position_11": "origin",
+                    "destination_position_11": "dest"
+                }
+            )
+        else:
+            df_pl = pd.DataFrame()
 
         if df_ap.empty:
             st.info("Sem dados de posicionamento para esta combinação.")
         else:
             max_pl = int(df_pl["n_passes"].max()) if not df_pl.empty else 1
-            min_pl_thresh = st.slider("Mostrar ligações com pelo menos N passes:",
-                                       1, max(max_pl, 1), max(1, max_pl // 6), key="ap_thresh")
-            df_pl_show = df_pl[df_pl["n_passes"] >= min_pl_thresh] if not df_pl.empty else pd.DataFrame()
+
+            df_pl_show = pd.DataFrame()
+            if not df_pl.empty:
+                default_thresh = max(1, max_pl // 6)
+                min_pl_thresh = st.slider(
+                    "Mostrar ligações com pelo menos N passes:",
+                    1,
+                    max(max_pl, 1),
+                    default_thresh,
+                    key="ap_thresh"
+                )
+                df_pl_show = df_pl[df_pl["n_passes"] >= min_pl_thresh].copy()
+            else:
+                min_pl_thresh = 1
 
             fig_ap = go.Figure()
+
             field_shapes_ap = [
-                dict(type="rect", x0=0, y0=0, x1=120, y1=80,
-                     line=dict(color="white", width=2), fillcolor="rgba(0,100,0,0.82)"),
-                dict(type="line", x0=60, y0=0, x1=60, y1=80,
-                     line=dict(color="white", width=1.5, dash="dot")),
-                dict(type="rect", x0=0, y0=18, x1=18, y1=62,
-                     line=dict(color="white", width=1), fillcolor="rgba(0,0,0,0)"),
-                dict(type="rect", x0=0, y0=30, x1=6, y1=50,
-                     line=dict(color="white", width=1), fillcolor="rgba(0,0,0,0)"),
-                dict(type="rect", x0=102, y0=18, x1=120, y1=62,
-                     line=dict(color="white", width=1), fillcolor="rgba(0,0,0,0)"),
+                dict(
+                    type="rect", x0=0, y0=0, x1=120, y1=80,
+                    line=dict(color="white", width=2),
+                    fillcolor="rgba(0,100,0,0.82)"
+                ),
+                dict(
+                    type="line", x0=60, y0=0, x1=60, y1=80,
+                    line=dict(color="white", width=1.5, dash="dot")
+                ),
+                dict(
+                    type="rect", x0=0, y0=18, x1=18, y1=62,
+                    line=dict(color="white", width=1),
+                    fillcolor="rgba(0,0,0,0)"
+                ),
+                dict(
+                    type="rect", x0=0, y0=30, x1=6, y1=50,
+                    line=dict(color="white", width=1),
+                    fillcolor="rgba(0,0,0,0)"
+                ),
+                dict(
+                    type="rect", x0=102, y0=18, x1=120, y1=62,
+                    line=dict(color="white", width=1),
+                    fillcolor="rgba(0,0,0,0)"
+                ),
             ]
 
             # Arcos de passe
             if not df_pl_show.empty:
                 max_n_ap = df_pl_show["n_passes"].max()
+
                 for _, rl in df_pl_show.iterrows():
-                    x0, y0 = POS11_COORDS.get(rl["origin"], (30, 40))
-                    x1, y1 = POS11_COORDS.get(rl["dest"],   (30, 40))
+                    x0, y0 = POS11_COORDS_AP.get(rl["origin"], (30, 40))
+                    x1, y1 = POS11_COORDS_AP.get(rl["dest"], (30, 40))
+
                     w = 1 + 5 * (rl["n_passes"] / max_n_ap)
                     a = 0.3 + 0.5 * (rl["n_passes"] / max_n_ap)
-                    fig_ap.add_trace(go.Scatter(
-                        x=[x0, x1, None], y=[y0, y1, None], mode="lines",
-                        line=dict(color=f"rgba(255,220,0,{a:.2f})", width=w),
-                        hoverinfo="skip", showlegend=False,
-                    ))
+
+                    fig_ap.add_trace(
+                        go.Scatter(
+                            x=[x0, x1, None],
+                            y=[y0, y1, None],
+                            mode="lines",
+                            line=dict(color=f"rgba(255,220,0,{a:.2f})", width=w),
+                            hoverinfo="skip",
+                            showlegend=False,
+                        )
+                    )
 
             # Nós por posição média
             x_col = "avg_x" if "avg_x" in df_ap.columns else "avg_x_to_40"
             y_col = "avg_y" if "avg_y" in df_ap.columns else "avg_y_to_40"
             pos_col = "position_11" if "position_11" in df_ap.columns else df_ap.columns[0]
 
-            fig_ap.add_trace(go.Scatter(
-                x=df_ap[x_col], y=df_ap[y_col],
-                mode="markers+text",
-                marker=dict(size=18, color="#e74c3c", line=dict(color="white", width=2)),
-                text=df_ap[pos_col],
-                textposition="top center",
-                textfont=dict(size=9, color="white"),
-                hovertemplate="<b>%{text}</b><br>x: %{x:.1f} | y: %{y:.1f}<extra></extra>",
-                showlegend=False,
-            ))
+            df_ap_plot = df_ap.copy()
+
+            y_plot_list = []
+            for y_value in df_ap_plot[y_col]:
+                y_plot_value = flip_y_for_pitch(y_value)
+                y_plot_list.append(y_plot_value)
+
+            df_ap_plot["y_plot"] = y_plot_list
+
+            fig_ap.add_trace(
+                go.Scatter(
+                    x=df_ap_plot[x_col],
+                    y=df_ap_plot["y_plot"],
+                    mode="markers+text",
+                    marker=dict(
+                        size=18,
+                        color="#e74c3c",
+                        line=dict(color="white", width=2)
+                    ),
+                    text=df_ap_plot[pos_col],
+                    textposition="top center",
+                    textfont=dict(size=9, color="white"),
+                    hovertemplate="<b>%{text}</b><br>x: %{x:.1f} | y: %{customdata:.1f}<extra></extra>",
+                    customdata=df_ap_plot[y_col],
+                    showlegend=False,
+                )
+            )
 
             fig_ap.update_layout(
                 shapes=field_shapes_ap,
-                xaxis=dict(range=[-5, 125], showgrid=False, zeroline=False, visible=False),
-                yaxis=dict(range=[-5, 85], showgrid=False, zeroline=False, visible=False,
-                           scaleanchor="x", scaleratio=1),
-                height=500, plot_bgcolor="rgba(0,100,0,0.82)",
+                xaxis=dict(
+                    range=[-5, 125],
+                    showgrid=False,
+                    zeroline=False,
+                    visible=False
+                ),
+                yaxis=dict(
+                    range=[-5, 85],
+                    showgrid=False,
+                    zeroline=False,
+                    visible=False,
+                    scaleanchor="x",
+                    scaleratio=1
+                ),
+                height=500,
+                plot_bgcolor="rgba(0,100,0,0.82)",
                 margin=dict(l=10, r=10, t=50, b=10),
-                title=dict(text=f"Posicionamento Médio — " + ap_pat_labels.get(ap_pat, ap_pat) + " | " + {'to_40':'Até X>40','to_60':'Até X>60'}.get(ap_window, ap_window),
-                           font=dict(size=13, family="Arial", color="white")),
+                title=dict(
+                    text="Posicionamento Médio — " + ap_pat_labels.get(ap_pat, ap_pat) + " | " + {"to_40": "Até X>40", "to_60": "Até X>60"}.get(ap_window, ap_window),
+                    font=dict(size=13, family="Arial", color="white")
+                ),
                 paper_bgcolor="rgba(0,80,0,0.9)",
                 font=dict(color="white"),
             )
+
             st.plotly_chart(fig_ap, use_container_width=True)
 
             # Tabela de posicionamento
             with st.expander("📋 Tabela de posições médias", expanded=False):
                 cols_ap = [c for c in [pos_col, x_col, y_col] if c in df_ap.columns]
                 rn_ap = {pos_col: "Posição", x_col: "Avg X", y_col: "Avg Y"}
-                st.dataframe(df_ap[cols_ap].rename(columns=rn_ap).round(2),
-                             use_container_width=True, hide_index=True)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # 6 — MICRO-RELAÇÕES (viz_microrelations%20%281%29.csv)
-    # ══════════════════════════════════════════════════════════════════════════
-    st.subheader("6️⃣ Micro-Relações de Início de Posse")
-    st.caption("Primeiras 3 posições envolvidas em cada sequência de construção e respectivas taxas de sucesso.")
-
-    if df_micro.empty:
-        st.warning("Não foi possível carregar viz_microrelations%20%281%29.csv do GitHub.")
-    else:
-        df_m = df_micro.copy().sort_values("total", ascending=False)
-
-        col_m1, col_m2 = st.columns([1.2, 1])
-
-        with col_m1:
-            # Barras empilhadas por micro-relação
-            fig_m = go.Figure()
-            fig_m.add_trace(go.Bar(
-                y=df_m["micro_relation_name"], x=df_m["success_total"],
-                name="✅ Sucesso Total", orientation="h", marker_color="#2ecc71",
-                hovertemplate="<b>%{y}</b><br>Sucesso Total: %{x}<extra></extra>",
-            ))
-            fig_m.add_trace(go.Bar(
-                y=df_m["micro_relation_name"], x=df_m["success_partial"],
-                name="🟡 Sucesso Parcial", orientation="h", marker_color="#f39c12",
-                hovertemplate="<b>%{y}</b><br>Sucesso Parcial: %{x}<extra></extra>",
-            ))
-            fig_m.add_trace(go.Bar(
-                y=df_m["micro_relation_name"], x=df_m["unsuccessful"],
-                name="❌ Insucesso", orientation="h", marker_color="#e74c3c",
-                hovertemplate="<b>%{y}</b><br>Insucesso: %{x}<extra></extra>",
-            ))
-            fig_m.update_layout(
-                barmode="stack",
-                title=dict(text="Frequência por micro-relação", font=dict(size=13, family="Arial")),
-                height=max(400, len(df_m) * 28),
-                plot_bgcolor="white",
-                margin=dict(l=10, r=20, t=50, b=30),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                xaxis=dict(showgrid=True, gridcolor="#EEEEEE"),
-            )
-            fig_m.update_yaxes(automargin=True)
-            st.plotly_chart(fig_m, use_container_width=True)
-
-        with col_m2:
-            # Taxa de sucesso total por micro-relação
-            df_m_taxa = df_m.sort_values("success_total_pct", ascending=True)
-            bar_colors_m = [
-                "#2ecc71" if v >= 50 else ("#f39c12" if v >= 30 else "#e74c3c")
-                for v in df_m_taxa["success_total_pct"]
-            ]
-            fig_m_t = go.Figure(go.Bar(
-                y=df_m_taxa["micro_relation_name"],
-                x=df_m_taxa["success_total_pct"],
-                orientation="h",
-                marker_color=bar_colors_m,
-                text=[f"{v:.0f}%" for v in df_m_taxa["success_total_pct"]],
-                textposition="outside",
-                hovertemplate="<b>%{y}</b><br>Taxa sucesso: %{x:.1f}%<extra></extra>",
-            ))
-            fig_m_t.add_vline(x=50, line_dash="dot", line_color="#888", line_width=1)
-            fig_m_t.update_layout(
-                title=dict(text="Taxa de Sucesso Total (%)", font=dict(size=13, family="Arial")),
-                height=max(400, len(df_m) * 28),
-                plot_bgcolor="white",
-                margin=dict(l=10, r=70, t=50, b=30),
-                xaxis=dict(range=[0, 115], showgrid=True, gridcolor="#EEEEEE"),
-                showlegend=False,
-            )
-            fig_m_t.update_yaxes(automargin=True)
-            st.plotly_chart(fig_m_t, use_container_width=True)
-
-        with st.expander("📋 Tabela completa de micro-relações", expanded=False):
-            cols_m = [c for c in ["micro_relation_name","total","freq_pct","success_total",
-                                   "success_partial","unsuccessful","success_total_pct"] if c in df_m.columns]
-            rn_m = {"micro_relation_name":"Micro-Relação","total":"Total","freq_pct":"% Freq",
-                    "success_total":"Suc. Total","success_partial":"Suc. Parcial",
-                    "unsuccessful":"Insucesso","success_total_pct":"% Suc. Total"}
-            st.dataframe(df_m[cols_m].rename(columns=rn_m), use_container_width=True, hide_index=True)
-
+                st.dataframe(
+                    df_ap[cols_ap].rename(columns=rn_ap).round(2),
+                    use_container_width=True,
+                    hide_index=True
+                )
     # ── Nota metodológica ─────────────────────────────────────────────────────
     with st.expander("ℹ️ Nota metodológica", expanded=False):
         st.markdown("""
