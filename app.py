@@ -1208,12 +1208,26 @@ elif pagina == "🏗️ Padrões de Construção":
     else:
         st.warning("Não foi possível carregar viz_executive_summary%20%281%29.csv do GitHub.")
 
-    with st.expander("ℹ️ O que significa cada outcome?", expanded=False):
-        st.markdown("""
-- **Sucesso Parcial** — a equipa consegue eliminar a 1ª pressão adversária, mas não consegue progredir até ao meio campo.
-- **Sucesso Total** — a equipa consegue eliminar a 1ª pressão adversária **e** progredir até ao meio campo.
-- **Insucesso** — a equipa não consegue eliminar a 1ª pressão adversária.
-        """)
+        st.markdown("#### ℹ️ O que significa cada outcome?")
+
+    st.markdown(
+        """
+<div style="
+    background-color: #f7f7f7;
+    border: 1px solid #d9d9d9;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-top: 6px;
+    margin-bottom: 18px;
+">
+    <p style="margin-bottom: 12px;"><b>1 - % Sucesso</b> — corresponde à soma de <b>% Sucesso Parcial</b> + <b>% Sucesso Total</b>.</p>
+    <p style="margin-bottom: 12px;"><b>2 - % Sucesso Parcial</b> — a equipa consegue eliminar a 1ª pressão adversária, mas não consegue progredir até ao meio-campo.</p>
+    <p style="margin-bottom: 12px;"><b>3 - % Sucesso Total</b> — a equipa consegue eliminar a 1ª pressão adversária e progredir até ao meio-campo.</p>
+    <p style="margin-bottom: 0px;"><b>4 - % Insucesso</b> — a equipa não consegue eliminar a 1ª pressão adversária.</p>
+</div>
+        """,
+        unsafe_allow_html=True
+    )
 
     # ══════════════════════════════════════════════════════════════════════════
     # 2 — PASS NETWORK + TOP 10 (viz_pass_links%20%281%29.csv)
