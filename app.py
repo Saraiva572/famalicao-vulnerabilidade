@@ -1650,38 +1650,6 @@ elif pagina == "🏗️ Padrões de Construção":
             with c1: st.plotly_chart(fig_f40, use_container_width=True)
             with c2:
                 if fig_t40: st.plotly_chart(fig_t40, use_container_width=True)
-            # Tabela resumo X>40
-                        # Tabela resumo X>40
-            st.markdown("#### Tabela resumo")
-
-            df40_table = _build_pattern_summary_table(df40)
-
-            html_table_40 = df40_table.to_html(index=False, justify="center")
-
-            st.markdown(
-                f"""
-                <div style="overflow-x: auto;">
-                    <style>
-                        table {{
-                            width: 100%;
-                            border-collapse: collapse;
-                            font-size: 16px;
-                        }}
-                        th, td {{
-                            text-align: center !important;
-                            padding: 10px 12px;
-                            border: 1px solid #d9d9d9;
-                        }}
-                        th {{
-                            background-color: #f2f2f2;
-                            font-weight: 600;
-                        }}
-                    </style>
-                    {html_table_40}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
 
             # Tabelas de comparação X>40 vs X>60
             if not df_pat_comp.empty:
