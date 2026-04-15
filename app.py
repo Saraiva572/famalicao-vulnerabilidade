@@ -2033,13 +2033,37 @@ e não ao ponto exato onde a equipa ultrapassa a primeira pressão ou o limiar d
             key="zone_pat"
         )
 
+        min_zone_total = st.slider(
+            "Mostrar apenas zonas com pelo menos N posses:",
+            min_value=1,
+            max_value=20,
+            value=3,
+            step=1,
+            key="zone_min_total"
+        )
+
         col_z40, col_z60 = st.columns(2)
 
         for col_z, df_z, title in [
             (col_z40, df_zones40, "Taxa de Sucesso até X>40 (%)"),
             (col_z60, df_zones60, "Taxa de Sucesso até X>60 (%)")
         ]:
-            mat = _zone_matrix(df_z, zone_pat_sel)
+            df_z_filtered = df_z.copy()
+
+            # Filtrar pelo padrão selecionado
+            if "pattern_name" in df_z_filtered.columns:
+                df_z_filtered = df_z_filtered[
+                    df_z_filtered["pattern_name"] == zone_pat_sel
+                ].copy()
+
+            # Filtrar por número mínimo de posses na zona
+            if "total" in df_z_filtered.columns:
+                df_z_filtered = df_z_filtered[
+                    df_z_filtered["total"] >= min_zone_total
+                ].copy()
+
+            # Como já filtrámos manualmente, passamos "all" à função
+            mat = _zone_matrix(df_z_filtered, "all")
 
             with col_z:
                 if mat is not None:
@@ -2063,15 +2087,16 @@ e não ao ponto exato onde a equipa ultrapassa a primeira pressão ou o limiar d
                         title=dict(text=title, font=dict(size=13, family="Arial")),
                         height=320,
                         margin=dict(l=100, r=40, t=50, b=60),
-                        xaxis=dict(title="Largura"),
-                        yaxis=dict(title="Profundidade"),
+                        xaxis=dict(title="Corredor lateral"),
+                        yaxis=dict(title="Faixa longitudinal"),
                     )
 
                     st.plotly_chart(fig_hm, use_container_width=True)
                 else:
-                    st.info(f"Sem dados para '{zone_pat_labels.get(zone_pat_sel, zone_pat_sel)}'.")
-    else:
-        st.warning("Não foi possível carregar os CSVs de zonas do GitHub.") 
+                    st.info(
+                        f"Sem dados para '{zone_pat_labels.get(zone_pat_sel, zone_pat_sel)}' "
+                        f"com pelo menos {min_zone_total} posses por zona."
+                    ) 
     
     # ══════════════════════════════════════════════════════════════════════════
     # 5 — POSICIONAMENTO MÉDIO POR PADRÃO (viz_avg_positions%20%281%29.csv)
