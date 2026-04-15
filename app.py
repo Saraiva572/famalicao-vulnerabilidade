@@ -1613,7 +1613,7 @@ elif pagina == "🏗️ Padrões de Construção":
             with c1: st.plotly_chart(fig_f60, use_container_width=True)
             with c2:
                 if fig_t60: st.plotly_chart(fig_t60, use_container_width=True)
-                        st.markdown("#### Tabela resumo")
+            st.markdown("#### Tabela resumo")
 
             df60_table = _build_pattern_summary_table(df60)
 
