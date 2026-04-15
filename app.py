@@ -1794,10 +1794,43 @@ elif pagina == "📋 Conclusões":
     has_pm     = df_pm_c   is not None and not df_pm_c.empty
 
     # ── Renomear coluna padrão se necessário ────────────────────────────────
-    if has_pat40 and "big_pattern_to_40_name" in df_pat40.columns:
-        df_pat40 = df_pat40.rename(columns={"big_pattern_to_40_name": "padrão"})
-    if has_pat60 and "big_pattern_to_60_name" in df_pat60.columns:
-        df_pat60 = df_pat60.rename(columns={"big_pattern_to_60_name": "padrão"})
+    # Detectar nome da coluna de padrão dinamicamente
+    def _detect_pattern_col(df):
+        for candidate in ["padrão", "big_pattern_to_40_name", "big_pattern_to_60_name",
+                          "pattern_name", "pattern", "label", "padrão_name"]:
+            if candidate in df.columns:
+                return candidate
+        # fallback: primeira coluna string
+        for c in df.columns:
+            if df[c].dtype == object:
+                return c
+        return None
+
+    def _detect_total_col(df):
+        for candidate in ["total", "count", "n", "posses", "num_possessions"]:
+            if candidate in df.columns:
+                return candidate
+        # fallback: primeira coluna numérica que não seja % 
+        for c in df.columns:
+            if df[c].dtype in ["int64", "float64"] and "pct" not in c.lower():
+                return c
+        return None
+
+    if has_pat40:
+        _pat40_name_col = _detect_pattern_col(df_pat40)
+        _pat40_total_col = _detect_total_col(df_pat40)
+        if _pat40_name_col and _pat40_name_col != "padrão":
+            df_pat40 = df_pat40.rename(columns={_pat40_name_col: "padrão"})
+        if _pat40_total_col and _pat40_total_col != "total":
+            df_pat40 = df_pat40.rename(columns={_pat40_total_col: "total"})
+
+    if has_pat60:
+        _pat60_name_col = _detect_pattern_col(df_pat60)
+        _pat60_total_col = _detect_total_col(df_pat60)
+        if _pat60_name_col and _pat60_name_col != "padrão":
+            df_pat60 = df_pat60.rename(columns={_pat60_name_col: "padrão"})
+        if _pat60_total_col and _pat60_total_col != "total":
+            df_pat60 = df_pat60.rename(columns={_pat60_total_col: "total"})
 
     # ══════════════════════════════════════════════════════════════════════
     # SECÇÃO A — CARTÕES DE SÍNTESE EXECUTIVA
@@ -1867,14 +1900,22 @@ elif pagina == "📋 Conclusões":
     st.subheader("🏗️ Padrões de Construção — O que o Famalicão faz")
 
     if has_pat40:
+        _has_padrao = "padrão" in df_pat40.columns
+        _has_total  = "total"  in df_pat40.columns
+
         # Padrão mais usado
-        pat_mais_freq  = df_pat40.loc[df_pat40["total"].idxmax(), "padrão"]
-        freq_max       = int(df_pat40["total"].max())
-        total_posses   = int(df_pat40["total"].sum())
+        if _has_total and _has_padrao:
+            pat_mais_freq  = df_pat40.loc[df_pat40["total"].idxmax(), "padrão"]
+            freq_max       = int(df_pat40["total"].max())
+            total_posses   = int(df_pat40["total"].sum())
+        else:
+            pat_mais_freq  = "—"
+            freq_max       = 0
+            total_posses   = 0
 
         # Padrão mais eficaz (maior success_total_pct)
         pct_col = "success_total_pct" if "success_total_pct" in df_pat40.columns else None
-        if pct_col:
+        if pct_col and _has_padrao:
             pat_mais_eficaz = df_pat40.loc[df_pat40[pct_col].idxmax(), "padrão"]
             eficacia_max    = float(df_pat40[pct_col].max())
             # Padrão menos eficaz
@@ -2345,11 +2386,13 @@ elif pagina == "📋 Conclusões":
         taxa_c = df_pat40["success_total_pct"].mean() if "success_total_pct" in df_pat40.columns else None
 
         # Padrão mais frequente e mais eficaz
-        pat_freq_nome  = df_pat40.loc[df_pat40["total"].idxmax(), "padrão"] if has_pat40 else "—"
-        pat_efic_nome  = df_pat40.loc[df_pat40["success_total_pct"].idxmax(), "padrão"] \
-                         if (has_pat40 and "success_total_pct" in df_pat40.columns) else "—"
-        pat_fraco_nome = df_pat40.loc[df_pat40["success_total_pct"].idxmin(), "padrão"] \
-                         if (has_pat40 and "success_total_pct" in df_pat40.columns) else "—"
+        _f_has_padrao = has_pat40 and "padrão" in df_pat40.columns
+        _f_has_total  = has_pat40 and "total"  in df_pat40.columns
+        _f_has_pct    = has_pat40 and "success_total_pct" in df_pat40.columns
+
+        pat_freq_nome  = df_pat40.loc[df_pat40["total"].idxmax(), "padrão"] if (_f_has_padrao and _f_has_total) else "—"
+        pat_efic_nome  = df_pat40.loc[df_pat40["success_total_pct"].idxmax(), "padrão"] if (_f_has_padrao and _f_has_pct) else "—"
+        pat_fraco_nome = df_pat40.loc[df_pat40["success_total_pct"].idxmin(), "padrão"] if (_f_has_padrao and _f_has_pct) else "—"
 
         jogo_critico_label = df_vap.loc[df_vap["transition_risk_index"].idxmax(), "label_full"]
         jogo_melhor_label  = df_vap.loc[df_vap["transition_risk_index"].idxmin(), "label_full"]
@@ -2361,7 +2404,7 @@ elif pagina == "📋 Conclusões":
             conc_constr = f"""
 O Famalicão apoia-se maioritariamente no padrão **{pat_freq_nome}** como principal forma de progredir
 na 1ª fase de construção (até x>40). O padrão com maior taxa de eficácia é o **{pat_efic_nome}**
-{f"({df_pat40.loc[df_pat40['success_total_pct'].idxmax(), 'success_total_pct']:.0f}% de sucesso total)" if "success_total_pct" in df_pat40.columns else ""}, 
+{f"({df_pat40.loc[df_pat40['success_total_pct'].idxmax(), 'success_total_pct']:.0f}% de sucesso total)" if _f_has_pct else ""}, 
 sendo este o caminho preferencial quando a equipa pretende garantir progressão.
 
 O padrão **{pat_fraco_nome}** apresenta a eficácia mais baixa e representa uma área de trabalho
