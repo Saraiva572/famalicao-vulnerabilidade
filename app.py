@@ -775,699 +775,334 @@ Quanto maior o TRI, maior o perigo criado pelo adversário após recuperar a bol
 # ══════════════════════════════════════════════════════════════════════════
 
 elif pagina == "⚠️ Métricas Pós-Perda":
-    
+
     import numpy as np
     import os
-    from plotly.subplots import make_subplots
-    
-    # ── Header ──────────────────────────────────────────────────────────────
+
+    # ── Header ───────────────────────────────────────────────────────────────
     col_logo, col_title = st.columns([1, 10])
     with col_logo:
         if fama_logo:
             st.image(fama_logo, width=70)
         else:
-            st.markdown("🔴")
+            st.markdown("🔵")
     with col_title:
         st.title("Famalicão — Vulnerabilidade Pós-Perda")
-    st.caption("Liga Portugal 25/26 | Análise de Transições Defensivas — O que acontece quando perdemos a bola")
-    
-    # ── Carregar CSVs do GitHub ─────────────────────────────────────────────
+    st.caption("Liga Portugal 25/26 | O que acontece nos 15 segundos após perdermos a bola")
 
+    # ── Carregar CSVs do GitHub ─────────────────────────────────────────────
     GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main"
     OPPONENT_CSV_URL   = f"{GITHUB_RAW_BASE}/opponent_metrics.csv"
     POSSESSION_CSV_URL = f"{GITHUB_RAW_BASE}/possession_metrics.csv"
 
     @st.cache_data(ttl=300, show_spinner="A carregar métricas pós-perda...")
     def carregar_opponent_metrics():
-        """Carrega o CSV opponent_metrics do GitHub."""
         try:
             return pd.read_csv(OPPONENT_CSV_URL)
         except Exception:
-            for filename in ["opponent_metrics.csv", "opponent_metrics__9_.csv"]:
+            for filename in ["opponent_metrics.csv"]:
                 if os.path.exists(filename):
                     return pd.read_csv(filename)
             return None
 
     @st.cache_data(ttl=300, show_spinner="A carregar sequências...")
     def carregar_possession_metrics():
-        """Carrega o CSV possession_metrics do GitHub."""
         try:
             return pd.read_csv(POSSESSION_CSV_URL)
         except Exception:
-            for filename in ["possession_metrics.csv", "possession_metrics__5_.csv"]:
+            for filename in ["possession_metrics.csv"]:
                 if os.path.exists(filename):
                     return pd.read_csv(filename)
             return None
 
-    # Carregar dados
-    df = carregar_opponent_metrics()
-    possession_df = carregar_possession_metrics()
+    opp_df = carregar_opponent_metrics()
+    pos_df = carregar_possession_metrics()
 
-    if df is None or df.empty:
-        st.error(
-            f"❌ Não foi possível carregar 'opponent_metrics.csv'.\n\n"
-            f"**URL tentado:** `{OPPONENT_CSV_URL}`\n\n"
-            "Confirma que o ficheiro foi feito commit para o repositório."
-        )
+    if opp_df is None or opp_df.empty:
+        st.error("❌ Não foi possível carregar 'opponent_metrics.csv'.")
         st.stop()
-    
-    has_possession_data = possession_df is not None and not possession_df.empty
 
-    # ── Cores dos clubes ────────────────────────────────────────────────────
-    CLUB_COLORS = {
-        "AVS": "#1E3A8A", "Alverca": "#009B3A", "Benfica": "#E30613",
-        "Casa Pia AC": "#1E3A5F", "Estoril": "#FFD700", "Estrela Amadora": "#8B0000",
-        "FC Arouca": "#FFD700", "FC Porto": "#003893", "Gil Vicente": "#E30613",
-        "Moreirense": "#006847", "Nacional": "#000000", "Rio Ave": "#006847",
-        "Santa Clara": "#E30613", "Sporting Braga": "#E30613", "Sporting CP": "#006847",
-        "Tondela": "#006847", "Vitória Guimarães": "#000000",
-    }
-    
-    # ── Filtros na Sidebar ──────────────────────────────────────────────────
+    has_pos = pos_df is not None and not pos_df.empty
+
+    # ── Agregar opponent_metrics por adversário ──────────────────────────────
+    opp = opp_df.groupby("opponent").agg(
+        progression_mean=("progression_mean", "mean"),
+        progression_max=("progression_max", "max"),
+        entry_last_third_mean=("entry_last_third_mean", "mean"),
+        transition_speed_mean=("transition_speed_mean", "mean"),
+    ).round(2).reset_index()
+
+    # ── Filtro sidebar ───────────────────────────────────────────────────────
     st.sidebar.header("🎯 Filtros")
-    
-    adversarios = ["Todos"] + sorted(df["opponent"].unique().tolist())
+    adversarios = ["Todos"] + sorted(opp["opponent"].unique().tolist())
     sel_adv = st.sidebar.selectbox("Adversário", adversarios, key="perda_adv")
-    
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📊 Métrica de Destaque")
-    
-    # Construir options dinamicamente baseado nas colunas existentes
-    all_highlight_options = {
-        "shot_occurred_mean": "Taxa de Remate",
-        "n_shots_mean": "Nº Remates",
-        "entry_last_third_mean": "Entrada no Último Terço", 
-        "progression_mean": "Progressão Média (m)"
+
+    # ── Cards globais ────────────────────────────────────────────────────────
+    st.subheader("📈 Visão Global da Temporada")
+
+    if has_pos:
+        total_perdas  = len(pos_df)
+        pct_entry     = pos_df["entry_last_third"].mean() * 100
+        prog_media    = pos_df["progression"].mean()
+        pct_positivo  = (pos_df["progression"] > 0).mean() * 100
+    else:
+        total_perdas  = len(opp_df)
+        pct_entry     = opp["entry_last_third_mean"].mean() * 100
+        prog_media    = opp["progression_mean"].mean()
+        pct_positivo  = (opp["progression_mean"] > 0).mean() * 100
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Perdas analisadas", f"{total_perdas}")
+    c2.metric("Adversário entrou no 3º terço", f"{pct_entry:.0f}%",
+              help="% de sequências pós-perda em que o adversário entrou no último terço")
+    c3.metric("Progressão média", f"{prog_media:.1f} m",
+              help="Metros que o adversário avança nos 15s após recuperar a bola")
+    c4.metric("Transições com avanço", f"{pct_positivo:.0f}%",
+              help="% de perdas em que o adversário avançou no campo (progressão > 0)")
+
+    st.markdown("---")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECÇÃO 1 — PROGRESSÃO POR ADVERSÁRIO
+    # ══════════════════════════════════════════════════════════════════════════
+    st.subheader("📏 Progressão Adversária após Perda de Bola")
+    st.caption("Metros que o adversário avança em campo nos 15 segundos após recuperar a bola. Valores altos = transições rápidas e longas.")
+
+    opp_sorted = opp.sort_values("progression_mean", ascending=True)
+
+    # Cores: vermelho escuro para mais perigosos, verde para mais controlados
+    max_prog = opp_sorted["progression_mean"].max()
+    min_prog = opp_sorted["progression_mean"].min()
+
+    def prog_color(v):
+        if max_prog == min_prog:
+            return "rgba(231,76,60,0.6)"
+        ratio = (v - min_prog) / (max_prog - min_prog)
+        r = int(46 + ratio * (231 - 46))
+        g = int(204 - ratio * (204 - 76))
+        b = int(113 - ratio * (113 - 60))
+        return f"rgba({r},{g},{b},0.8)"
+
+    bar_colors = [prog_color(v) for v in opp_sorted["progression_mean"]]
+
+    fig_prog = go.Figure()
+    fig_prog.add_trace(go.Bar(
+        y=opp_sorted["opponent"],
+        x=opp_sorted["progression_mean"],
+        orientation="h",
+        marker=dict(color=bar_colors, line=dict(color="rgba(0,0,0,0.15)", width=0.5)),
+        text=[f"{v:.1f} m" for v in opp_sorted["progression_mean"]],
+        textposition="outside",
+        textfont=dict(size=11),
+        customdata=opp_sorted["progression_max"],
+        hovertemplate="<b>%{y}</b><br>Progressão média: %{x:.1f} m<br>Máximo registado: %{customdata:.0f} m<extra></extra>"
+    ))
+    # Linha de média geral
+    media_prog = opp["progression_mean"].mean()
+    fig_prog.add_vline(x=media_prog, line_dash="dash", line_color="#888",
+                       annotation_text=f"Média: {media_prog:.1f}m", annotation_font_color="#888")
+    fig_prog.update_layout(
+        xaxis_title="Progressão média (metros)",
+        yaxis_title="",
+        plot_bgcolor="white",
+        height=480,
+        margin=dict(l=140, r=80, t=20, b=40),
+    )
+    fig_prog.update_xaxes(showgrid=True, gridcolor="#EEEEEE", zeroline=True, zerolinecolor="#CCC")
+    fig_prog.update_yaxes(showgrid=False)
+    st.plotly_chart(fig_prog, use_container_width=True)
+
+    # Conclusão automática
+    mais_perigoso = opp.nlargest(1, "progression_mean").iloc[0]
+    mais_controlado = opp.nsmallest(1, "progression_mean").iloc[0]
+    st.info(
+        f"**Conclusão:** Contra **{mais_perigoso['opponent']}**, o adversário avança em média "
+        f"**{mais_perigoso['progression_mean']:.1f} m** após recuperar — a maior progressão registada. "
+        f"Já contra **{mais_controlado['opponent']}** ({mais_controlado['progression_mean']:.1f} m), "
+        f"as transições são praticamente neutralizadas."
+    )
+
+    st.markdown("---")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECÇÃO 2 — ENTRADA NO ÚLTIMO TERÇO
+    # ══════════════════════════════════════════════════════════════════════════
+    st.subheader("🚨 Entrada no Último Terço por Adversário")
+    st.caption("% média de sequências pós-perda em que o adversário consegue entrar no nosso último terço (x > 80 m).")
+
+    opp_entry = opp.sort_values("entry_last_third_mean", ascending=True)
+
+    entry_colors = [prog_color(v) for v in opp_entry["entry_last_third_mean"]]
+
+    fig_entry = go.Figure()
+    fig_entry.add_trace(go.Bar(
+        y=opp_entry["opponent"],
+        x=opp_entry["entry_last_third_mean"] * 100,
+        orientation="h",
+        marker=dict(color=entry_colors, line=dict(color="rgba(0,0,0,0.15)", width=0.5)),
+        text=[f"{v*100:.0f}%" for v in opp_entry["entry_last_third_mean"]],
+        textposition="outside",
+        textfont=dict(size=11),
+        hovertemplate="<b>%{y}</b><br>Taxa de entrada: %{x:.1f}%<extra></extra>"
+    ))
+    media_entry = opp["entry_last_third_mean"].mean() * 100
+    fig_entry.add_vline(x=media_entry, line_dash="dash", line_color="#888",
+                        annotation_text=f"Média: {media_entry:.0f}%", annotation_font_color="#888")
+    fig_entry.update_layout(
+        xaxis_title="Taxa de entrada no último terço (%)",
+        yaxis_title="",
+        plot_bgcolor="white",
+        height=480,
+        margin=dict(l=140, r=80, t=20, b=40),
+    )
+    fig_entry.update_xaxes(showgrid=True, gridcolor="#EEEEEE", range=[0, max(opp_entry["entry_last_third_mean"]*100)*1.3])
+    fig_entry.update_yaxes(showgrid=False)
+    st.plotly_chart(fig_entry, use_container_width=True)
+
+    mais_entry = opp.nlargest(1, "entry_last_third_mean").iloc[0]
+    menos_entry = opp.nsmallest(1, "entry_last_third_mean").iloc[0]
+    st.info(
+        f"**Conclusão:** **{mais_entry['opponent']}** é o adversário que mais entra no nosso último terço — "
+        f"em **{mais_entry['entry_last_third_mean']*100:.0f}%** das transições após perda. "
+        f"**{menos_entry['opponent']}** é o mais inócuo neste capítulo ({menos_entry['entry_last_third_mean']*100:.0f}%)."
+    )
+
+    st.markdown("---")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECÇÃO 3 — VULNERABILIDADE POR PADRÃO DE CONSTRUÇÃO
+    # ══════════════════════════════════════════════════════════════════════════
+    st.subheader("🔁 Vulnerabilidade por Padrão de Construção")
+    st.caption("Quando o Famalicão perde a bola em cada padrão tático, qual é a progressão e taxa de entrada adversária média?")
+
+    pat_labels = {
+        "center_exit_pattern": "Saída pelo Centro",
+        "interior_exterior_opposite_side": "Interior→Exterior (lado oposto)",
+        "interior_exterior_same_side": "Interior→Exterior (mesmo lado)",
+        "other_pattern": "Outro Padrão",
+        "outer_inner_exit": "Exterior→Interior",
+        "switch_of_play": "Mudança de Corredor",
     }
-    highlight_options = {k: v for k, v in all_highlight_options.items() if k in df.columns}
-    
-    if len(highlight_options) > 0:
-        highlight_metric = st.sidebar.selectbox(
-            "Ordenar rankings por:",
-            options=list(highlight_options.keys()),
-            format_func=lambda x: highlight_options[x]
-        )
-    else:
-        highlight_metric = "progression_mean"  # fallback
-    
-    df_f = df.copy()
-    if sel_adv != "Todos":
-        df_f = df_f[df_f["opponent"] == sel_adv]
-    
-    if df_f.empty:
-        st.warning("Nenhum adversário encontrado com os filtros selecionados.")
-        st.stop()
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # MÉTRICAS GLOBAIS EM CARDS
-    # ══════════════════════════════════════════════════════════════════════════
-    
-    st.subheader("📈 Visão Geral da Temporada")
-    
-    if has_possession_data:
-        total_sequences = len(possession_df)
-        sequences_with_shot = possession_df['shot_occurred'].sum()
-        sequences_with_entry = possession_df['entry_last_third'].sum()
-        avg_progression = possession_df['progression'].mean()
-        max_progression = possession_df['progression'].max()
-        shot_rate = (sequences_with_shot / total_sequences * 100) if total_sequences > 0 else 0
-        entry_rate = (sequences_with_entry / total_sequences * 100) if total_sequences > 0 else 0
-        
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Sequências Analisadas", f"{total_sequences}", help="Total de perdas de bola analisadas")
-        c2.metric("Taxa de Remate", f"{shot_rate:.1f}%", delta=f"{sequences_with_shot} remates", delta_color="inverse")
-        c3.metric("Taxa Entry Terço", f"{entry_rate:.1f}%", delta=f"{sequences_with_entry} entradas", delta_color="inverse")
-        c4.metric("Progressão Média", f"{avg_progression:.1f}m")
-        c5.metric("Progressão Máxima", f"{max_progression:.0f}m", delta="Pior caso", delta_color="inverse")
-    else:
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Adversários Analisados", f"{len(df_f)}")
-        c2.metric("Remates Médios (opp)", f"{df_f['n_shots_mean'].mean():.2f}")
-        c3.metric("Entry 3rd Média", f"{df_f['entry_last_third_mean'].mean():.2f}")
-        c4.metric("Progressão Média", f"{df_f['progression_mean'].mean():.1f}m")
-        c5.metric("Progressão Máxima", f"{df_f['progression_max'].max():.0f}m")
-    
-    # ── Semáforo ────────────────────────────────────────────────────────────
-    progression_media = df_f['progression_mean'].mean()
-    if progression_media < 20:
-        semaforo = "🟢 Baixa Progressão Adversária"
-        semaforo_color = "#2ecc71"
-    elif progression_media < 30:
-        semaforo = "🟡 Progressão Moderada"
-        semaforo_color = "#f39c12"
-    else:
-        semaforo = "🔴 Alta Progressão Adversária"
-        semaforo_color = "#e74c3c"
-    
-    st.markdown(f"### Nível Geral: {semaforo}")
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # HEATMAP DE VULNERABILIDADE
-    # ══════════════════════════════════════════════════════════════════════════
-    
-    st.subheader("🔥 Matriz de Vulnerabilidade por Adversário")
-    
-    # Preparar dados para heatmap - usar apenas colunas que existem
-    possible_heatmap_cols = [
-        ('entry_last_third_mean', 'Entrada Terço'),
-        ('shot_occurred_mean', 'Taxa Remate'),
-        ('n_shots_mean', 'Nº Remates'),
-        ('progression_mean', 'Progressão')
-    ]
-    
-    heatmap_cols = []
-    heatmap_labels = []
-    for col, label in possible_heatmap_cols:
-        if col in df_f.columns:
-            heatmap_cols.append(col)
-            heatmap_labels.append(label)
-    
-    if len(heatmap_cols) >= 2:
-        heatmap_data = df_f.set_index('opponent')[heatmap_cols].copy()
-        
-        # Normalizar cada coluna para 0-1
-        heatmap_norm = heatmap_data.copy()
-        for col in heatmap_cols:
-            max_val = heatmap_data[col].max()
-            if max_val > 0:
-                heatmap_norm[col] = heatmap_data[col] / max_val
-            else:
-                heatmap_norm[col] = 0
-        
-        fig_heatmap = go.Figure(data=go.Heatmap(
-            z=heatmap_norm.values,
-            x=heatmap_labels,
-            y=heatmap_norm.index,
-            colorscale=[
-                [0, '#1a472a'],
-                [0.3, '#2ecc71'],
-                [0.5, '#f39c12'],
-                [0.7, '#e74c3c'],
-                [1, '#8b0000']
-            ],
-            hoverongaps=False,
-            hovertemplate='<b>%{y}</b><br>%{x}: %{z:.2f}<extra></extra>',
-            colorbar=dict(title=dict(text='Nível de Ameaça'))
-        ))
-    
-        fig_heatmap.update_layout(
-            xaxis=dict(side='top', tickfont=dict(size=12)),
-            yaxis=dict(tickfont=dict(size=11), autorange='reversed'),
-            plot_bgcolor='white',
-            margin=dict(l=120, r=80, t=60, b=40),
-            height=max(350, len(heatmap_norm) * 30)
-        )
-        
-        st.plotly_chart(fig_heatmap, width="stretch")
-    else:
-        st.warning("Dados insuficientes para gerar o heatmap.")
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # RADAR + RANKING LADO A LADO
-    # ══════════════════════════════════════════════════════════════════════════
-    
-    st.subheader("🎯 Perfil de Ameaça por Adversário")
-    
-    col_radar, col_rank = st.columns([1, 1])
-    
-    with col_radar:
-        # Radar dos top 5 adversários mais perigosos - usar colunas existentes
-        possible_radar = [
-            ('entry_last_third_mean', 'Entry Terço'),
-            ('shot_occurred_mean', 'Taxa Remate'),
-            ('n_shots_mean', 'Nº Remates'),
-            ('progression_mean', 'Progressão')
-        ]
-        
-        radar_metrics = []
-        radar_labels = []
-        for col, label in possible_radar:
-            if col in df_f.columns:
-                radar_metrics.append(col)
-                radar_labels.append(label)
-        
-        # Normalizar
-        radar_data = df_f.copy()
-        for col in radar_metrics:
-            if col in radar_data.columns:
-                max_val = radar_data[col].max()
-                if max_val > 0:
-                    radar_data[f'{col}_norm'] = radar_data[col] / max_val
-                else:
-                    radar_data[f'{col}_norm'] = 0
-        
-        # Top 5 adversários
-        top_n = min(5, len(radar_data))
-        if highlight_metric in radar_data.columns:
-            top_opponents = radar_data.nlargest(top_n, highlight_metric)
-        else:
-            top_opponents = radar_data.head(top_n)
-        
-        colors_radar = ['#e74c3c', '#f39c12', '#3498db', '#2ecc71', '#9b59b6']
-        
-        fig_radar = go.Figure()
-        
-        for idx, (_, row) in enumerate(top_opponents.iterrows()):
-            values = []
-            for col in radar_metrics:
-                values.append(row.get(f'{col}_norm', 0))
-            if len(values) > 0:
-                values.append(values[0])  # Fechar
-            
-            fig_radar.add_trace(go.Scatterpolar(
-                r=values,
-                theta=radar_labels + [radar_labels[0]] if radar_labels else [],
-                fill='toself',
-                fillcolor=f'rgba({int(colors_radar[idx][1:3], 16)}, {int(colors_radar[idx][3:5], 16)}, {int(colors_radar[idx][5:7], 16)}, 0.15)',
-                line=dict(color=colors_radar[idx], width=2),
-                name=row['opponent']
-            ))
-        
-        fig_radar.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, 1], tickfont=dict(size=9)),
-                angularaxis=dict(tickfont=dict(size=11))
+
+    pat = opp_df.groupby("pattern_to_40").agg(
+        progression_mean=("progression_mean", "mean"),
+        entry_last_third_mean=("entry_last_third_mean", "mean"),
+        transition_speed_mean=("transition_speed_mean", "mean"),
+    ).round(2).reset_index()
+    pat["label"] = pat["pattern_to_40"].map(lambda x: pat_labels.get(x, x))
+    pat = pat.sort_values("progression_mean", ascending=False)
+
+    col_pat1, col_pat2 = st.columns(2)
+
+    with col_pat1:
+        fig_pat_prog = go.Figure()
+        fig_pat_prog.add_trace(go.Bar(
+            x=pat["label"],
+            y=pat["progression_mean"],
+            marker=dict(
+                color=pat["progression_mean"],
+                colorscale=[[0, "#2ecc71"], [0.5, "#f39c12"], [1, "#e74c3c"]],
+                showscale=False
             ),
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5, font=dict(size=10)),
-            margin=dict(l=50, r=50, t=30, b=80),
-            height=420
-        )
-        
-        st.plotly_chart(fig_radar, width="stretch")
-    
-    with col_rank:
-        # Bar chart horizontal - Ranking
-        sorted_opponents = df_f.sort_values(highlight_metric, ascending=True)
-        
-        max_val = sorted_opponents[highlight_metric].max()
-        bar_colors = [
-            f'rgba(231, 76, 60, {0.3 + 0.7 * (v / max_val if max_val > 0 else 0)})'
-            for v in sorted_opponents[highlight_metric]
-        ]
-        
-        fig_bar = go.Figure()
-        fig_bar.add_trace(go.Bar(
-            y=sorted_opponents['opponent'],
-            x=sorted_opponents[highlight_metric],
-            orientation='h',
-            marker=dict(color=bar_colors, line=dict(color='#e74c3c', width=1)),
-            text=sorted_opponents[highlight_metric].apply(lambda x: f'{x:.2f}'),
-            textposition='outside',
-            textfont=dict(size=11)
+            text=[f"{v:.1f}m" for v in pat["progression_mean"]],
+            textposition="outside",
+            hovertemplate="<b>%{x}</b><br>Progressão: %{y:.1f} m<extra></extra>"
         ))
-        
-        fig_bar.update_layout(
-            title=dict(text=f'Ranking: {highlight_options[highlight_metric]}', font=dict(size=14)),
-            xaxis_title=highlight_options[highlight_metric],
-            yaxis_title="",
-            plot_bgcolor='white',
-            margin=dict(l=110, r=50, t=50, b=40),
-            height=420
-        )
-        fig_bar.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
-        fig_bar.update_yaxes(showgrid=False)
-        
-        st.plotly_chart(fig_bar, width="stretch")
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # SCATTER PLOT - PROGRESSÃO VS PERIGO
-    # ══════════════════════════════════════════════════════════════════════════
-    
-    # Só mostrar scatter se tivermos as colunas necessárias
-    scatter_cols_needed = ['progression_mean', 'entry_last_third_mean']
-    has_scatter_cols = all(col in df_f.columns for col in scatter_cols_needed)
-    
-    if has_scatter_cols:
-        st.subheader("📍 Análise de Progressão vs Entrada no Terço")
-        
-        col_scatter, col_insights = st.columns([2, 1])
-        
-        with col_scatter:
-            import plotly.express as px
-            
-            # Determinar coluna de cor
-            color_col = None
-            for c in ['shot_occurred_mean', 'n_shots_mean']:
-                if c in df_f.columns:
-                    color_col = c
-                    break
-            
-            scatter_params = dict(
-                data_frame=df_f,
-                x='progression_mean',
-                y='entry_last_third_mean',
-                hover_name='opponent',
-                size_max=40
-            )
-            
-            if color_col:
-                scatter_params['color'] = color_col
-                scatter_params['color_continuous_scale'] = ['#2ecc71', '#f39c12', '#e74c3c']
-            
-            fig_scatter = px.scatter(**scatter_params)
-            
-            # Linhas de referência (médias)
-            avg_prog = df_f['progression_mean'].mean()
-            avg_entry = df_f['entry_last_third_mean'].mean()
-            
-            fig_scatter.add_hline(y=avg_entry, line_dash="dash", line_color="#888", opacity=0.5)
-            fig_scatter.add_vline(x=avg_prog, line_dash="dash", line_color="#888", opacity=0.5)
-            
-            # Labels de quadrantes
-            fig_scatter.add_annotation(
-                x=df_f['progression_mean'].max() * 0.9,
-                y=df_f['entry_last_third_mean'].max() * 0.95,
-                text="⚠️ ALTO PERIGO",
-                showarrow=False,
-                font=dict(color='#e74c3c', size=11, family="Arial Black")
-            )
-            
-            fig_scatter.add_annotation(
-                x=df_f['progression_mean'].min() + 3,
-                y=df_f['entry_last_third_mean'].min() + 0.02,
-                text="✅ CONTROLADO",
-                showarrow=False,
-                font=dict(color='#2ecc71', size=11, family="Arial Black")
-            )
-            
-            fig_scatter.update_layout(
-                xaxis=dict(title='Progressão Média (metros)', gridcolor='#EEEEEE'),
-                yaxis=dict(title='Taxa de Entrada no Último Terço', gridcolor='#EEEEEE'),
-                coloraxis_colorbar=dict(title='Taxa Remate' if color_col else ''),
-                plot_bgcolor='white',
-                margin=dict(l=60, r=20, t=40, b=60),
-                height=450
-            )
-            
-            st.plotly_chart(fig_scatter, width="stretch")
-        
-        with col_insights:
-            st.markdown("""
-            **🔍 Interpretação do Gráfico**
-            
-            - **Eixo X:** Quanto o adversário avança em média
-            - **Eixo Y:** Com que frequência entra no nosso terço
-            - **Tamanho:** Número de jogos analisados
-            - **Cor:** Taxa de finalização
-            
-            ---
-            """)
-            
-            # Identificar adversários de alto risco
-            danger_prog = df_f['progression_mean'].quantile(0.7)
-            danger_entry = df_f['entry_last_third_mean'].quantile(0.7)
-            
-            high_danger = df_f[
-                (df_f['progression_mean'] >= danger_prog) & 
-                (df_f['entry_last_third_mean'] >= danger_entry)
-            ]
-            
-            if len(high_danger) > 0:
-                st.markdown("**⚠️ Adversários de Alto Risco:**")
-                for _, row in high_danger.iterrows():
-                    st.markdown(f"• **{row['opponent']}** - {row['progression_mean']:.1f}m | Entry: {row['entry_last_third_mean']:.0%}")
-            
-            # Adversários controlados
-            low_danger = df_f[
-                (df_f['progression_mean'] <= df_f['progression_mean'].quantile(0.3)) & 
-                (df_f['entry_last_third_mean'] <= df_f['entry_last_third_mean'].quantile(0.3))
-            ]
-            
-            if len(low_danger) > 0:
-                st.markdown("**✅ Adversários Controlados:**")
-                for _, row in low_danger.iterrows():
-                    st.markdown(f"• **{row['opponent']}** - {row['progression_mean']:.1f}m")
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # DISTRIBUIÇÃO DE PROGRESSÃO (se tiver dados granulares)
-    # ══════════════════════════════════════════════════════════════════════════
-    
-    if has_possession_data:
-        st.subheader("📊 Distribuição da Progressão Adversária")
-        
-        col_hist, col_box = st.columns(2)
-        
-        with col_hist:
-            fig_hist = go.Figure()
-            
-            fig_hist.add_trace(go.Histogram(
-                x=possession_df['progression'],
-                nbinsx=20,
-                marker=dict(color='rgba(231, 76, 60, 0.7)', line=dict(color='#e74c3c', width=1)),
-                hovertemplate='Progressão: %{x}m<br>Frequência: %{y}<extra></extra>'
-            ))
-            
-            # Linha vertical para média
-            fig_hist.add_vline(
-                x=avg_progression,
-                line_dash="dash",
-                line_color="#f39c12",
-                annotation_text=f"Média: {avg_progression:.1f}m",
-                annotation_font_color="#f39c12"
-            )
-            
-            fig_hist.update_layout(
-                title=dict(text='Frequência por Distância de Progressão', font=dict(size=14)),
-                xaxis_title='Progressão (metros)',
-                yaxis_title='Número de Sequências',
-                plot_bgcolor='white',
-                bargap=0.05,
-                height=380
-            )
-            fig_hist.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
-            fig_hist.update_yaxes(showgrid=True, gridcolor='#EEEEEE')
-            
-            st.plotly_chart(fig_hist, width="stretch")
-        
-        with col_box:
-            # Boxplot por resultado
-            possession_df['resultado'] = possession_df['shot_occurred'].map({0: 'Sem Remate', 1: 'Com Remate'})
-            
-            fig_box = go.Figure()
-            
-            for resultado, color in [('Sem Remate', '#2ecc71'), ('Com Remate', '#e74c3c')]:
-                data_box = possession_df[possession_df['resultado'] == resultado]['progression']
-                fig_box.add_trace(go.Box(
-                    y=data_box,
-                    name=resultado,
-                    marker_color=color,
-                    boxmean=True
-                ))
-            
-            fig_box.update_layout(
-                title=dict(text='Progressão por Resultado da Sequência', font=dict(size=14)),
-                yaxis_title='Progressão (metros)',
-                plot_bgcolor='white',
-                showlegend=False,
-                height=380
-            )
-            fig_box.update_yaxes(showgrid=True, gridcolor='#EEEEEE')
-            
-            st.plotly_chart(fig_box, width="stretch")
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # GRÁFICOS DE BARRAS POR MÉTRICA
-    # ══════════════════════════════════════════════════════════════════════════
-    
-    st.subheader("📈 Análise Detalhada por Métrica")
-    
-    def plot_stacked_metrics(data, col_mean, col_max, title, ylabel):
-        df_sorted = data.sort_values(col_mean, ascending=False)
-        
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=df_sorted["opponent"],
-            y=df_sorted[col_mean],
-            name="Média",
-            marker_color="#3498db",
-            hovertemplate="<b>%{x}</b><br>Média: %{y:.2f}<extra></extra>"
-        ))
-        fig.add_trace(go.Bar(
-            x=df_sorted["opponent"],
-            y=df_sorted[col_max] - df_sorted[col_mean],
-            name="Máximo - Média",
-            marker_color="#e74c3c",
-            hovertemplate="<b>%{x}</b><br>Máximo: " + df_sorted[col_max].astype(str) + "<extra></extra>"
-        ))
-        
-        fig.update_layout(
-            barmode="stack",
-            title=dict(text=title, font=dict(size=13)),
-            xaxis=dict(tickangle=-40),
-            yaxis=dict(title=ylabel),
+        fig_pat_prog.update_layout(
+            title=dict(text="Progressão Adversária (m)", font=dict(size=13)),
+            xaxis=dict(tickangle=-30, tickfont=dict(size=10)),
+            yaxis_title="Metros",
             plot_bgcolor="white",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            height=380,
-            margin=dict(l=40, r=20, t=60, b=100),
+            height=360,
+            margin=dict(l=40, r=20, t=50, b=120),
         )
-        fig.update_xaxes(showgrid=False)
-        fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
-        return fig
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if 'progression_mean' in df_f.columns and 'progression_max' in df_f.columns:
-            st.plotly_chart(
-                plot_stacked_metrics(df_f, "progression_mean", "progression_max", 
-                                    "Progressão Adversária (metros)", "Progressão (m)"),
-                width="stretch"
-            )
-    with col2:
-        if 'entry_last_third_mean' in df_f.columns and 'entry_last_third_max' in df_f.columns:
-            st.plotly_chart(
-                plot_stacked_metrics(df_f, "entry_last_third_mean", "entry_last_third_max",
-                                    "Entrada no Último Terço", "Taxa Entry"),
-                width="stretch"
-            )
-    
+        fig_pat_prog.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
+        st.plotly_chart(fig_pat_prog, use_container_width=True)
+
+    with col_pat2:
+        fig_pat_entry = go.Figure()
+        fig_pat_entry.add_trace(go.Bar(
+            x=pat["label"],
+            y=pat["entry_last_third_mean"] * 100,
+            marker=dict(
+                color=pat["entry_last_third_mean"],
+                colorscale=[[0, "#2ecc71"], [0.5, "#f39c12"], [1, "#e74c3c"]],
+                showscale=False
+            ),
+            text=[f"{v*100:.0f}%" for v in pat["entry_last_third_mean"]],
+            textposition="outside",
+            hovertemplate="<b>%{x}</b><br>Taxa de entrada: %{y:.1f}%<extra></extra>"
+        ))
+        fig_pat_entry.update_layout(
+            title=dict(text="Taxa de Entrada no Último Terço (%)", font=dict(size=13)),
+            xaxis=dict(tickangle=-30, tickfont=dict(size=10)),
+            yaxis_title="%",
+            plot_bgcolor="white",
+            height=360,
+            margin=dict(l=40, r=20, t=50, b=120),
+        )
+        fig_pat_entry.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
+        st.plotly_chart(fig_pat_entry, use_container_width=True)
+
+    # Conclusão por padrão
+    pat_mais_prog = pat.nlargest(1, "progression_mean").iloc[0]
+    pat_mais_entry = pat.nlargest(1, "entry_last_third_mean").iloc[0]
+    st.warning(
+        f"**Conclusão:** O padrão **\"{pat_mais_prog['label']}\"** é o que gera maior progressão adversária "
+        f"({pat_mais_prog['progression_mean']:.1f} m em média). "
+        f"O padrão **\"{pat_mais_entry['label']}\"** é o que mais frequentemente permite ao adversário entrar no último terço "
+        f"({pat_mais_entry['entry_last_third_mean']*100:.0f}% das transições)."
+    )
+
+    st.markdown("---")
+
     # ══════════════════════════════════════════════════════════════════════════
-    # INSIGHTS AUTOMÁTICOS
+    # SECÇÃO 4 — TABELA RESUMO
     # ══════════════════════════════════════════════════════════════════════════
-    
-    st.subheader("💡 Insights Automáticos")
-    
-    col_i1, col_i2, col_i3 = st.columns(3)
-    
-    with col_i1:
-        # Tentar shot_occurred_mean ou n_shots_mean
-        shot_col = 'shot_occurred_mean' if 'shot_occurred_mean' in df_f.columns else ('n_shots_mean' if 'n_shots_mean' in df_f.columns else None)
-        if shot_col:
-            most_dangerous = df_f.nlargest(1, shot_col)
-            if len(most_dangerous) > 0:
-                opp = most_dangerous.iloc[0]
-                if shot_col == 'shot_occurred_mean':
-                    st.info(f"🎯 **Maior Taxa de Remate:** {opp['opponent']} conseguiu rematar em **{opp[shot_col]:.0%}** das sequências.")
-                else:
-                    st.info(f"🎯 **Mais Remates:** {opp['opponent']} teve **{opp[shot_col]:.2f}** remates em média.")
-    
-    with col_i2:
-        if 'progression_mean' in df_f.columns:
-            highest_prog = df_f.nlargest(1, 'progression_mean')
-            if len(highest_prog) > 0:
-                opp = highest_prog.iloc[0]
-                st.warning(f"📈 **Maior Progressão:** {opp['opponent']} avançou em média **{opp['progression_mean']:.1f}m** após recuperar.")
-    
-    with col_i3:
-        if 'entry_last_third_mean' in df_f.columns:
-            highest_entry = df_f.nlargest(1, 'entry_last_third_mean')
-            if len(highest_entry) > 0:
-                opp = highest_entry.iloc[0]
-                st.error(f"🚨 **Mais Entradas:** {opp['opponent']} entrou no nosso terço em **{opp['entry_last_third_mean']:.0%}** das transições.")
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # TABELA RANKING
-    # ══════════════════════════════════════════════════════════════════════════
-    
-    st.subheader("📋 Ranking Completo de Adversários")
-    
-    # Calcular índice de perigo usando colunas disponíveis
-    df_rank = df_f.copy()
-    danger_cols = []
-    weights = []
-    
-    if "shot_occurred_mean" in df_rank.columns:
-        danger_cols.append("shot_occurred_mean")
-        weights.append(0.35)
-    elif "n_shots_mean" in df_rank.columns:
-        danger_cols.append("n_shots_mean")
-        weights.append(0.35)
-    
-    if "entry_last_third_mean" in df_rank.columns:
-        danger_cols.append("entry_last_third_mean")
-        weights.append(0.35)
-    
-    if "progression_mean" in df_rank.columns:
-        danger_cols.append("progression_mean")
-        weights.append(0.30)
-    
-    # Normalizar colunas existentes
-    for col in danger_cols:
-        max_val = df_rank[col].max()
-        if max_val > 0:
-            df_rank[col + "_norm"] = df_rank[col] / max_val
-        else:
-            df_rank[col + "_norm"] = 0
-    
-    # Calcular índice de perigo
-    if len(danger_cols) > 0:
-        # Normalizar pesos para somar 1
-        total_weight = sum(weights)
-        weights = [w / total_weight for w in weights]
-        
-        df_rank["danger_index"] = sum(
-            df_rank[col + "_norm"] * w for col, w in zip(danger_cols, weights)
-        ) * 100
-    else:
-        df_rank["danger_index"] = 0
-    
-    # Construir tabela display com colunas existentes
-    display_cols = ["opponent", "danger_index"]
-    display_names = ["Adversário", "Índice Perigo"]
-    
-    if "shot_occurred_mean" in df_rank.columns:
-        display_cols.append("shot_occurred_mean")
-        display_names.append("Taxa Remate")
-    elif "n_shots_mean" in df_rank.columns:
-        display_cols.append("n_shots_mean")
-        display_names.append("Remates (média)")
-    
-    if "entry_last_third_mean" in df_rank.columns:
-        display_cols.append("entry_last_third_mean")
-        display_names.append("Taxa Entry")
-    
-    if "progression_mean" in df_rank.columns:
-        display_cols.append("progression_mean")
-        display_names.append("Prog. Média")
-    
-    if "progression_max" in df_rank.columns:
-        display_cols.append("progression_max")
-        display_names.append("Prog. Máx")
-    
-    df_display = df_rank[display_cols].copy()
-    df_display = df_display.sort_values("danger_index", ascending=False).reset_index(drop=True)
-    df_display.index += 1
-    df_display.columns = display_names
-    
-    # Formatar colunas
-    df_display["Índice Perigo"] = df_display["Índice Perigo"].round(1)
-    if "Taxa Remate" in df_display.columns:
-        df_display["Taxa Remate"] = df_display["Taxa Remate"].apply(lambda x: f"{x:.0%}")
-    if "Remates (média)" in df_display.columns:
-        df_display["Remates (média)"] = df_display["Remates (média)"].apply(lambda x: f"{x:.2f}")
-    if "Taxa Entry" in df_display.columns:
-        df_display["Taxa Entry"] = df_display["Taxa Entry"].apply(lambda x: f"{x:.0%}")
-    if "Prog. Média" in df_display.columns:
-        df_display["Prog. Média"] = df_display["Prog. Média"].apply(lambda x: f"{x:.1f}m")
-    if "Prog. Máx" in df_display.columns:
-        df_display["Prog. Máx"] = df_display["Prog. Máx"].apply(lambda x: f"{x:.0f}m")
-    
-    st.dataframe(df_display, width="stretch")
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # NOTAS EXPLICATIVAS
-    # ══════════════════════════════════════════════════════════════════════════
-    
-    with st.expander("ℹ️ O que significa cada métrica?", expanded=False):
+    st.subheader("📋 Tabela Resumo por Adversário")
+
+    # Aplicar filtro de adversário se selecionado
+    opp_display = opp.copy()
+    if sel_adv != "Todos":
+        opp_display = opp_display[opp_display["opponent"] == sel_adv]
+
+    # Índice composto simples
+    max_prog_v  = opp["progression_mean"].max()
+    max_entry_v = opp["entry_last_third_mean"].max()
+    max_speed_v = opp["transition_speed_mean"].max()
+
+    opp_display = opp_display.copy()
+    opp_display["risco"] = (
+        0.45 * (opp_display["progression_mean"].clip(lower=0) / max(max_prog_v, 0.01)) +
+        0.40 * (opp_display["entry_last_third_mean"] / max(max_entry_v, 0.01)) +
+        0.15 * (opp_display["transition_speed_mean"].clip(lower=0) / max(max_speed_v, 0.01))
+    ).round(2)
+
+    opp_display = opp_display.sort_values("risco", ascending=False).reset_index(drop=True)
+    opp_display.index += 1
+
+    opp_table = opp_display[["opponent", "risco", "progression_mean", "entry_last_third_mean", "transition_speed_mean", "progression_max"]].copy()
+    opp_table.columns = ["Adversário", "Índice Risco", "Progressão Média (m)", "Entrada 3º Terço", "Veloc. Transição (m/s)", "Progressão Máx (m)"]
+    opp_table["Índice Risco"] = (opp_table["Índice Risco"] * 100).round(0).astype(int).astype(str) + "/100"
+    opp_table["Entrada 3º Terço"] = opp_table["Entrada 3º Terço"].apply(lambda x: f"{x*100:.0f}%")
+    opp_table["Progressão Média (m)"] = opp_table["Progressão Média (m)"].apply(lambda x: f"{x:.1f} m")
+    opp_table["Progressão Máx (m)"] = opp_table["Progressão Máx (m)"].apply(lambda x: f"{x:.0f} m")
+    opp_table["Veloc. Transição (m/s)"] = opp_table["Veloc. Transição (m/s)"].apply(lambda x: f"{x:.2f} m/s")
+
+    st.dataframe(opp_table, use_container_width=True)
+
+    with st.expander("ℹ️ Como se calculam estas métricas?", expanded=False):
         st.markdown("""
-**Progressão (metros)** — Distância média que o adversário avança no campo após recuperar a bola. Valores altos indicam que conseguem sair rapidamente da zona de pressão.
+**Progressão (metros)** — Distância que o adversário avança no campo nos primeiros 15 segundos após recuperar a bola. Calculada como a diferença em x entre o primeiro e o último evento do adversário nessa janela.
 
----
+**Entrada no Último Terço** — % de sequências pós-perda em que o adversário alcançou x > 80 m no nosso campo. Indica penetração efetiva na zona de finalização.
 
-**Taxa de Entrada no Terço** — Percentagem de sequências pós-perda em que o adversário conseguiu entrar no nosso último terço defensivo. Indica penetração perigosa.
+**Velocidade de Transição (m/s)** — Rapidez com que o adversário progride: progressão dividida pelo tempo decorrido. Valores altos indicam contra-ataques rápidos.
 
----
-
-**Taxa de Remate** — Percentagem de sequências que terminaram com um remate adversário. Mede o perigo concreto gerado.
-
----
-
-**Índice de Perigo** — Índice composto (0-100) que combina: 35% taxa de remate + 35% entrada no terço + 30% progressão. Quanto maior, mais perigoso o adversário em transição.
+**Índice de Risco** — Índice composto (0–100): 45% progressão + 40% entrada no terço + 15% velocidade. Permite ordenar adversários por perigo total em transição.
         """)
-    
-    # ── Tabela Raw ──────────────────────────────────────────────────────────
-    with st.expander("📄 Ver dados originais", expanded=False):
-        st.dataframe(df_f, width="stretch", hide_index=True)
+
+
 
 # ══════════════════════════════════════════════════════════════════════════
 # PÁGINA 4 — PADRÕES DE CONSTRUÇÃO (Notebooks JR)
