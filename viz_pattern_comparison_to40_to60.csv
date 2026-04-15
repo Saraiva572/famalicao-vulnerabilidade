@@ -1,7 +1,0 @@
-﻿pattern_name,n_possessions_to_40,freq_pct_to_40,n_possessions_to_60,freq_pct_to_60,success_total_pct_to_40,success_total_pct_to_60,freq_pct_diff_60_minus_40,success_total_pct_diff_60_minus_40
-center_exit_pattern,54,16.2,34,10.2,48.1,29.4,-6.0,-18.7
-interior_exterior_opposite_side,49,14.7,51,15.3,32.7,37.3,0.6,4.6
-interior_exterior_same_side,130,38.9,129,38.6,38.5,38.8,-0.3,0.3
-other_pattern,27,8.1,26,7.8,25.9,26.9,-0.3,1.0
-outer_inner_exit,46,13.8,41,12.3,28.3,22.0,-1.5,-6.3
-switch_of_play,28,8.4,53,15.9,53.6,60.4,7.5,6.8
