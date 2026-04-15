@@ -1975,20 +1975,17 @@ e não necessariamente ao ponto exato em que a posse cruza o limiar de progress�
         if df_zones.empty:
             return None
 
-        if "pattern_name" in df_zones.columns:
-            df_z = df_zones[df_zones["pattern_name"] == pattern_filter].copy()
-        else:
-            df_z = df_zones.copy()
+        df_z = df_zones[df_zones["pattern_name"] == pattern_filter].copy() if "pattern_name" in df_zones.columns else df_zones.copy()
 
         if df_z.empty:
             return None
 
-        zone_label_x = {
+        ZONE_LABEL_X = {
             "x_band_2": "Faixa intermédia (40-80)",
             "x_band_3": "Faixa adiantada (80-120)",
         }
 
-        zone_label_y = {
+        ZONE_LABEL_Y = {
             "center": "Centro",
             "left_inner": "Int Esq",
             "left_outer": "Ext Esq",
@@ -1996,10 +1993,10 @@ e não necessariamente ao ponto exato em que a posse cruza o limiar de progress�
             "right_outer": "Ext Dir",
         }
 
-        y_order = ["Ext Esq", "Int Esq", "Centro", "Int Dir", "Ext Dir"]
-        x_order = ["Faixa intermédia (40-80)", "Faixa adiantada (80-120)"]
+        Y_ORDER = ["Ext Esq", "Int Esq", "Centro", "Int Dir", "Ext Dir"]
+        X_ORDER = ["Faixa intermédia (40-80)", "Faixa adiantada (80-120)"]
 
-        mat = pd.DataFrame(None, index=x_order, columns=y_order, dtype=float)
+        mat = pd.DataFrame(None, index=X_ORDER, columns=Y_ORDER, dtype=float)
 
         for _, row in df_z.iterrows():
             parts = str(row["zone"]).split("__")
@@ -2007,44 +2004,18 @@ e não necessariamente ao ponto exato em que a posse cruza o limiar de progress�
             if len(parts) != 2:
                 continue
 
-            xb = zone_label_x.get(parts[0])
-            yc = zone_label_y.get(parts[1])
+            xb = ZONE_LABEL_X.get(parts[0])
+            yc = ZONE_LABEL_Y.get(parts[1])
 
             if xb and yc:
                 mat.loc[xb, yc] = float(row["reached_pct"])
 
         return mat
 
-    def _best_worst_zone_text(mat):
-        if mat is None:
-            return None, None
-
-        temp_df = mat.stack(dropna=True).reset_index()
-        temp_df.columns = ["faixa", "corredor", "taxa"]
-
-        if temp_df.empty:
-            return None, None
-
-        best_row = temp_df.sort_values("taxa", ascending=False).iloc[0]
-        worst_row = temp_df.sort_values("taxa", ascending=True).iloc[0]
-
-        best_text = f"**Melhor zona:** {best_row['faixa']} | {best_row['corredor']} → **{best_row['taxa']:.0f}%**"
-        worst_text = f"**Pior zona:** {worst_row['faixa']} | {worst_row['corredor']} → **{worst_row['taxa']:.0f}%**"
-
-        return best_text, worst_text
-
-    def _text_color(value):
-        if pd.isna(value):
-            return "#444444"
-        if value >= 75:
-            return "white"
-        return "#333333"
-
     if not df_zones40.empty or not df_zones60.empty:
-        zone_pat_opts = (
-            ["all"] + [p for p in sorted(df_zones40["pattern_name"].unique()) if p != "all"]
+        # Filtro por padrão
+        zone_pat_opts = ["all"] + [p for p in sorted(df_zones40["pattern_name"].unique()) if p != "all"] \
             if "pattern_name" in df_zones40.columns else ["all"]
-        )
 
         zone_pat_labels = {
             "all": "Todos os Padrões",
@@ -2065,88 +2036,43 @@ e não necessariamente ao ponto exato em que a posse cruza o limiar de progress�
         col_z40, col_z60 = st.columns(2)
 
         for col_z, df_z, title in [
-            (col_z40, df_zones40, "Taxa de Alcance X>40 (%)"),
-            (col_z60, df_zones60, "Taxa de Alcance X>60 (%)"),
+            (col_z40, df_zones40, "Taxa de Sucesso até X>40 (%)"),
+            (col_z60, df_zones60, "Taxa de Sucesso até X>60 (%)")
         ]:
             mat = _zone_matrix(df_z, zone_pat_sel)
 
             with col_z:
                 if mat is not None:
-                    text_vals = []
-                    text_colors = []
+                    text_vals = [[f"{v:.0f}%" if pd.notna(v) else "" for v in row] for row in mat.values]
 
-                    for row in mat.values:
-                        row_text = []
-                        row_colors = []
-
-                        for v in row:
-                            if pd.notna(v):
-                                row_text.append(f"{v:.0f}%")
-                            else:
-                                row_text.append("")
-
-                            row_colors.append(_text_color(v))
-
-                        text_vals.append(row_text)
-                        text_colors.append(row_colors)
-
-                    fig_hm = go.Figure()
-
-                    fig_hm.add_trace(
-                        go.Heatmap(
-                            z=mat.values,
-                            x=mat.columns.tolist(),
-                            y=mat.index.tolist(),
-                            colorscale="RdYlGn",
-                            zmin=0,
-                            zmax=100,
-                            hovertemplate="Faixa: %{y}<br>Corredor: %{x}<br>Taxa de alcance: %{z:.1f}%<extra></extra>",
-                            showscale=True,
-                            colorbar=dict(title="Taxa %"),
-                        )
-                    )
-
-                    # Adicionar texto manual para controlar cor e legibilidade
-                    for i, y_lab in enumerate(mat.index.tolist()):
-                        for j, x_lab in enumerate(mat.columns.tolist()):
-                            value = mat.iloc[i, j]
-
-                            if pd.notna(value):
-                                fig_hm.add_annotation(
-                                    x=x_lab,
-                                    y=y_lab,
-                                    text=f"{value:.0f}%",
-                                    showarrow=False,
-                                    font=dict(
-                                        size=17,
-                                        color=_text_color(value)
-                                    )
-                                )
+                    fig_hm = go.Figure(go.Heatmap(
+                        z=mat.values,
+                        x=mat.columns.tolist(),
+                        y=mat.index.tolist(),
+                        colorscale="RdYlGn",
+                        zmin=0,
+                        zmax=100,
+                        text=text_vals,
+                        texttemplate="%{text}",
+                        hovertemplate="Faixa: %{y}<br>Corredor: %{x}<br>Taxa de sucesso: %{z:.1f}%<extra></extra>",
+                        showscale=True,
+                        colorbar=dict(title="Taxa %"),
+                    ))
 
                     fig_hm.update_layout(
-                        title=dict(
-                            text=title,
-                            font=dict(size=13, family="Arial")
-                        ),
-                        height=340,
-                        margin=dict(l=110, r=40, t=50, b=60),
+                        title=dict(text=title, font=dict(size=13, family="Arial")),
+                        height=320,
+                        margin=dict(l=100, r=40, t=50, b=60),
                         xaxis=dict(title="Corredor lateral"),
-                        yaxis=dict(title="Zona longitudinal"),
+                        yaxis=dict(title="Faixa longitudinal"),
                     )
 
                     st.plotly_chart(fig_hm, use_container_width=True)
-
-                    best_text, worst_text = _best_worst_zone_text(mat)
-
-                    if best_text:
-                        st.markdown(best_text)
-                    if worst_text:
-                        st.markdown(worst_text)
-
                 else:
                     st.info(f"Sem dados para '{zone_pat_labels.get(zone_pat_sel, zone_pat_sel)}'.")
     else:
-        st.warning("Não foi possível carregar os CSVs de zonas do GitHub.")
+        st.warning("Não foi possível carregar os CSVs de zonas do GitHub.") 
+    
     # ══════════════════════════════════════════════════════════════════════════
     # 5 — POSICIONAMENTO MÉDIO POR PADRÃO (viz_avg_positions%20%281%29.csv)
     # ══════════════════════════════════════════════════════════════════════════
