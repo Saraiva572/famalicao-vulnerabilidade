@@ -1719,8 +1719,8 @@ elif pagina == "🏗️ Padrões de Construção":
                         use_container_width=True,
                         key="fig_success_x60"
                     )            
-            # Tabelas de comparação X>40 vs X>60
-            if not df_pat_comp.empty:
+        # comparação X>40 vs X>60
+        if not df_pat_comp.empty:
                 df_comp = df_pat_comp.copy()
                 df_comp["Padrão"] = df_comp["pattern_name"].map(PATTERN_PT).fillna(df_comp["pattern_name"])
 
