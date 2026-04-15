@@ -1233,8 +1233,8 @@ elif pagina == "🏗️ Padrões de Construção":
     # ══════════════════════════════════════════════════════════════════════════
     # 2 — PASS NETWORK + TOP 10 (viz_pass_links%20%281%29.csv)
     # ══════════════════════════════════════════════════════════════════════════
-    st.subheader("4️⃣ Pass Network por Posição")
-    st.caption("Ligações mais frequentes entre posições na 1ª fase de construção (dados pré-calculados a partir do notebook).")
+    st.subheader("1️⃣ Pass Network por Posição")
+    st.caption("Ligações mais frequentes entre posições na 1ª fase de construção.")
 
     if df_pass_lnks.empty:
         st.warning("Não foi possível carregar viz_pass_links%20%281%29.csv do GitHub.")
@@ -1347,7 +1347,7 @@ elif pagina == "🏗️ Padrões de Construção":
     # ══════════════════════════════════════════════════════════════════════════
     # 3 — PADRÕES DE CONSTRUÇÃO — FREQUÊNCIA E TAXA DE SUCESSO
     # ══════════════════════════════════════════════════════════════════════════
-    st.subheader("3️⃣ Padrões de Construção — Frequência e Taxa de Sucesso")
+    st.subheader("2️⃣ Padrões de Construção — Frequência e Taxa de Sucesso")
 
     # Texto explicativo PRIMEIRO
     st.markdown("#### Descrição dos padrões identificados pelo algoritmo")
@@ -1473,7 +1473,7 @@ elif pagina == "🏗️ Padrões de Construção":
     # ══════════════════════════════════════════════════════════════════════════
     # 4 — HEATMAP TAXA DE SUCESSO POR ZONA (viz_zones_to_40 / to_60)
     # ══════════════════════════════════════════════════════════════════════════
-    st.subheader("4️⃣ Heatmap — Taxa de Sucesso por Zona de Saída")
+    st.subheader("3️⃣ Heatmap — Taxa de Sucesso por Zona de Saída")
     st.caption("Taxa de alcance (reached_pct) por zona — campo StatsBomb dividido em zonas longitudinais × corredores laterais.")
 
     def _zone_matrix(df_zones, pattern_filter="all"):
@@ -1551,7 +1551,7 @@ elif pagina == "🏗️ Padrões de Construção":
     # ══════════════════════════════════════════════════════════════════════════
     # 5 — POSICIONAMENTO MÉDIO POR PADRÃO (viz_avg_positions%20%281%29.csv)
     # ══════════════════════════════════════════════════════════════════════════
-    st.subheader("5️⃣ Posicionamento Médio por Padrão de Construção")
+    st.subheader("4️⃣ Posicionamento Médio por Padrão de Construção")
     st.caption("Posições médias dos jogadores em cada padrão de construção (dados pré-calculados a partir do notebook).")
     st.markdown(
         "O posicionamento médio por posição é calculado com base em todos os pontos captados nas ações "
