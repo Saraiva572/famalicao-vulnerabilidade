@@ -1190,25 +1190,26 @@ elif pagina == "🏗️ Padrões de Construção":
 
     if not df_exec.empty:
         exec_dict = df_exec.set_index("metric")["value"].to_dict()
-        n_total   = int(exec_dict.get("total_possessions", 0))
-        n_st      = int(exec_dict.get("success_total", 0))
-        n_sp      = int(exec_dict.get("success_partial", 0))
-        n_fail    = int(exec_dict.get("unsuccessful", 0))
-        pct_ok    = round(exec_dict.get("success_rate_total_plus_partial_pct", 0))
-        pct_st    = round(n_st  / n_total * 100) if n_total else 0
-        pct_sp    = round(n_sp  / n_total * 100) if n_total else 0
-        pct_fail  = round(n_fail/ n_total * 100) if n_total else 0
+
+        n_total = int(exec_dict.get("total_possessions", 0))
+        n_st = int(exec_dict.get("success_total", 0))
+        n_sp = int(exec_dict.get("success_partial", 0))
+        n_fail = int(exec_dict.get("unsuccessful", 0))
+
+        pct_ok = round(exec_dict.get("success_rate_total_plus_partial_pct", 0))
+        pct_sp = round(n_sp / n_total * 100) if n_total else 0
+        pct_st = round(n_st / n_total * 100) if n_total else 0
+        pct_fail = round(n_fail / n_total * 100) if n_total else 0
 
         c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Total de posses",    n_total)
-        c2.metric("✅ Sucesso Total",   f"{pct_st}%")
-        c3.metric("🟡 Sucesso Parcial", f"{pct_sp}%")
-        c4.metric("❌ Insucesso",       f"{pct_fail}%")
-        c5.metric("% Sucesso",          f"{pct_ok}%")
+
+        c1.metric("Total de posses", n_total)
+        c2.metric("1️⃣ % Sucesso", f"{pct_ok}%")
+        c3.metric("2️⃣ % Sucesso Parcial", f"{pct_sp}%")
+        c4.metric("3️⃣ % Sucesso Total", f"{pct_st}%")
+        c5.metric("4️⃣ % Insucesso", f"{pct_fail}%")
     else:
         st.warning("Não foi possível carregar viz_executive_summary%20%281%29.csv do GitHub.")
-
-        st.markdown("#### ℹ️ O que significa cada outcome?")
 
     st.markdown(
         """
