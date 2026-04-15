@@ -1221,10 +1221,10 @@ elif pagina == "🏗️ Padrões de Construção":
     margin-top: 6px;
     margin-bottom: 18px;
 ">
-    <p style="margin-bottom: 12px;"><b>1 - % Sucesso</b> — corresponde à soma de <b>% Sucesso Parcial</b> + <b>% Sucesso Total</b>.</p>
-    <p style="margin-bottom: 12px;"><b>2 - % Sucesso Parcial</b> — a equipa consegue eliminar a 1ª pressão adversária, mas não consegue progredir até ao meio-campo.</p>
-    <p style="margin-bottom: 12px;"><b>3 - % Sucesso Total</b> — a equipa consegue eliminar a 1ª pressão adversária e progredir até ao meio-campo.</p>
-    <p style="margin-bottom: 0px;"><b>4 - % Insucesso</b> — a equipa não consegue eliminar a 1ª pressão adversária.</p>
+    <p style="margin-bottom: 12px;"><b>% Sucesso</b> — corresponde à soma de <b>% Sucesso Parcial</b> + <b>% Sucesso Total</b>.</p>
+    <p style="margin-bottom: 12px;"><b>% Sucesso Parcial</b> — a equipa consegue eliminar a 1ª pressão adversária, mas não consegue progredir até ao meio-campo.</p>
+    <p style="margin-bottom: 12px;"><b>% Sucesso Total</b> — a equipa consegue eliminar a 1ª pressão adversária e progredir até ao meio-campo.</p>
+    <p style="margin-bottom: 0px;"><b>% Insucesso</b> — a equipa não consegue eliminar a 1ª pressão adversária.</p>
 </div>
         """,
         unsafe_allow_html=True
