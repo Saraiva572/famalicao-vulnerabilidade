@@ -1,7 +1,0 @@
-﻿big_pattern_to_40_name,success_partial,success_total,unsuccessful,total,freq_pct,success_partial_pct,success_total_pct,unsuccessful_pct,did_not_reach_reached_40_flag,reached_reached_40_flag,reached_reached_40_flag_pct
-center_exit_pattern,12,26,16,54,16.2,22.2,48.1,29.6,16,38,70.4
-interior_exterior_opposite_side,18,16,15,49,14.7,36.7,32.7,30.6,15,34,69.4
-interior_exterior_same_side,28,50,52,130,38.9,21.5,38.5,40.0,52,78,60.0
-other_pattern,5,7,15,27,8.1,18.5,25.9,55.6,15,12,44.4
-outer_inner_exit,14,13,19,46,13.8,30.4,28.3,41.3,19,27,58.7
-switch_of_play,6,15,7,28,8.4,21.4,53.6,25.0,7,21,75.0
