@@ -1738,9 +1738,21 @@ elif pagina == "🏗️ Padrões de Construção":
                     if col in df_freq_show.columns:
                         df_freq_show[col] = df_freq_show[col].astype(str) + "%"
 
-                # Coluna delta sem símbolo % no valor
+                # Coluna delta com sinal e símbolo %
                 if "Δ % Frequência (X>60 - X>40)" in df_freq_show.columns:
-                    df_freq_show["Δ % Frequência (X>60 - X>40)"] = df_freq_show["Δ % Frequência (X>60 - X>40)"].astype(str)
+                    delta_freq_list = []
+
+                    for value in df_freq_show["Δ % Frequência (X>60 - X>40)"]:
+                        if value > 0:
+                            delta_text = f"+{value}%"
+                        elif value < 0:
+                            delta_text = f"{value}%"
+                        else:
+                            delta_text = "0%"
+
+                        delta_freq_list.append(delta_text)
+
+                    df_freq_show["Δ % Frequência (X>60 - X>40)"] = delta_freq_list
 
                 html_table_freq = df_freq_show.to_html(index=False, justify="center")
 
@@ -1816,36 +1828,95 @@ elif pagina == "🏗️ Padrões de Construção":
                     if col in df_suc_show.columns:
                         df_suc_show[col] = df_suc_show[col].astype(str) + "%"
 
-                # Coluna delta sem símbolo % no valor
+                # Coluna delta com sinal e símbolo %
                 if "Δ % Sucesso (X>60 - X>40)" in df_suc_show.columns:
-                    df_suc_show["Δ % Sucesso (X>60 - X>40)"] = df_suc_show["Δ % Sucesso (X>60 - X>40)"].astype(str)
+                    delta_suc_numeric_list = []
+                    delta_suc_text_list = []
 
-                html_table_suc = df_suc_show.to_html(index=False, justify="center")
+                    for value in df_suc_show["Δ % Sucesso (X>60 - X>40)"]:
+                        delta_suc_numeric_list.append(value)
 
-                st.markdown(
-                    f"""
-                    <div style="overflow-x: auto;">
-                        <style>
-                            table {{
-                                width: 100%;
-                                border-collapse: collapse;
-                                font-size: 16px;
-                            }}
-                            th, td {{
-                                text-align: center !important;
-                                padding: 10px 12px;
-                                border: 1px solid #d9d9d9;
-                            }}
-                            th {{
-                                background-color: #f2f2f2;
-                                font-weight: 600;
-                            }}
-                        </style>
-                        {html_table_suc}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                        if value > 0:
+                            delta_text = f"+{value}%"
+                        elif value < 0:
+                            delta_text = f"{value}%"
+                        else:
+                            delta_text = "0%"
+
+                        delta_suc_text_list.append(delta_text)
+
+                    df_suc_show["delta_numeric_temp"] = delta_suc_numeric_list
+                    df_suc_show["Δ % Sucesso (X>60 - X>40)"] = delta_suc_text_list
+
+                                # Construir HTML manual para aplicar cor ao delta
+                html_table_suc = """
+                <div style="overflow-x: auto;">
+                    <style>
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 16px;
+                        }
+                        th, td {
+                            text-align: center !important;
+                            padding: 10px 12px;
+                            border: 1px solid #d9d9d9;
+                        }
+                        th {
+                            background-color: #f2f2f2;
+                            font-weight: 600;
+                        }
+                    </style>
+                    <table>
+                        <thead>
+                            <tr>
+                """
+
+                for col in df_suc_show.columns:
+                    if col != "delta_numeric_temp":
+                        html_table_suc += f"<th>{col}</th>"
+
+                html_table_suc += """
+                            </tr>
+                        </thead>
+                        <tbody>
+                """
+
+                for _, row in df_suc_show.iterrows():
+                    html_table_suc += "<tr>"
+
+                    for col in df_suc_show.columns:
+                        if col == "delta_numeric_temp":
+                            continue
+
+                        cell_value = row[col]
+
+                        if col == "Δ % Sucesso (X>60 - X>40)":
+                            delta_value = row["delta_numeric_temp"]
+
+                            if delta_value > 0:
+                                color = "green"
+                                font_weight = "700"
+                            elif delta_value < 0:
+                                color = "red"
+                                font_weight = "700"
+                            else:
+                                color = "black"
+                                font_weight = "400"
+
+                            html_table_suc += f'<td style="color:{color}; font-weight:{font_weight};">{cell_value}</td>'
+                        else:
+                            html_table_suc += f"<td>{cell_value}</td>"
+
+                    html_table_suc += "</tr>"
+
+                html_table_suc += """
+                        </tbody>
+                    </table>
+                </div>
+                """
+
+                st.markdown(html_table_suc, unsafe_allow_html=True)
 
         with tab_60:
             fig_f60, fig_t60 = _charts(df60, "X>60")
