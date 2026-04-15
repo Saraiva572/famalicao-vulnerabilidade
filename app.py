@@ -1178,15 +1178,11 @@ elif pagina == "🏗️ Padrões de Construção":
         "RW":  (78, 8), "CF":  (90, 40),
     }
 
-def flip_y_for_pitch(y_value):
-"""
-Inverte o eixo y para desenhar o campo com origem no canto inferior esquerdo.
-"""
-if pd.isna(y_value):
-    return y_value
-return 80 - y_value
+    def flip_y_for_pitch(y_value):
+        if pd.isna(y_value):
+            return y_value
+        return 80 - y_value
     
-
     # ══════════════════════════════════════════════════════════════════════════
     # 1 — RESUMO EXECUTIVO (viz_executive_summary%20%281%29.csv)
     # ══════════════════════════════════════════════════════════════════════════
