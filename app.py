@@ -1348,9 +1348,10 @@ elif pagina == "🏗️ Padrões de Construção":
     # 3 — PADRÕES DE CONSTRUÇÃO — FREQUÊNCIA E TAXA DE SUCESSO
     # ══════════════════════════════════════════════════════════════════════════
     st.subheader("2️⃣ Padrões de Construção — Frequência e Taxa de Sucesso")
+    st.caption("Padrões de 1ª fase de construção encontrados em função das ligações em passe do FC Famalicão.")
 
     # Texto explicativo PRIMEIRO
-    st.markdown("#### Descrição dos padrões identificados pelo algoritmo")
+    st.markdown("#### Descrição dos padrões identificados:")
     st.markdown("""
 | Padrão | Descrição |
 |--------|-----------|
@@ -1375,6 +1376,131 @@ elif pagina == "🏗️ Padrões de Construção":
 
         df40 = _prep_pat(df_pat40)
         df60 = _prep_pat(df_pat60)
+
+        def _build_pattern_summary_table(df):
+            df_show = df.copy()
+
+            # Garantir que as colunas base existem
+            if "total" not in df_show.columns:
+                df_show["total"] = 0
+
+            if "success_total" not in df_show.columns:
+                df_show["success_total"] = 0
+
+            if "success_partial" not in df_show.columns:
+                df_show["success_partial"] = 0
+
+            if "unsuccessful" not in df_show.columns:
+                df_show["unsuccessful"] = 0
+
+            # Calcular percentagens se não existirem
+            if "freq_pct" not in df_show.columns:
+                total_posses = df_show["total"].sum()
+                if total_posses > 0:
+                    df_show["freq_pct"] = df_show["total"] / total_posses * 100
+                else:
+                    df_show["freq_pct"] = 0
+
+            if "success_total_pct" not in df_show.columns:
+                success_total_pct_list = []
+
+                for _, row in df_show.iterrows():
+                    if row["total"] > 0:
+                        value = row["success_total"] / row["total"] * 100
+                    else:
+                        value = 0
+                    success_total_pct_list.append(value)
+
+                df_show["success_total_pct"] = success_total_pct_list
+
+            if "success_partial_pct" not in df_show.columns:
+                success_partial_pct_list = []
+
+                for _, row in df_show.iterrows():
+                    if row["total"] > 0:
+                        value = row["success_partial"] / row["total"] * 100
+                    else:
+                        value = 0
+                    success_partial_pct_list.append(value)
+
+                df_show["success_partial_pct"] = success_partial_pct_list
+
+            if "unsuccessful_pct" not in df_show.columns:
+                unsuccessful_pct_list = []
+
+                for _, row in df_show.iterrows():
+                    if row["total"] > 0:
+                        value = row["unsuccessful"] / row["total"] * 100
+                    else:
+                        value = 0
+                    unsuccessful_pct_list.append(value)
+
+                df_show["unsuccessful_pct"] = unsuccessful_pct_list
+
+            # Criar % Sucesso = % Sucesso Parcial + % Sucesso Total
+            success_pct_list = []
+
+            for _, row in df_show.iterrows():
+                success_value = row["success_total_pct"] + row["success_partial_pct"]
+                success_pct_list.append(success_value)
+
+            df_show["success_pct"] = success_pct_list
+
+            # Selecionar e ordenar colunas
+            cols_show = [
+                "padrão_pt",
+                "total",
+                "freq_pct",
+                "success_pct",
+                "success_total_pct",
+                "success_partial_pct",
+                "unsuccessful_pct"
+            ]
+
+            df_show = df_show[cols_show].copy()
+
+            # Renomear colunas
+            df_show = df_show.rename(columns={
+                "padrão_pt": "Padrão",
+                "total": "Total",
+                "freq_pct": "% Frequência",
+                "success_pct": "% Sucesso",
+                "success_total_pct": "% Sucesso Total",
+                "success_partial_pct": "% Sucesso Parcial",
+                "unsuccessful_pct": "% Insucesso"
+            })
+
+            # Arredondar às unidades
+            numeric_cols = [
+                "Total",
+                "% Frequência",
+                "% Sucesso",
+                "% Sucesso Total",
+                "% Sucesso Parcial",
+                "% Insucesso"
+            ]
+
+            for col in numeric_cols:
+                df_show[col] = df_show[col].round(0).astype(int)
+
+            # Ordenar por frequência decrescente
+            df_show = df_show.sort_values("% Frequência", ascending=False).reset_index(drop=True)
+
+            # Estilo visual para centrar tudo
+            styled_df = (
+                df_show.style
+                .set_properties(**{
+                    "text-align": "center"
+                })
+                .set_table_styles([
+                    {
+                        "selector": "th",
+                        "props": [("text-align", "center")]
+                    }
+                ])
+            )
+
+            return styled_df
 
         def _charts(df, suffix):
             df_freq = df.sort_values("total", ascending=True)
@@ -1425,12 +1551,10 @@ elif pagina == "🏗️ Padrões de Construção":
                 if fig_t40: st.plotly_chart(fig_t40, use_container_width=True)
             # Tabela resumo X>40
             st.markdown("#### Tabela resumo")
-            cols40 = [c for c in ["padrão_pt","total","success_total","success_partial",
-                                   "unsuccessful","success_total_pct","freq_pct"] if c in df40.columns]
-            rn = {"padrão_pt":"Padrão","total":"Total","success_total":"Sucesso Total",
-                  "success_partial":"Sucesso Parcial","unsuccessful":"Insucesso",
-                  "success_total_pct":"% Sucesso Total","freq_pct":"% Frequência"}
-            st.dataframe(df40[cols40].rename(columns=rn), use_container_width=True, hide_index=True)
+            st.dataframe(
+                _build_pattern_summary_table(df40),
+                use_container_width=True,
+                hide_index=True)
 
             # Tabelas de comparação X>40 vs X>60
             if not df_pat_comp.empty:
@@ -1465,9 +1589,12 @@ elif pagina == "🏗️ Padrões de Construção":
             with c1: st.plotly_chart(fig_f60, use_container_width=True)
             with c2:
                 if fig_t60: st.plotly_chart(fig_t60, use_container_width=True)
-            cols60 = [c for c in ["padrão_pt","total","success_total","success_partial",
-                                   "unsuccessful","success_total_pct","freq_pct"] if c in df60.columns]
-            st.dataframe(df60[cols60].rename(columns=rn), use_container_width=True, hide_index=True)
+            st.markdown("#### Tabela resumo")
+            st.dataframe(
+                _build_pattern_summary_table(df60),
+                use_container_width=True,
+                hide_index=True
+            )
 
 
     # ══════════════════════════════════════════════════════════════════════════
