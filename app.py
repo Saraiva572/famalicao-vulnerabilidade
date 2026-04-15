@@ -794,8 +794,8 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     # ── Carregar CSVs do GitHub ─────────────────────────────────────────────
 
     GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Saraiva572/famalicao-vulnerabilidade/main"
-    OPPONENT_CSV_URL   = f"{GITHUB_RAW_BASE}/opponent_metrics%20(9).csv"
-    POSSESSION_CSV_URL = f"{GITHUB_RAW_BASE}/possession_metrics%20(5).csv"
+    OPPONENT_CSV_URL   = f"{GITHUB_RAW_BASE}/opponent_metrics.csv"
+    POSSESSION_CSV_URL = f"{GITHUB_RAW_BASE}/possession_metrics.csv"
 
     @st.cache_data(ttl=300, show_spinner="A carregar métricas pós-perda...")
     def carregar_opponent_metrics():
@@ -832,7 +832,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
         st.stop()
     
     has_possession_data = possession_df is not None and not possession_df.empty
-    
+
     # ── Cores dos clubes ────────────────────────────────────────────────────
     CLUB_COLORS = {
         "AVS": "#1E3A8A", "Alverca": "#009B3A", "Benfica": "#E30613",
@@ -848,8 +848,6 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     
     adversarios = ["Todos"] + sorted(df["opponent"].unique().tolist())
     sel_adv = st.sidebar.selectbox("Adversário", adversarios, key="perda_adv")
-    
-    min_jogos = st.sidebar.slider("Nº mínimo de jogos", 1, int(df["n_games"].max()), 1)
     
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 📊 Métrica de Destaque")
@@ -875,7 +873,6 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     df_f = df.copy()
     if sel_adv != "Todos":
         df_f = df_f[df_f["opponent"] == sel_adv]
-    df_f = df_f[df_f["n_games"] >= min_jogos]
     
     if df_f.empty:
         st.warning("Nenhum adversário encontrado com os filtros selecionados.")
@@ -1098,7 +1095,7 @@ elif pagina == "⚠️ Métricas Pós-Perda":
     # ══════════════════════════════════════════════════════════════════════════
     
     # Só mostrar scatter se tivermos as colunas necessárias
-    scatter_cols_needed = ['progression_mean', 'entry_last_third_mean', 'n_games']
+    scatter_cols_needed = ['progression_mean', 'entry_last_third_mean']
     has_scatter_cols = all(col in df_f.columns for col in scatter_cols_needed)
     
     if has_scatter_cols:
@@ -1120,7 +1117,6 @@ elif pagina == "⚠️ Métricas Pós-Perda":
                 data_frame=df_f,
                 x='progression_mean',
                 y='entry_last_third_mean',
-                size='n_games',
                 hover_name='opponent',
                 size_max=40
             )
@@ -1406,8 +1402,8 @@ elif pagina == "⚠️ Métricas Pós-Perda":
         df_rank["danger_index"] = 0
     
     # Construir tabela display com colunas existentes
-    display_cols = ["opponent", "danger_index", "n_games"]
-    display_names = ["Adversário", "Índice Perigo", "Jogos"]
+    display_cols = ["opponent", "danger_index"]
+    display_names = ["Adversário", "Índice Perigo"]
     
     if "shot_occurred_mean" in df_rank.columns:
         display_cols.append("shot_occurred_mean")
@@ -2153,8 +2149,8 @@ elif pagina == "📋 Conclusões":
     df_pat40  = _load_csv_conclusoes(f"{GITHUB_BASE}/viz_patterns_to_40.csv")
     df_pat60  = _load_csv_conclusoes(f"{GITHUB_BASE}/viz_patterns_to_60.csv")
     df_poss_c = _load_csv_conclusoes(f"{GITHUB_BASE}/possession_features_df.csv")
-    df_opp_c  = _load_csv_conclusoes(f"{GITHUB_BASE}/opponent_metrics%20(9).csv")
-    df_pm_c   = _load_csv_conclusoes(f"{GITHUB_BASE}/possession_metrics%20(5).csv")
+    df_opp_c  = _load_csv_conclusoes(f"{GITHUB_BASE}/opponent_metrics.csv")
+    df_pm_c   = _load_csv_conclusoes(f"{GITHUB_BASE}/possession_metrics.csv")
 
     has_pat40  = df_pat40  is not None and not df_pat40.empty
     has_pat60  = df_pat60  is not None and not df_pat60.empty
