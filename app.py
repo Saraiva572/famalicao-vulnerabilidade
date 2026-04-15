@@ -1981,8 +1981,8 @@ e não necessariamente ao ponto exato em que a posse cruza o limiar de progress�
             return None
 
         ZONE_LABEL_X = {
-            "x_band_2": "Faixa intermédia (40-80)",
-            "x_band_3": "Faixa adiantada (80-120)",
+            "x_band_2": "Terço Intermédio (40-80)",
+            "x_band_3": "Terço Final (80-120)",
         }
 
         ZONE_LABEL_Y = {
@@ -1994,7 +1994,7 @@ e não necessariamente ao ponto exato em que a posse cruza o limiar de progress�
         }
 
         Y_ORDER = ["Ext Esq", "Int Esq", "Centro", "Int Dir", "Ext Dir"]
-        X_ORDER = ["Faixa intermédia (40-80)", "Faixa adiantada (80-120)"]
+        X_ORDER = ["Terço Intermédio (40-80)", "Terço Final (80-120)"]
 
         mat = pd.DataFrame(None, index=X_ORDER, columns=Y_ORDER, dtype=float)
 
@@ -2063,8 +2063,8 @@ e não necessariamente ao ponto exato em que a posse cruza o limiar de progress�
                         title=dict(text=title, font=dict(size=13, family="Arial")),
                         height=320,
                         margin=dict(l=100, r=40, t=50, b=60),
-                        xaxis=dict(title="Corredor lateral"),
-                        yaxis=dict(title="Faixa longitudinal"),
+                        xaxis=dict(title="Largura"),
+                        yaxis=dict(title="Profundidade"),
                     )
 
                     st.plotly_chart(fig_hm, use_container_width=True)
