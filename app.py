@@ -1841,7 +1841,17 @@ elif pagina == "📋 Conclusões":
         c2.metric("TRI médio",           f"{tri_medio:.1f}",
                   delta=tendencia_label, delta_color=tendencia_color,
                   help="Transition Risk Index médio da época. Delta = variação últimos 3 vs restantes.")
-        c3.metric("TRI máximo",          f"{tri_max:.1f}",   help=f"Pior jogo: {jogo_critico}")
+        # Métrica pós-perda: remates por high press ou fallback para TRI máximo
+        if has_opp:
+            _hp_col = next((c for c in df_opp_c.columns if "high_press" in c.lower()), None)
+            if _hp_col:
+                _hp_media = df_opp_c[_hp_col].mean()
+                c3.metric("Remates (high press)", f"{_hp_media:.2f}",
+                          help="Média de remates sofridos após high press adversário (por jogo)")
+            else:
+                c3.metric("TRI máximo", f"{tri_max:.1f}", help=f"Pior jogo: {jogo_critico}")
+        else:
+            c3.metric("TRI máximo",          f"{tri_max:.1f}",   help=f"Pior jogo: {jogo_critico}")
         c4.metric("xG total sofrido",    f"{xg_total:.2f}",  help="Soma do xG concedido após perdas de bola")
         c5.metric("Exposição Def. média",f"{exp_media:.1f}%",help="% de perdas que geraram remate adversário")
         c6.metric("Counterpress médio",  f"{cp_media:.1f}%", help="% de recuperações em <5s após perda")
@@ -2097,30 +2107,30 @@ elif pagina == "📋 Conclusões":
             st.plotly_chart(fig_scatter, use_container_width=True)
 
         # ── Jogos críticos vs seguros ─────────────────────────────────────
-        st.markdown("#### Jogos por nível de risco")
-        col_r1, col_r2, col_r3 = st.columns(3)
+        with st.expander("📋 Jogos por nível de risco (TRI)", expanded=False):
+            col_r1, col_r2, col_r3 = st.columns(3)
 
-        df_baixo   = df_vap[df_vap["transition_risk_index"] < 20]
-        df_medio   = df_vap[(df_vap["transition_risk_index"] >= 20) & (df_vap["transition_risk_index"] < 40)]
-        df_alto    = df_vap[df_vap["transition_risk_index"] >= 40]
+            df_baixo   = df_vap[df_vap["transition_risk_index"] < 20]
+            df_medio   = df_vap[(df_vap["transition_risk_index"] >= 20) & (df_vap["transition_risk_index"] < 40)]
+            df_alto    = df_vap[df_vap["transition_risk_index"] >= 40]
 
-        with col_r1:
-            st.success(f"🟢 **Baixo Risco (TRI < 20)**\n\n{len(df_baixo)} jogo(s)")
-            if not df_baixo.empty:
-                for _, r in df_baixo.iterrows():
-                    st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
+            with col_r1:
+                st.success(f"🟢 **Baixo Risco (TRI < 20)**\n\n{len(df_baixo)} jogo(s)")
+                if not df_baixo.empty:
+                    for _, r in df_baixo.iterrows():
+                        st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
 
-        with col_r2:
-            st.warning(f"🟡 **Risco Médio (20–40)**\n\n{len(df_medio)} jogo(s)")
-            if not df_medio.empty:
-                for _, r in df_medio.iterrows():
-                    st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
+            with col_r2:
+                st.warning(f"🟡 **Risco Médio (20–40)**\n\n{len(df_medio)} jogo(s)")
+                if not df_medio.empty:
+                    for _, r in df_medio.iterrows():
+                        st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
 
-        with col_r3:
-            st.error(f"🔴 **Alto Risco (TRI ≥ 40)**\n\n{len(df_alto)} jogo(s)")
-            if not df_alto.empty:
-                for _, r in df_alto.iterrows():
-                    st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
+            with col_r3:
+                st.error(f"🔴 **Alto Risco (TRI ≥ 40)**\n\n{len(df_alto)} jogo(s)")
+                if not df_alto.empty:
+                    for _, r in df_alto.iterrows():
+                        st.markdown(f"- {r['label_full']} — TRI {r['transition_risk_index']:.1f}")
 
     else:
         st.warning("Dados de vulnerabilidade não disponíveis.")
@@ -2363,17 +2373,37 @@ para a equipa técnica — quer na redução da sua utilização, quer na melhor
 
         with col_n2:
             st.markdown("##### ⚠️ Vulnerabilidade Pós-Perda")
+
+            # Extrair métricas pós-perda dos CSVs do colega
+            _hp_val, _ca_val, _sic_val, _dp_val = None, None, None, None
+            if has_opp:
+                _hp_col  = next((c for c in df_opp_c.columns if "high_press" in c.lower()), None)
+                _ca_col  = next((c for c in df_opp_c.columns if "counter_attack" in c.lower()), None)
+                _sic_col = next((c for c in df_opp_c.columns if "shots_in_clear" in c.lower() or "clear" in c.lower()), None)
+                _dp_col  = next((c for c in df_opp_c.columns if "deep_prog" in c.lower()), None)
+                if _hp_col:  _hp_val  = df_opp_c[_hp_col].mean()
+                if _ca_col:  _ca_val  = df_opp_c[_ca_col].mean()
+                if _sic_col: _sic_val = df_opp_c[_sic_col].mean()
+                if _dp_col:  _dp_val  = df_opp_c[_dp_col].mean()
+
             conc_vuln = f"""
 A nível defensivo, o TRI médio da época é **{tri_m:.1f}** 
 ({'baixo — a equipa controla bem as transições' if tri_m < 10 else ('moderado — existem situações de risco' if tri_m < 20 else 'elevado — as transições são um problema real')}).
 
-**{exp_m:.1f}%** das perdas de bola na construção resultam em remate adversário nos 10 segundos
-seguintes. O jogo de maior risco foi **{jogo_critico_label}** e o mais controlado foi **{jogo_melhor_label}**.
+**{exp_m:.1f}%** das perdas de bola na construção resultam em remate adversário nos 10 segundos seguintes.
+O jogo de maior risco foi **{jogo_critico_label}** e o mais controlado foi **{jogo_melhor_label}**.
 
-A eficiência de counterpress média é **{cp_m:.1f}%** — percentagem de perdas em que o Famalicão
-recupera a bola em menos de 5 segundos.
+A eficiência de counterpress média é **{cp_m:.1f}%** — percentagem de perdas em que o Famalicão recupera a bola em menos de 5 segundos.
 {"**Recomendação:** aumentar a intensidade do counterpress imediato para reduzir a janela de transição adversária." if cp_m < 35 else "O counterpress é um ponto forte que deve ser mantido e potenciado."}
 """
+            # Acrescentar métricas pós-perda do CSV do colega se disponíveis
+            if any(v is not None for v in [_hp_val, _ca_val, _sic_val, _dp_val]):
+                conc_vuln += "\n**Métricas de pressão e exposição (por jogo):**\n"
+                if _hp_val  is not None: conc_vuln += f"- Remates sofridos em situação de **high press**: **{_hp_val:.2f}**\n"
+                if _ca_val  is not None: conc_vuln += f"- Remates sofridos em **contra-ataque**: **{_ca_val:.2f}**\n"
+                if _sic_val is not None: conc_vuln += f"- Remates em situação de **desobstrução** (*shots in clear*): **{_sic_val:.2f}**\n"
+                if _dp_val  is not None: conc_vuln += f"- **Progressões profundas** concedidas ao adversário: **{_dp_val:.2f}**\n"
+
             st.markdown(conc_vuln)
 
         # Recomendações finais
