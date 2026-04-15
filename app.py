@@ -1960,16 +1960,16 @@ elif pagina == "🏗️ Padrões de Construção":
     # ══════════════════════════════════════════════════════════════════════════
     st.subheader("3️⃣ Heatmap — Taxa de Sucesso por Zona Final da Circulação")
     st.caption(
-        "Percentagem de posses que atingem o objetivo em função da zona onde termina "
-        "a ação que encerra a janela de análise."
-    )
+    "Percentagem de posses que conseguem atingir o objetivo, em função da zona do campo "
+    "onde acaba a circulação da equipa dentro da janela analisada."
+)
 
     st.markdown(
-        """
-**Nota metodológica:** a zona representada corresponde à localização final da ação que encerra cada janela de análise,  
-e não necessariamente ao ponto exato em que a posse cruza o limiar de progressão.
-        """
-    )
+    """
+**Nota metodológica:** a zona representada corresponde ao local onde termina a circulação da equipa na ação final de cada janela de análise,  
+e não ao ponto exato onde a equipa ultrapassa a primeira pressão ou o limiar de progressão.
+    """
+)
 
     def _zone_matrix(df_zones, pattern_filter="all"):
         if df_zones.empty:
