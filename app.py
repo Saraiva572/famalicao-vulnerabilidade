@@ -1486,22 +1486,20 @@ elif pagina == "🏗️ Padrões de Construção":
             # Ordenar por frequência decrescente
             df_show = df_show.sort_values("% Frequência", ascending=False).reset_index(drop=True)
 
-            # Estilo visual para centrar tudo
-            styled_df = (
-                df_show.style
-                .set_properties(**{
-                    "text-align": "center"
-                })
-                .set_table_styles([
-                    {
-                        "selector": "th",
-                        "props": [("text-align", "center")]
-                    }
-                ])
-            )
+            # Adicionar símbolo % nas colunas percentuais
+            pct_cols = [
+                "% Frequência",
+                "% Sucesso",
+                "% Sucesso Total",
+                "% Sucesso Parcial",
+                "% Insucesso"
+            ]
 
-            return styled_df
+            for col in pct_cols:
+                df_show[col] = df_show[col].astype(str) + "%"
 
+            return df_show
+                    
         def _charts(df, suffix):
             df_freq = df.sort_values("total", ascending=True)
             colors  = [PATTERN_COLOR.get(p, "#888") for p in df_freq["padrão_pt"]]
@@ -1550,11 +1548,37 @@ elif pagina == "🏗️ Padrões de Construção":
             with c2:
                 if fig_t40: st.plotly_chart(fig_t40, use_container_width=True)
             # Tabela resumo X>40
+                        # Tabela resumo X>40
             st.markdown("#### Tabela resumo")
-            st.dataframe(
-                _build_pattern_summary_table(df40),
-                use_container_width=True,
-                hide_index=True)
+
+            df40_table = _build_pattern_summary_table(df40)
+
+            html_table_40 = df40_table.to_html(index=False, justify="center")
+
+            st.markdown(
+                f"""
+                <div style="overflow-x: auto;">
+                    <style>
+                        table {{
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 16px;
+                        }}
+                        th, td {{
+                            text-align: center !important;
+                            padding: 10px 12px;
+                            border: 1px solid #d9d9d9;
+                        }}
+                        th {{
+                            background-color: #f2f2f2;
+                            font-weight: 600;
+                        }}
+                    </style>
+                    {html_table_40}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
             # Tabelas de comparação X>40 vs X>60
             if not df_pat_comp.empty:
@@ -1589,11 +1613,35 @@ elif pagina == "🏗️ Padrões de Construção":
             with c1: st.plotly_chart(fig_f60, use_container_width=True)
             with c2:
                 if fig_t60: st.plotly_chart(fig_t60, use_container_width=True)
-            st.markdown("#### Tabela resumo")
-            st.dataframe(
-                _build_pattern_summary_table(df60),
-                use_container_width=True,
-                hide_index=True
+                        st.markdown("#### Tabela resumo")
+
+            df60_table = _build_pattern_summary_table(df60)
+
+            html_table_60 = df60_table.to_html(index=False, justify="center")
+
+            st.markdown(
+                f"""
+                <div style="overflow-x: auto;">
+                    <style>
+                        table {{
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 16px;
+                        }}
+                        th, td {{
+                            text-align: center !important;
+                            padding: 10px 12px;
+                            border: 1px solid #d9d9d9;
+                        }}
+                        th {{
+                            background-color: #f2f2f2;
+                            font-weight: 600;
+                        }}
+                    </style>
+                    {html_table_60}
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
 
