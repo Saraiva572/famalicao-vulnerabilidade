@@ -1679,7 +1679,28 @@ elif pagina == "🏗️ Padrões de Construção":
                     automargin=True
                 )
 
-            return fig_f, fig_t            # Tabelas de comparação X>40 vs X>60
+            return fig_f, fig_t
+        tab_40, tab_60 = st.tabs(["📊 até X > 40", "📊 até X > 60"])
+
+        with tab_40:
+            fig_f40, fig_t40 = _charts(df40, "X>40")
+            c1, c2 = st.columns(2)
+            with c1:
+                st.plotly_chart(fig_f40, use_container_width=True)
+            with c2:
+                if fig_t40:
+                    st.plotly_chart(fig_t40, use_container_width=True)
+
+        with tab_60:
+            fig_f60, fig_t60 = _charts(df60, "X>60")
+            c3, c4 = st.columns(2)
+            with c3:
+                st.plotly_chart(fig_f60, use_container_width=True)
+            with c4:
+                if fig_t60:
+                    st.plotly_chart(fig_t60, use_container_width=True)
+            
+            # Tabelas de comparação X>40 vs X>60
             if not df_pat_comp.empty:
                 df_comp = df_pat_comp.copy()
                 df_comp["Padrão"] = df_comp["pattern_name"].map(PATTERN_PT).fillna(df_comp["pattern_name"])
