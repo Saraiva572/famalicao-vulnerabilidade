@@ -2071,12 +2071,16 @@ elif pagina == "📋 Conclusões":
 
         with col_tri:
             fig_tri_conc = go.Figure()
-            ymax_tri = max(df_vap["transition_risk_index"].max() + 5, 30)
-            fig_tri_conc.add_hrect(y0=0,  y1=10,       fillcolor="#2ecc71", opacity=0.07, line_width=0)
-            fig_tri_conc.add_hrect(y0=10, y1=20,       fillcolor="#f39c12", opacity=0.07, line_width=0)
-            fig_tri_conc.add_hrect(y0=20, y1=ymax_tri, fillcolor="#e74c3c", opacity=0.07, line_width=0)
-            fig_tri_conc.add_hline(y=10, line_dash="dot", line_color="#2ecc71", line_width=1)
-            fig_tri_conc.add_hline(y=20, line_dash="dot", line_color="#e74c3c", line_width=1)
+            ymax_tri = max(df_vap["transition_risk_index"].max() + 5, 50)
+            fig_tri_conc.add_hrect(y0=0,  y1=20,       fillcolor="#2ecc71", opacity=0.10, line_width=0)
+            fig_tri_conc.add_hrect(y0=20, y1=40,       fillcolor="#f39c12", opacity=0.10, line_width=0)
+            fig_tri_conc.add_hrect(y0=40, y1=ymax_tri, fillcolor="#e74c3c", opacity=0.10, line_width=0)
+            fig_tri_conc.add_hline(y=20, line_dash="dot", line_color="#2ecc71", line_width=1.2,
+                                   annotation_text="Baixo/Médio", annotation_position="right",
+                                   annotation_font=dict(size=9, color="#2ecc71"))
+            fig_tri_conc.add_hline(y=40, line_dash="dot", line_color="#e74c3c", line_width=1.2,
+                                   annotation_text="Médio/Elevado", annotation_position="right",
+                                   annotation_font=dict(size=9, color="#e74c3c"))
             fig_tri_conc.add_trace(go.Scatter(
                 x=df_vap["label_full"], y=df_vap["transition_risk_index"],
                 mode="lines+markers",
